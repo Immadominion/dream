@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: #0B0B0F;
+            overflow: hidden;
+        }
+
+        #chart {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chart"></div>
+    <script>
+        var chart, candleSeries, volumeSeries, ready = false;
+        var pendingInit = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            chart = LightweightCharts.createChart(document.getElementById('chart'), {
+                layout: {
+                    background: { color: '#0B0B0F' },
+                    textColor: '#6B7280',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                    fontSize: 11
+                },
+                grid: {
+                    vertLines: { color: '#1C1C28', style: 0 },
+                    horzLines: { color: '#1C1C28', style: 0 }
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                    vertLine: { color: '#4B5563', labelBackgroundColor: '#1F2937' },
+                    horzLine: { color: '#4B5563', labelBackgroundColor: '#1F2937' }
+                },
+                rightPriceScale: {
+                    borderColor: '#1C1C28',
+                    scaleMargins: { top: 0.1, bottom: 0.25 },
+                    textColor: '#6B7280'
+                },
+                timeScale: {
+                    borderColor: '#1C1C28',
+                    timeVisible: true,
+                    secondsVisible: false,
+                    tickMarkFormatter: function (time) {
+                        var d = new Date(time * 1000);
+                        var h = d.getUTCHours().toString().padStart(2, '0');
+                        var m = d.getUTCMinutes().toString().padStart(2, '0');
+                        if (h === '00' && m === '00') {
+                            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            return d.getUTCDate() + ' ' + months[d.getUTCMonth()];
+                        }
+                        return h + ':' + m;
+                    }
+                },
+                handleScroll: {
+                    mouseWheel: true,
+                    pressedMouseMove: true,
+                    horzTouchDrag: true,
+                    vertTouchDrag: false
+                },
+                handleScale: {
+                    axisPressedMouseMove: true,
+                    mouseWheel: true,
+                    pinch: true
+                }
+            });
+
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#22C55E',
+                downColor: '#EF4444',
+                borderUpColor: '#22C55E',
+                borderDownColor: '#EF4444',
+                wickUpColor: '#22C55E',
+                wickDownColor: '#EF4444',
+                priceLineVisible: true,
+                priceLineColor: '#6366F1',
+                priceLineWidth: 1,
+                lastValueVisible: true
+            });
+
+            volumeSeries = chart.addHistogramSeries({
+                color: '#26a69a',
+                priceFormat: { type: 'volume' },
+                priceScaleId: 'volume'
+            });
+
+            chart.priceScale('volume').applyOptions({
+                scaleMargins: { top: 0.8, bottom: 0 },
+                borderVisible: false
+            });
+
+            ready = true;
+            if (pendingInit) {
+                _doInit(pendingInit);
+                pendingInit = null;
+            }
+        });
+
+        function _doInit(candles) {
+            var chartData = candles.map(function (c) {
+                return {
+                    time: Math.floor(c.time / 1000),
+                    open: c.open,
+                    high: c.high,
+                    low: c.low,
+                    close: c.close
+                };
+            });
+            var volData = candles.map(function (c) {
+                return {
+                    time: Math.floor(c.time / 1000),
+                    value: c.volume || 0,
+                    color: c.close >= c.open ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'
+                };
+            });
+            candleSeries.setData(chartData);
+            volumeSeries.setData(volData);
+            chart.timeScale().fitContent();
+        }
+
+        function initChart(b64) {
+            try {
+                var candles = JSON.parse(atob(b64));
+                if (!ready) {
+                    pendingInit = candles;
+                    return;
+                }
+                _doInit(candles);
+            } catch (e) {
+                console.error('initChart error', e);
+            }
+        }
+
+        function updateCandle(b64) {
+            if (!ready || !candleSeries) return;
+            try {
+                var c = JSON.parse(atob(b64));
+                var t = Math.floor(c.time / 1000);
+                candleSeries.update({ time: t, open: c.open, high: c.high, low: c.low, close: c.close });
+                volumeSeries.update({
+                    time: t,
+                    value: c.volume || 0,
+                    color: c.close >= c.open ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'
+                });
+            } catch (e) {
+                console.error('updateCandle error', e);
+            }
+        }
+    </script>
+</body>
+
+</html>
