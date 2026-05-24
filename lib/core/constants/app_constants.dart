@@ -73,6 +73,12 @@ class AppConstants {
   static int get phoenixBuilderPdaIndex =>
       int.tryParse(dotenv.get('PHOENIX_BUILDER_PDA_INDEX', fallback: '0')) ?? 0;
 
+  /// Dream's own Phoenix referral code.
+  /// When set (via DREAM_REFERRAL_CODE env var), this code is pre-filled on the
+  /// activation page. Future: auto-activate new users under this code.
+  static String get dreamReferralCode =>
+      dotenv.get('DREAM_REFERRAL_CODE', fallback: '');
+
   /// Builder trader subaccount index (default 0 — primary subaccount).
   static int get phoenixBuilderSubaccountIndex =>
       int.tryParse(

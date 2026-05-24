@@ -131,29 +131,32 @@ class WsStatusBanner extends ConsumerWidget {
 
     return Material(
       color: const Color(0xFF92400E), // amber-800
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 8.w,
-              height: 8.w,
-              child: const CircularProgressIndicator(
-                strokeWidth: 1.5,
-                color: Colors.white70,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 8.w,
+                height: 8.w,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: Colors.white70,
+                ),
               ),
-            ),
-            SizedBox(width: 8.w),
-            Text(
-              'Reconnecting to live data…',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w500,
+              SizedBox(width: 8.w),
+              Text(
+                'Reconnecting to live data…',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

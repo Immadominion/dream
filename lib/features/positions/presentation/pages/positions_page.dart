@@ -17,54 +17,7 @@ class PositionsPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _Header(
-              onRefresh: () => ref.read(positionsProvider.notifier).refresh(),
-            ),
-            Expanded(child: _Body(state: state)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  final VoidCallback onRefresh;
-  const _Header({required this.onRefresh});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 8.w, 8.h),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderDark, width: 0.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text(
-            'Positions',
-            style: TextStyle(
-              color: AppColors.textPrimaryDark,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            onPressed: onRefresh,
-            icon: Icon(
-              Icons.refresh,
-              color: AppColors.textSecondaryDark,
-              size: 20.sp,
-            ),
-          ),
-        ],
-      ),
+      body: SafeArea(bottom: false, child: _Body(state: state)),
     );
   }
 }
@@ -107,7 +60,12 @@ class _Body extends ConsumerWidget {
       backgroundColor: AppColors.surfaceDark,
       onRefresh: () => ref.read(positionsProvider.notifier).refresh(),
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+        padding: EdgeInsets.fromLTRB(
+          16.w,
+          16.h,
+          16.w,
+          MediaQuery.paddingOf(context).bottom + 24.h,
+        ),
         children: [
           if (positions.isNotEmpty) ...[
             _SectionLabel(label: 'Open Positions (${positions.length})'),

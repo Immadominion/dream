@@ -159,20 +159,23 @@ class _EnhancedLoginPageState extends ConsumerState<EnhancedLoginPage>
                             ),
                           ),
                         ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOut,
-                          padding: EdgeInsets.fromLTRB(
-                            24.w,
-                            0,
-                            24.w,
-                            24.h + safeBottom + keyboardInset,
+                        if (!_showEmailForm)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOut,
+                            padding: EdgeInsets.fromLTRB(
+                              24.w,
+                              0,
+                              24.w,
+                              24.h + safeBottom + keyboardInset,
+                            ),
+                            child: const LoginFooter(),
                           ),
-                          child: const LoginFooter(),
-                        ),
                       ],
                     ),
-                    if (_isLoading)
+                    // Full-screen overlay only for OAuth/wallet flows, not email OTP
+                    // (email form has an inline button spinner)
+                    if (_isLoading && !_showEmailForm)
                       Container(
                         color: Colors.black.withValues(alpha: 0.25),
                         child: const Center(

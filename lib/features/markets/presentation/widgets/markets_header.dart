@@ -7,166 +7,72 @@ import '../../../../core/theme/app_colors.dart';
 enum MarketSortMode { change, volume, oi, funding }
 
 // ---------------------------------------------------------------------------
-// Markets page header — search + sort chips
+// Markets page header — filter chips only
 // ---------------------------------------------------------------------------
 
 class MarketsHeader extends StatelessWidget {
-  final TextEditingController searchCtrl;
   final MarketSortMode sort;
   final bool sortDesc;
   final bool watchlistOnly;
-  final ValueChanged<String> onQueryChanged;
   final ValueChanged<MarketSortMode> onSortChanged;
   final VoidCallback onWatchlistOnlyToggled;
-  final VoidCallback onRefresh;
 
   const MarketsHeader({
     super.key,
-    required this.searchCtrl,
     required this.sort,
     required this.sortDesc,
     required this.watchlistOnly,
-    required this.onQueryChanged,
     required this.onSortChanged,
     required this.onWatchlistOnlyToggled,
-    required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderDark, width: 0.5),
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
+      child: SizedBox(
+        height: 36.h,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            _WatchlistChip(
+              active: watchlistOnly,
+              onTap: onWatchlistOnlyToggled,
+            ),
+            SizedBox(width: 8.w),
+            MarketsSortChip(
+              label: '24h %',
+              mode: MarketSortMode.change,
+              current: sort,
+              sortDesc: sortDesc,
+              onTap: () => onSortChanged(MarketSortMode.change),
+            ),
+            SizedBox(width: 8.w),
+            MarketsSortChip(
+              label: 'Volume',
+              mode: MarketSortMode.volume,
+              current: sort,
+              sortDesc: sortDesc,
+              onTap: () => onSortChanged(MarketSortMode.volume),
+            ),
+            SizedBox(width: 8.w),
+            MarketsSortChip(
+              label: 'OI',
+              mode: MarketSortMode.oi,
+              current: sort,
+              sortDesc: sortDesc,
+              onTap: () => onSortChanged(MarketSortMode.oi),
+            ),
+            SizedBox(width: 8.w),
+            MarketsSortChip(
+              label: 'Funding',
+              mode: MarketSortMode.funding,
+              current: sort,
+              sortDesc: sortDesc,
+              onTap: () => onSortChanged(MarketSortMode.funding),
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title row
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 8.w, 0),
-            child: Row(
-              children: [
-                Text(
-                  'Markets',
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: onRefresh,
-                  icon: Icon(
-                    Icons.refresh,
-                    color: AppColors.textSecondaryDark,
-                    size: 20.sp,
-                  ),
-                  padding: EdgeInsets.all(8.w),
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-          ),
-          // Search field
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 10.h),
-            child: SizedBox(
-              height: 36.h,
-              child: TextField(
-                controller: searchCtrl,
-                onChanged: onQueryChanged,
-                style: TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontSize: 13.sp,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search markets…',
-                  hintStyle: TextStyle(
-                    color: AppColors.textMutedDark,
-                    fontSize: 13.sp,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: AppColors.textMutedDark,
-                    size: 16.sp,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.cardDark,
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 12.w,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                    borderSide: BorderSide(color: AppColors.borderDark),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                    borderSide: BorderSide(color: AppColors.borderDark),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.r),
-                    borderSide: BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Sort chips + watchlist filter row
-          SizedBox(
-            height: 30.h,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 0),
-              children: [
-                // Watchlist filter chip
-                _WatchlistChip(
-                  active: watchlistOnly,
-                  onTap: onWatchlistOnlyToggled,
-                ),
-                SizedBox(width: 6.w),
-                MarketsSortChip(
-                  label: '24h %',
-                  mode: MarketSortMode.change,
-                  current: sort,
-                  sortDesc: sortDesc,
-                  onTap: () => onSortChanged(MarketSortMode.change),
-                ),
-                SizedBox(width: 6.w),
-                MarketsSortChip(
-                  label: 'Volume',
-                  mode: MarketSortMode.volume,
-                  current: sort,
-                  sortDesc: sortDesc,
-                  onTap: () => onSortChanged(MarketSortMode.volume),
-                ),
-                SizedBox(width: 6.w),
-                MarketsSortChip(
-                  label: 'OI',
-                  mode: MarketSortMode.oi,
-                  current: sort,
-                  sortDesc: sortDesc,
-                  onTap: () => onSortChanged(MarketSortMode.oi),
-                ),
-                SizedBox(width: 6.w),
-                MarketsSortChip(
-                  label: 'Funding',
-                  mode: MarketSortMode.funding,
-                  current: sort,
-                  sortDesc: sortDesc,
-                  onTap: () => onSortChanged(MarketSortMode.funding),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 8.h),
-        ],
       ),
     );
   }
@@ -189,12 +95,12 @@ class _WatchlistChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 10.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
         decoration: BoxDecoration(
           color: active
               ? starColor.withValues(alpha: 0.15)
               : AppColors.cardDark,
-          borderRadius: BorderRadius.circular(6.r),
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: active ? starColor : AppColors.borderDark,
             width: active ? 1.5 : 1,
@@ -214,7 +120,7 @@ class _WatchlistChip extends StatelessWidget {
               style: TextStyle(
                 color: active ? starColor : AppColors.textSecondaryDark,
                 fontSize: 11.sp,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],
@@ -251,12 +157,12 @@ class MarketsSortChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 10.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
         decoration: BoxDecoration(
           color: active
-              ? AppColors.primary.withOpacity(0.15)
+              ? AppColors.primary.withValues(alpha: 0.14)
               : AppColors.cardDark,
-          borderRadius: BorderRadius.circular(6.r),
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: active ? AppColors.primary : AppColors.borderDark,
             width: active ? 1.5 : 1,

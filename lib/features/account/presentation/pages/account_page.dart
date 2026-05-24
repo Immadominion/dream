@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/auth/client_auth_provider.dart';
@@ -27,24 +28,19 @@ class AccountPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
           color: AppColors.primary,
           backgroundColor: AppColors.surfaceDark,
           onRefresh: () => ref.read(accountProvider.notifier).refresh(),
           child: ListView(
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
+            padding: EdgeInsets.fromLTRB(
+              16.w,
+              16.h,
+              16.w,
+              MediaQuery.paddingOf(context).bottom + 24.h,
+            ),
             children: [
-              // Title
-              Text(
-                'Account',
-                style: TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: 16.h),
-
               // Wallet address card
               if (walletAddress != null)
                 AccountWalletCard(address: walletAddress),
@@ -160,6 +156,7 @@ class _AccountSignOutButton extends ConsumerWidget {
 
         if (confirm == true && context.mounted) {
           await ref.read(clientAuthProvider.notifier).signOut();
+          if (context.mounted) context.go('/enhanced-login');
         }
       },
       icon: Icon(Icons.logout, color: AppColors.textSecondaryDark, size: 16.sp),

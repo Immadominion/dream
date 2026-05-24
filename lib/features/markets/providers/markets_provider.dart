@@ -59,6 +59,7 @@ class MarketsState {
 class MarketsNotifier extends Notifier<MarketsState> {
   StreamSubscription<AllMidsMessage>? _midsSub;
   StreamSubscription<MarketSnapshotMessage>? _snapshotSub;
+  bool _wsStarted = false;
 
   @override
   MarketsState build() {
@@ -70,7 +71,6 @@ class MarketsNotifier extends Notifier<MarketsState> {
 
   Future<void> _init() async {
     await _fetchMarkets();
-    _startWebSocket();
   }
 
   Future<void> _fetchMarkets() async {
@@ -79,6 +79,8 @@ class MarketsNotifier extends Notifier<MarketsState> {
           .read(phoenixMarketServiceProvider)
           .fetchMarkets();
       state = state.copyWith(markets: markets, isLoading: false);
+      _ensureWebSocketStarted();
+      _subscribeMarketChannels();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -87,7 +89,10 @@ class MarketsNotifier extends Notifier<MarketsState> {
     }
   }
 
-  void _startWebSocket() {
+  void _ensureWebSocketStarted() {
+    if (_wsStarted || state.markets.isEmpty) return;
+    _wsStarted = true;
+
     final ws = ref.read(phoenixWebSocketServiceProvider);
 
     // All-mids stream → update live prices (only when values actually changed)
@@ -123,6 +128,11 @@ class MarketsNotifier extends Notifier<MarketsState> {
 
     // Connect and subscribe to allMids (done inside service on connect)
     ws.connect();
+  }
+
+  void _subscribeMarketChannels() {
+    if (!_wsStarted) return;
+    final ws = ref.read(phoenixWebSocketServiceProvider);
 
     // Subscribe to each market's detailed channel
     for (final m in state.markets) {
@@ -138,6 +148,7 @@ class MarketsNotifier extends Notifier<MarketsState> {
   void _dispose() {
     _midsSub?.cancel();
     _snapshotSub?.cancel();
+    _wsStarted = false;
   }
 }
 

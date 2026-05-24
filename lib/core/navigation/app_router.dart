@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../constants/app_constants.dart';
 import '../services/logger_service.dart';
+import '../services/phoenix/phoenix_trader_service.dart';
 import '../../features/auth/presentation/pages/enhanced_login_page.dart';
 import '../../features/auth/presentation/pages/onboarding_page.dart';
+import '../../features/account/presentation/pages/activate_page.dart';
 import '../../features/navigation/presentation/widgets/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../providers/auth/client_auth_provider.dart';
@@ -48,6 +50,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.home,
         name: 'home',
         builder: (context, state) => const MainShell(),
+      ),
+
+      // Activation gate — shown when Phoenix account not yet registered
+      GoRoute(
+        path: '/activate',
+        name: 'activate',
+        builder: (context, state) => const ActivatePage(),
       ),
 
       // Settings Route
@@ -123,6 +132,29 @@ class _SplashPageState extends ConsumerState<_SplashPage> {
       _logger.info(
         '[Router] User authenticated: ${finalAuthState.session!.user.email}',
       );
+
+      final walletAddress = finalAuthState.walletAddress;
+      if (walletAddress != null) {
+        _logger.info('[Router] Checking Phoenix trader registration...');
+        try {
+          final traderState = await ref
+              .read(phoenixTraderServiceProvider)
+              .fetchTraderState(walletAddress);
+
+          if (!mounted) return;
+
+          if (!traderState.isRegistered) {
+            _logger.info('[Router] Trader not activated, going to activate');
+            context.go('/activate');
+            return;
+          }
+        } catch (e) {
+          _logger.warning(
+            '[Router] Trader registration check failed; defaulting to home: $e',
+          );
+        }
+      }
+
       _logger.info('[Router] Navigating to home');
       context.go(AppRoutes.home);
     } else {

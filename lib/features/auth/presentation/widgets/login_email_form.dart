@@ -48,7 +48,7 @@ class LoginEmailForm extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         Text(
-          'We will email you a six-digit code secured by Privy.',
+          'We\'ll send a six-digit verification code to this address.',
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
         ),
         SizedBox(height: 24.h),

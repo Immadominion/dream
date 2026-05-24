@@ -31,6 +31,7 @@ class TradePage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
+        bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth >= _kTabletBreakpoint) {
@@ -179,7 +180,12 @@ class _OrderFormScroll extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.fromLTRB(
+        16.w,
+        16.h,
+        16.w,
+        MediaQuery.paddingOf(context).bottom + 24.h,
+      ),
       child: Column(
         children: [
           TradeActivePositionStrip(symbol: tradeState.symbol),

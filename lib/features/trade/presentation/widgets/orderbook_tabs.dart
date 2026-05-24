@@ -51,63 +51,68 @@ class OrderbookDepthTab extends ConsumerWidget {
       ...ob.bids.take(10).map((e) => e.size),
     ].fold(0.0, (a, b) => a > b ? a : b);
 
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Price (USDC)',
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 24.h,
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Price (USDC)',
+                    style: TextStyle(
+                      color: AppColors.textMutedDark,
+                      fontSize: 10.sp,
+                    ),
+                  ),
+                ),
+                Text(
+                  'Size',
                   style: TextStyle(
                     color: AppColors.textMutedDark,
                     fontSize: 10.sp,
                   ),
                 ),
-              ),
-              Text(
-                'Size',
-                style: TextStyle(
-                  color: AppColors.textMutedDark,
-                  fontSize: 10.sp,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        ...asks.map(
-          (level) =>
-              OrderbookLevel(level: level, isBid: false, maxSize: maxSize),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-          child: Row(
-            children: [
-              Text(
-                _obPrice(ob.mid ?? ob.bestBid),
-                style: TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Spread ${ob.spreadPct.toStringAsFixed(3)}%',
-                style: TextStyle(
-                  color: AppColors.textMutedDark,
-                  fontSize: 10.sp,
-                ),
-              ),
-            ],
+          ...asks.map(
+            (level) =>
+                OrderbookLevel(level: level, isBid: false, maxSize: maxSize),
           ),
-        ),
-        ...bids.map(
-          (level) =>
-              OrderbookLevel(level: level, isBid: true, maxSize: maxSize),
-        ),
-      ],
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+            child: Row(
+              children: [
+                Text(
+                  _obPrice(ob.mid ?? ob.bestBid),
+                  style: TextStyle(
+                    color: AppColors.textPrimaryDark,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  'Spread ${ob.spreadPct.toStringAsFixed(3)}%',
+                  style: TextStyle(
+                    color: AppColors.textMutedDark,
+                    fontSize: 10.sp,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ...bids.map(
+            (level) =>
+                OrderbookLevel(level: level, isBid: true, maxSize: maxSize),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -243,6 +248,9 @@ class OrderbookTradesTab extends ConsumerWidget {
         ),
         Expanded(
           child: ListView.builder(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + 24.h,
+            ),
             itemCount: trades.length,
             itemBuilder: (_, i) => OrderbookTradeTile(trade: trades[i]),
           ),

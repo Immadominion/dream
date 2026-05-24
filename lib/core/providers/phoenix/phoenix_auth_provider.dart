@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/phoenix/phoenix_models.dart';
@@ -95,12 +97,18 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
     _mwaService = ref.watch(mwaWalletServiceProvider);
     _logger = ref.watch(loggerServiceProvider);
 
-    // React to changes in the app-level auth state
-    ref.listen<AuthStateData>(
-      clientAuthProvider,
-      (previous, next) => _onAppAuthChanged(previous, next),
-      fireImmediately: true,
-    );
+    // React to later changes in the app-level auth state.
+    // Do not use fireImmediately here: the callback would run before this
+    // notifier's initial state is returned, and reading `state` would throw.
+    ref.listen<AuthStateData>(clientAuthProvider, (previous, next) {
+      unawaited(_onAppAuthChanged(previous, next));
+    });
+
+    // Handle the current auth snapshot after the initial state exists.
+    Future.microtask(() {
+      final current = ref.read(clientAuthProvider);
+      unawaited(_onAppAuthChanged(null, current));
+    });
 
     return const PhoenixAuthState(status: PhoenixAuthStatus.initial);
   }

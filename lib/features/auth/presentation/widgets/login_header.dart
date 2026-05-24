@@ -29,7 +29,7 @@ class LoginHeader extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           Text(
-            'Trade perpetual futures on Solana.',
+            'Trade perpetual futures on Solana, everywhere.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurface,
             ),

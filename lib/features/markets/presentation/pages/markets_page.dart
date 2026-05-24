@@ -19,17 +19,9 @@ class MarketsPage extends ConsumerStatefulWidget {
 }
 
 class _MarketsPageState extends ConsumerState<MarketsPage> {
-  final _searchCtrl = TextEditingController();
-  String _query = '';
   MarketSortMode _sort = MarketSortMode.change;
   bool _sortDesc = true;
   bool _watchlistOnly = false;
-
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +30,7 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
 
     var markets = state.markets.where((m) {
       if (_watchlistOnly && !watchlist.contains(m.symbol)) return false;
-      if (_query.isEmpty) return true;
-      return m.symbol.toLowerCase().contains(_query.toLowerCase());
+      return true;
     }).toList();
 
     markets.sort((a, b) {
@@ -57,14 +48,13 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             MarketsHeader(
-              searchCtrl: _searchCtrl,
               sort: _sort,
               sortDesc: _sortDesc,
               watchlistOnly: _watchlistOnly,
-              onQueryChanged: (q) => setState(() => _query = q),
               onSortChanged: (s) => setState(() {
                 if (_sort == s) {
                   _sortDesc = !_sortDesc;
@@ -75,7 +65,6 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
               }),
               onWatchlistOnlyToggled: () =>
                   setState(() => _watchlistOnly = !_watchlistOnly),
-              onRefresh: () => ref.read(marketsProvider.notifier).refresh(),
             ),
             Expanded(
               child: _MarketsBody(
@@ -95,6 +84,9 @@ class _MarketsBody extends ConsumerWidget {
   final MarketsState state;
   final List<PhoenixMarket> filteredMarkets;
   final bool watchlistOnly;
+
+  static const double _listCacheExtent = 320;
+
   const _MarketsBody({
     required this.state,
     required this.filteredMarkets,
@@ -146,7 +138,7 @@ class _MarketsBody extends ConsumerWidget {
       } else if (state.markets.isEmpty) {
         message = 'No markets available';
       } else {
-        message = 'No markets match your search';
+        message = 'No markets available right now';
       }
       return Center(
         child: Padding(
@@ -168,7 +160,15 @@ class _MarketsBody extends ConsumerWidget {
       backgroundColor: AppColors.surfaceDark,
       onRefresh: () => ref.read(marketsProvider.notifier).refresh(),
       child: ListView.builder(
-        padding: EdgeInsets.only(bottom: 24.h),
+        // Keep image/network work scoped to visible rows plus a small buffer.
+        cacheExtent: _listCacheExtent,
+        // Bottom padding accounts for the nav bar height via extendBody MediaQuery
+        padding: EdgeInsets.fromLTRB(
+          0,
+          4.h,
+          0,
+          MediaQuery.paddingOf(context).bottom + 8.h,
+        ),
         itemCount: filteredMarkets.length,
         itemBuilder: (context, index) {
           final market = filteredMarkets[index];

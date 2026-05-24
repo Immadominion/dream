@@ -200,6 +200,12 @@ class PositionsNotifier extends Notifier<PositionsState> {
     _wsSub?.cancel();
     _wsSub = ws.traderStateStream.listen((msg) {
       final previous = state.traderState;
+
+      // Guard: if the account is known to be unregistered, WS messages
+      // must not flip isRegistered back to the constructor default (true).
+      // Registration can only happen via POST /v1/invite/activate*, never via WS.
+      if (previous?.isRegistered == false) return;
+
       // WebSocket delivers partial traderState — merge with current
       final updated = PhoenixTraderState.fromApiJson(msg.raw, authority);
       state = state.copyWith(traderState: updated, isLoading: false);
