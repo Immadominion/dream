@@ -85,8 +85,6 @@ class _MarketsBody extends ConsumerWidget {
   final List<PhoenixMarket> filteredMarkets;
   final bool watchlistOnly;
 
-  static const double _listCacheExtent = 320;
-
   const _MarketsBody({
     required this.state,
     required this.filteredMarkets,
@@ -159,28 +157,87 @@ class _MarketsBody extends ConsumerWidget {
       color: AppColors.primary,
       backgroundColor: AppColors.surfaceDark,
       onRefresh: () => ref.read(marketsProvider.notifier).refresh(),
-      child: ListView.builder(
-        // Keep image/network work scoped to visible rows plus a small buffer.
-        cacheExtent: _listCacheExtent,
-        // Bottom padding accounts for the nav bar height via extendBody MediaQuery
-        padding: EdgeInsets.fromLTRB(
-          0,
-          4.h,
-          0,
-          MediaQuery.paddingOf(context).bottom + 8.h,
-        ),
-        itemCount: filteredMarkets.length,
-        itemBuilder: (context, index) {
-          final market = filteredMarkets[index];
-          return MarketTile(
-            market: market,
-            onTap: () {
-              ref.read(tradeProvider.notifier).selectSymbol(market.symbol);
-              ref.read(bottomNavIndexProvider.notifier).setIndex(1);
-            },
-          );
-        },
+      child: _CurveListView(
+        markets: filteredMarkets,
       ),
+    );
+  }
+}
+
+class _CurveListView extends ConsumerStatefulWidget {
+  final List<PhoenixMarket> markets;
+  const _CurveListView({required this.markets});
+
+  @override
+  ConsumerState<_CurveListView> createState() => _CurveListViewState();
+}
+
+class _CurveListViewState extends ConsumerState<_CurveListView> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      controller: _controller,
+      cacheExtent: 320,
+      padding: EdgeInsets.fromLTRB(
+        0,
+        12.h,
+        0,
+        MediaQuery.paddingOf(context).bottom + 24.h,
+      ),
+      itemCount: widget.markets.length,
+      itemBuilder: (context, index) {
+        final market = widget.markets[index];
+        final child = MarketTile(
+          market: market,
+          onTap: () {
+            ref.read(tradeProvider.notifier).selectSymbol(market.symbol);
+            ref.read(bottomNavIndexProvider.notifier).setIndex(1);
+          },
+        );
+
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            // Only scale if attached and has dimensions
+            if (!_controller.hasClients || _controller.position.viewportDimension == 0.0) {
+              return child;
+            }
+
+            final RenderBox? box = context.findRenderObject() as RenderBox?;
+            if (box == null) return child;
+
+            try {
+              final offset = box.localToGlobal(Offset.zero);
+              final itemCenterY = offset.dy + (box.size.height / 2);
+              
+              // Find screen center roughly
+              final screenHeight = MediaQuery.sizeOf(context).height;
+              final centerY = screenHeight / 2;
+              
+              final distance = (itemCenterY - centerY).abs();
+              final ratio = (distance / (screenHeight / 2)).clamp(0.0, 1.0);
+              
+              // Items at edges scale down slightly to 0.88, center items are 1.0
+              final scale = 1.0 - (ratio * 0.12);
+
+              return Transform.scale(
+                scale: scale,
+                child: child,
+              );
+            } catch (e) {
+              return child; // Fallback if layout isn't fully ready
+            }
+          },
+        );
+      },
     );
   }
 }

@@ -23,7 +23,6 @@ class MarketTile extends ConsumerWidget {
     final marketsState = ref.watch(marketsProvider);
     final price = marketsState.priceFor(market.symbol);
     final change = marketsState.changeFor(market.symbol);
-    final funding = marketsState.fundingFor(market.symbol);
     final snapshot = marketsState.snapshots[market.symbol];
 
     // Watchlist state
@@ -39,176 +38,145 @@ class MarketTile extends ConsumerWidget {
     final hasPosition = position != null;
     final posIsLong = hasPosition && position.side.toLowerCase() == 'long';
     final posColor = posIsLong ? AppColors.bullish : AppColors.bearish;
-    final posPnl = position?.unrealizedPnl ?? 0.0;
 
     final isPositive = change >= 0;
     final changeColor = isPositive ? AppColors.bullish : AppColors.bearish;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 6.h),
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 4.h),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18.r),
+          borderRadius: BorderRadius.circular(12.r),
           child: Ink(
-            decoration: BoxDecoration(
-              color: hasPosition
-                  ? posColor.withValues(alpha: 0.06)
-                  : AppColors.cardDark,
-              borderRadius: BorderRadius.circular(18.r),
-              border: Border.all(
-                color: hasPosition
-                    ? posColor.withValues(alpha: 0.24)
-                    : AppColors.borderDark,
-              ),
-            ),
-            padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 _TokenLogo(
                   symbol: market.baseAsset,
-                  size: 36.r,
+                  size: 38.r,
                   borderColor: hasPosition
                       ? posColor.withValues(alpha: 0.42)
-                      : AppColors.borderDark,
+                      : Colors.transparent,
                 ),
-                SizedBox(width: 10.w),
+                SizedBox(width: 12.w),
+                // Left side: Symbols and Volume
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        market.baseAsset,
-                        style: TextStyle(
-                          color: AppColors.textPrimaryDark,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        '${market.quoteAsset} perp · ${market.maxLeverage}x',
-                        style: TextStyle(
-                          color: AppColors.textSecondaryDark,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 7.h),
                       Row(
                         children: [
-                          _MetricChip(
-                            label: 'VOL',
-                            value: snapshot != null
-                                ? formatCompact(snapshot.volume24hUsd)
-                                : '--',
-                          ),
-                          SizedBox(width: 5.w),
-                          _MetricChip(
-                            label: 'OI',
-                            value: snapshot != null
-                                ? formatCompact(snapshot.openInterestUsd)
-                                : '--',
-                          ),
-                          SizedBox(width: 5.w),
-                          _MetricChip(
-                            label: 'FUND',
-                            value: formatFundingRate(funding),
-                            valueColor: funding >= 0
-                                ? AppColors.bullish
-                                : AppColors.bearish,
-                          ),
-                        ],
-                      ),
-                      if (hasPosition) ...[
-                        SizedBox(height: 5.h),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 7.w,
-                            vertical: 3.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: posColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999.r),
-                          ),
-                          child: Text(
-                            '${posIsLong ? 'LONG' : 'SHORT'} · ${formatPnl(posPnl)}',
+                          Text(
+                            market.baseAsset,
                             style: TextStyle(
-                              color: posColor,
-                              fontSize: 10.sp,
+                              color: AppColors.textPrimaryDark,
+                              fontSize: 15.sp,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          Text(
+                            ' / USDC',
+                            style: TextStyle(
+                              color: AppColors.textMutedDark,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                          if (hasPosition)
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6.w,
+                                vertical: 2.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: posColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(4.r),
+                              ),
+                              child: Text(
+                                posIsLong ? 'LONG' : 'SHORT',
+                                style: TextStyle(
+                                  color: posColor,
+                                  fontSize: 9.sp,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        snapshot != null
+                            ? '${formatCompact(snapshot.volume24hUsd)} USDC'
+                            : '0.00 USDC',
+                        style: TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
-                SizedBox(width: 12.w),
+                // Right side: Price and Change Pill
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        ref
-                            .read(watchlistProvider.notifier)
-                            .toggle(market.symbol);
-                      },
-                      child: Container(
-                        width: 30.w,
-                        height: 30.w,
-                        decoration: BoxDecoration(
-                          color: isWatched
-                              ? const Color(0xFFF5C518).withValues(alpha: 0.12)
-                              : AppColors.surfaceDark,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: isWatched
-                                ? const Color(0xFFF5C518).withValues(alpha: 0.3)
-                                : AppColors.borderDark,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          price > 0 ? formatPrice(price) : '--',
+                          style: TextStyle(
+                            color: AppColors.textPrimaryDark,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                        child: Icon(
-                          isWatched
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          color: isWatched
-                              ? const Color(0xFFF5C518)
-                              : AppColors.textMutedDark,
-                          size: 17.sp,
+                        SizedBox(width: 6.w),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            ref
+                                .read(watchlistProvider.notifier)
+                                .toggle(market.symbol);
+                          },
+                          child: Icon(
+                            isWatched
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            color: isWatched
+                                ? const Color(0xFFF5C518)
+                                : AppColors.textMutedDark,
+                            size: 18.sp,
+                          ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      price > 0 ? formatPrice(price) : '--',
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                      ],
                     ),
                     SizedBox(height: 4.h),
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 8.w,
-                        vertical: 4.h,
+                        vertical: 3.h,
                       ),
                       decoration: BoxDecoration(
-                        color: changeColor.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(999.r),
+                        color: changeColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
                         formatPercent(change),
                         style: TextStyle(
                           color: changeColor,
-                          fontSize: 11.sp,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),
@@ -335,41 +303,3 @@ class _TokenLogo extends StatelessWidget {
   }
 }
 
-class _MetricChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  const _MetricChip({
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          TextSpan(
-            text: '$label ',
-            style: TextStyle(
-              color: AppColors.textMutedDark,
-              fontSize: 9.sp,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: TextStyle(
-              color: valueColor ?? AppColors.textSecondaryDark,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
