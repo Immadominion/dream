@@ -20,8 +20,27 @@ class MarketsPage extends ConsumerStatefulWidget {
 
 class _MarketsPageState extends ConsumerState<MarketsPage> {
   MarketSortMode _sort = MarketSortMode.change;
-  bool _sortDesc = true;
+  SortDirection _sortDir = SortDirection.none;
   bool _watchlistOnly = false;
+
+  void _onSortTapped(MarketSortMode mode) {
+    setState(() {
+      if (_sort == mode) {
+        // Cycle: none → desc → asc → none
+        switch (_sortDir) {
+          case SortDirection.none:
+            _sortDir = SortDirection.desc;
+          case SortDirection.desc:
+            _sortDir = SortDirection.asc;
+          case SortDirection.asc:
+            _sortDir = SortDirection.none;
+        }
+      } else {
+        _sort = mode;
+        _sortDir = SortDirection.desc;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,17 +52,20 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
       return true;
     }).toList();
 
-    markets.sort((a, b) {
-      double sortVal(MarketSortMode s, String sym) => switch (s) {
-        MarketSortMode.change => state.snapshots[sym]?.change24hPercent ?? 0,
-        MarketSortMode.volume => state.snapshots[sym]?.volume24hUsd ?? 0,
-        MarketSortMode.oi => state.snapshots[sym]?.openInterestUsd ?? 0,
-        MarketSortMode.funding =>
-          (state.snapshots[sym]?.fundingRate ?? 0).abs(),
-      };
-      final cmp = sortVal(_sort, a.symbol).compareTo(sortVal(_sort, b.symbol));
-      return _sortDesc ? -cmp : cmp;
-    });
+    if (_sortDir != SortDirection.none) {
+      markets.sort((a, b) {
+        double sortVal(MarketSortMode s, String sym) => switch (s) {
+          MarketSortMode.change => state.snapshots[sym]?.change24hPercent ?? 0,
+          MarketSortMode.volume => state.snapshots[sym]?.volume24hUsd ?? 0,
+          MarketSortMode.oi => state.snapshots[sym]?.openInterestUsd ?? 0,
+          MarketSortMode.funding =>
+            (state.snapshots[sym]?.fundingRate ?? 0).abs(),
+        };
+        final cmp =
+            sortVal(_sort, a.symbol).compareTo(sortVal(_sort, b.symbol));
+        return _sortDir == SortDirection.desc ? -cmp : cmp;
+      });
+    }
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
@@ -53,16 +75,9 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
           children: [
             MarketsHeader(
               sort: _sort,
-              sortDesc: _sortDesc,
+              sortDir: _sortDir,
               watchlistOnly: _watchlistOnly,
-              onSortChanged: (s) => setState(() {
-                if (_sort == s) {
-                  _sortDesc = !_sortDesc;
-                } else {
-                  _sort = s;
-                  _sortDesc = true;
-                }
-              }),
+              onSortChanged: _onSortTapped,
               onWatchlistOnlyToggled: () =>
                   setState(() => _watchlistOnly = !_watchlistOnly),
             ),

@@ -122,13 +122,14 @@ class MarketTile extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Right side: Price and Change Pill
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                // Right side: [Price + Change pill] | Star
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           price > 0 ? formatPrice(price) : '--',
@@ -136,48 +137,52 @@ class MarketTile extends ConsumerWidget {
                             color: AppColors.textPrimaryDark,
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w700,
-                            fontFeatures: const [FontFeature.tabularFigures()],
+                            fontFeatures: const [
+                              FontFeature.tabularFigures(),
+                            ],
                           ),
                         ),
-                        SizedBox(width: 6.w),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            ref
-                                .read(watchlistProvider.notifier)
-                                .toggle(market.symbol);
-                          },
-                          child: Icon(
-                            isWatched
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
-                            color: isWatched
-                                ? const Color(0xFFF5C518)
-                                : AppColors.textMutedDark,
-                            size: 18.sp,
+                        SizedBox(height: 4.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 3.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: changeColor,
+                            borderRadius: BorderRadius.circular(999.r),
+                          ),
+                          child: Text(
+                            formatPercent(change),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 4.h),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 3.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: changeColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: Text(
-                        formatPercent(change),
-                        style: TextStyle(
-                          color: changeColor,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
+                    SizedBox(width: 10.w),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        ref
+                            .read(watchlistProvider.notifier)
+                            .toggle(market.symbol);
+                      },
+                      child: Icon(
+                        isWatched
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: isWatched
+                            ? const Color(0xFFF5C518)
+                            : AppColors.textMutedDark,
+                        size: 22.sp,
                       ),
                     ),
                   ],
