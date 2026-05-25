@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/providers/auth/client_auth_provider.dart';
+import '../../../../core/providers/solana/wallet_name_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../shared/widgets/dream_display.dart';
@@ -190,13 +191,15 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
     super.dispose();
   }
 
-  String _greetingName(AuthStateData auth) {
+  String _greetingName(AuthStateData auth, {String? resolvedDomain}) {
     // 1. Display name (Google/Apple OAuth typically provides full name)
     final dn = auth.session?.user.displayName;
     if (dn != null && dn.trim().isNotEmpty) {
       return dn.trim().split(' ').first;
     }
-    // 2. Email → part before @, capitalised
+    // 2. SNS domain name (.skr, .sol, etc.)
+    if (resolvedDomain != null) return resolvedDomain;
+    // 3. Email → part before @, capitalised
     final email = auth.userEmail ?? '';
     if (email.contains('@')) {
       final local = email.split('@').first;
@@ -209,7 +212,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
         return part[0].toUpperCase() + part.substring(1).toLowerCase();
       }
     }
-    // 3. Wallet address → truncated
+    // 4. Wallet address → truncated
     final wallet = auth.walletAddress;
     if (wallet != null && wallet.length >= 8) {
       return '${wallet.substring(0, 4)}…${wallet.substring(wallet.length - 4)}';
@@ -219,12 +222,21 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.currentIndex == 3) {
+      return const SizedBox.shrink();
+    }
     final auth = ref.watch(clientAuthProvider);
     final user = auth.session?.user;
     final isAccount = widget.currentIndex == 3;
     final isMarkets = widget.currentIndex == 0;
     final watchlistOnly = ref.watch(marketWatchlistOnlyProvider);
     final avatarSeed = user?.walletAddress ?? user?.id ?? user?.email;
+
+    // Resolve SNS domain name for wallet users
+    final walletAddress = auth.walletAddress;
+    final resolvedDomain = walletAddress != null
+        ? ref.watch(walletNameProvider(walletAddress)).asData?.value
+        : null;
 
     return SafeArea(
       bottom: false,
@@ -273,7 +285,10 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                           ),
                         ),
                         TextSpan(
-                          text: _greetingName(auth),
+                          text: _greetingName(
+                            auth,
+                            resolvedDomain: resolvedDomain,
+                          ),
                           style: TextStyle(
                             color: AppColors.textPrimaryDark,
                             fontSize: 17.sp,
@@ -286,94 +301,96 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                 ),
               ],
             ),
-            if (widget.currentIndex != 3) ...[  
-            SizedBox(height: 12.h),
-            Row(
-              children: [
-                Expanded(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    height: 36.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(18.r),
-                      border: Border.all(
-                        color: _searchFocused
-                            ? AppColors.primary
-                            : AppColors.borderDark,
-                        width: _searchFocused ? 1.2 : 1,
+            if (widget.currentIndex != 3) ...[
+              SizedBox(height: 12.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      height: 36.h,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDark,
+                        borderRadius: BorderRadius.circular(18.r),
+                        border: Border.all(
+                          color: _searchFocused
+                              ? AppColors.primary
+                              : AppColors.borderDark,
+                          width: _searchFocused ? 1.2 : 1,
+                        ),
                       ),
-                    ),
-                    child: TextField(
-                      controller: _textCtrl,
-                      focusNode: _focusNode,
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontSize: 14.sp,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Search markets…',
-                        hintStyle: TextStyle(
-                          color: AppColors.textMutedDark,
+                      child: TextField(
+                        controller: _textCtrl,
+                        focusNode: _focusNode,
+                        style: TextStyle(
+                          color: AppColors.textPrimaryDark,
                           fontSize: 14.sp,
                         ),
-                        prefixIcon: Icon(
-                          PhosphorIcons.magnifyingGlass(),
-                          size: 17.sp,
-                          color: AppColors.textMutedDark,
+                        decoration: InputDecoration(
+                          hintText: 'Search markets…',
+                          hintStyle: TextStyle(
+                            color: AppColors.textMutedDark,
+                            fontSize: 14.sp,
+                          ),
+                          prefixIcon: Icon(
+                            PhosphorIcons.magnifyingGlass(),
+                            size: 17.sp,
+                            color: AppColors.textMutedDark,
+                          ),
+                          suffixIcon: _textCtrl.text.isNotEmpty
+                              ? GestureDetector(
+                                  onTap: () {
+                                    _textCtrl.clear();
+                                    ref
+                                            .read(
+                                              marketSearchQueryProvider
+                                                  .notifier,
+                                            )
+                                            .state =
+                                        '';
+                                    setState(() {});
+                                  },
+                                  child: Icon(
+                                    PhosphorIcons.xCircle(),
+                                    color: AppColors.textMutedDark,
+                                    size: 16.sp,
+                                  ),
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(top: 9.h),
+                          isDense: true,
                         ),
-                        suffixIcon: _textCtrl.text.isNotEmpty
-                            ? GestureDetector(
-                                onTap: () {
-                                  _textCtrl.clear();
-                                  ref
-                                          .read(
-                                            marketSearchQueryProvider.notifier,
-                                          )
-                                          .state =
-                                      '';
-                                  setState(() {});
-                                },
-                                child: Icon(
-                                  PhosphorIcons.xCircle(),
-                                  color: AppColors.textMutedDark,
-                                  size: 16.sp,
-                                ),
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: 9.h),
-                        isDense: true,
+                        onChanged: (v) {
+                          ref.read(marketSearchQueryProvider.notifier).state = v
+                              .trim();
+                          setState(() {});
+                        },
                       ),
-                      onChanged: (v) {
-                        ref.read(marketSearchQueryProvider.notifier).state = v
-                            .trim();
-                        setState(() {});
-                      },
                     ),
                   ),
-                ),
-                SizedBox(width: 8.w),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: isMarkets
-                      ? () {
-                          ref.read(marketWatchlistOnlyProvider.notifier).state =
-                              !watchlistOnly;
-                        }
-                      : null,
-                  child: Icon(
-                    watchlistOnly
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    size: 20.sp,
-                    color: watchlistOnly
-                        ? const Color(0xFFF5C518)
-                        : AppColors.textSecondaryDark,
+                  SizedBox(width: 8.w),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: isMarkets
+                        ? () {
+                            ref
+                                .read(marketWatchlistOnlyProvider.notifier)
+                                .toggle();
+                          }
+                        : null,
+                    child: Icon(
+                      watchlistOnly
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      size: 20.sp,
+                      color: watchlistOnly
+                          ? const Color(0xFFF5C518)
+                          : AppColors.textSecondaryDark,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             ], // end if (currentIndex != 3)
           ],
         ),

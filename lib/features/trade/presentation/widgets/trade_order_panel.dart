@@ -278,16 +278,13 @@ class TradeSlippageSelector extends ConsumerWidget {
               ? '${(bps / 100).toStringAsFixed(1)}%'
               : '${(bps / 100).toStringAsFixed(0)}%';
           return GestureDetector(
-            onTap: () =>
-                ref.read(tradeProvider.notifier).setSlippageBps(bps),
+            onTap: () => ref.read(tradeProvider.notifier).setSlippageBps(bps),
             child: Padding(
               padding: EdgeInsets.only(left: 14.w),
               child: Text(
                 label,
                 style: TextStyle(
-                  color: selected
-                      ? AppColors.primary
-                      : AppColors.textMutedDark,
+                  color: selected ? AppColors.primary : AppColors.textMutedDark,
                   fontSize: 12.sp,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                   decoration: selected

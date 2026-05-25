@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/auth/client_auth_provider.dart';
+import '../../../core/providers/settings/ui_preferences_provider.dart';
 import '../../../core/services/phoenix/phoenix_order_service.dart';
 import '../../../core/services/phoenix/phoenix_websocket_service.dart';
+import '../../../core/services/ui_preferences_service.dart';
 import 'trade_state.dart';
 
 // Re-export so existing consumers keep working without import changes.
@@ -20,9 +22,15 @@ class TradeNotifier extends Notifier<TradeState> {
   @override
   TradeState build() {
     ref.onDispose(_dispose);
+    // Restore last-used side from UI preferences (if memory is enabled)
+    final savedSide = UiPreferencesService.enabled
+        ? (UiPreferencesService.getTradeSide() == 'sell'
+              ? OrderSide.sell
+              : OrderSide.buy)
+        : OrderSide.buy;
     // Subscribe to the default symbol immediately
     Future.microtask(() => _subscribeToMarket(state.symbol));
-    return const TradeState();
+    return TradeState(side: savedSide);
   }
 
   // ---------------------------------------------------------------------------
@@ -44,6 +52,10 @@ class TradeNotifier extends Notifier<TradeState> {
   void setSide(OrderSide side) {
     final liqPrice = _calcLiqPrice(state.markPrice, state.leverage, side);
     state = state.copyWith(side: side, estimatedLiqPrice: liqPrice);
+    // Persist so next session opens on the same side
+    ref
+        .read(uiPreferencesProvider.notifier)
+        .setTradeSide(side == OrderSide.sell ? 'sell' : 'buy');
   }
 
   void setOrderType(OrderType type) {

@@ -219,8 +219,11 @@ class _PillSide extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  const _PillSide(
-      {required this.icon, required this.selected, required this.onTap});
+  const _PillSide({
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,8 +241,7 @@ class _PillSide extends StatelessWidget {
         child: Icon(
           icon,
           size: 17.sp,
-          color:
-              selected ? AppColors.textPrimaryDark : AppColors.textMutedDark,
+          color: selected ? AppColors.textPrimaryDark : AppColors.textMutedDark,
         ),
       ),
     );
@@ -310,17 +312,26 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                 controller: _ctrl,
                 autofocus: true,
                 style: TextStyle(
-                    color: AppColors.textPrimaryDark, fontSize: 14.sp),
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 14.sp,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Search markets',
                   hintStyle: TextStyle(
-                      color: AppColors.textMutedDark, fontSize: 14.sp),
-                  prefixIcon: Icon(Icons.search,
-                      color: AppColors.textMutedDark, size: 18.sp),
+                    color: AppColors.textMutedDark,
+                    fontSize: 14.sp,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: AppColors.textMutedDark,
+                    size: 18.sp,
+                  ),
                   filled: true,
                   fillColor: AppColors.cardDark,
                   contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12.w, vertical: 12.h),
+                    horizontal: 12.w,
+                    vertical: 12.h,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.r),
                     borderSide: BorderSide.none,
@@ -345,7 +356,9 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                       child: Text(
                         'No markets found',
                         style: TextStyle(
-                            color: AppColors.textMutedDark, fontSize: 13.sp),
+                          color: AppColors.textMutedDark,
+                          fontSize: 13.sp,
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -363,14 +376,15 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                         return InkWell(
                           onTap: () => widget.onSelect(m.symbol),
                           child: Padding(
-                            padding: EdgeInsets.fromLTRB(
-                                16.w, 8.h, 16.w, 8.h),
+                            padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 // Token logo
                                 _SheetTokenLogo(
-                                    symbol: m.baseAsset, size: 36.r),
+                                  symbol: m.baseAsset,
+                                  size: 36.r,
+                                ),
                                 SizedBox(width: 12.w),
                                 // Name + leverage
                                 Expanded(
@@ -383,8 +397,7 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                           Text(
                                             m.baseAsset,
                                             style: TextStyle(
-                                              color:
-                                                  AppColors.textPrimaryDark,
+                                              color: AppColors.textPrimaryDark,
                                               fontSize: 14.sp,
                                               fontWeight: isSel
                                                   ? FontWeight.w800
@@ -401,7 +414,9 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                           SizedBox(width: 6.w),
                                           Container(
                                             padding: EdgeInsets.symmetric(
-                                                horizontal: 4.w, vertical: 1.h),
+                                              horizontal: 4.w,
+                                              vertical: 1.h,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: AppColors.textMutedDark
                                                   .withValues(alpha: 0.12),
@@ -428,26 +443,27 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      price > 0
-                                          ? formatPrice(price)
-                                          : '--',
+                                      price > 0 ? formatPrice(price) : '--',
                                       style: TextStyle(
                                         color: AppColors.textPrimaryDark,
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w700,
                                         fontFeatures: const [
-                                          FontFeature.tabularFigures()
+                                          FontFeature.tabularFigures(),
                                         ],
                                       ),
                                     ),
                                     SizedBox(height: 4.h),
                                     Container(
                                       padding: EdgeInsets.symmetric(
-                                          horizontal: 7.w, vertical: 3.h),
+                                        horizontal: 7.w,
+                                        vertical: 3.h,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: changeColor,
-                                        borderRadius:
-                                            BorderRadius.circular(999.r),
+                                        borderRadius: BorderRadius.circular(
+                                          999.r,
+                                        ),
                                       ),
                                       child: Text(
                                         formatPercent(change),
@@ -456,7 +472,7 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                           fontSize: 10.sp,
                                           fontWeight: FontWeight.w700,
                                           fontFeatures: const [
-                                            FontFeature.tabularFigures()
+                                            FontFeature.tabularFigures(),
                                           ],
                                         ),
                                       ),
@@ -466,8 +482,11 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                 // Active indicator
                                 if (isSel) ...[
                                   SizedBox(width: 10.w),
-                                  Icon(Icons.check_rounded,
-                                      color: AppColors.primary, size: 16.sp),
+                                  Icon(
+                                    Icons.check_rounded,
+                                    color: AppColors.primary,
+                                    size: 16.sp,
+                                  ),
                                 ],
                               ],
                             ),
@@ -492,35 +511,60 @@ class _SheetTokenLogo extends StatelessWidget {
   final double size;
 
   static const Map<String, String> _logos = {
-    'AAVE': 'https://coin-images.coingecko.com/coins/images/12645/thumb/aave-token-round.png',
-    'BNB': 'https://coin-images.coingecko.com/coins/images/825/thumb/bnb-icon2_2x.png',
+    'AAVE':
+        'https://coin-images.coingecko.com/coins/images/12645/thumb/aave-token-round.png',
+    'BNB':
+        'https://coin-images.coingecko.com/coins/images/825/thumb/bnb-icon2_2x.png',
     'BTC': 'https://coin-images.coingecko.com/coins/images/1/thumb/bitcoin.png',
-    'CHIP': 'https://coin-images.coingecko.com/coins/images/102171777/thumb/CHIP_Token_Logo_Large.png',
-    'COPPER': 'https://coin-images.coingecko.com/coins/images/67946/thumb/copper_%281%29.png',
-    'DOGE': 'https://coin-images.coingecko.com/coins/images/5/thumb/dogecoin.png',
-    'ENA': 'https://coin-images.coingecko.com/coins/images/36530/thumb/ethena.png',
-    'ETH': 'https://coin-images.coingecko.com/coins/images/279/thumb/ethereum.png',
-    'FARTCOIN': 'https://coin-images.coingecko.com/coins/images/50891/thumb/fart.jpg',
-    'GOLD': 'https://coin-images.coingecko.com/coins/images/102172044/thumb/LOGO.jpeg',
-    'HYPE': 'https://coin-images.coingecko.com/coins/images/50882/thumb/hyperliquid.jpg',
+    'CHIP':
+        'https://coin-images.coingecko.com/coins/images/102171777/thumb/CHIP_Token_Logo_Large.png',
+    'COPPER':
+        'https://coin-images.coingecko.com/coins/images/67946/thumb/copper_%281%29.png',
+    'DOGE':
+        'https://coin-images.coingecko.com/coins/images/5/thumb/dogecoin.png',
+    'ENA':
+        'https://coin-images.coingecko.com/coins/images/36530/thumb/ethena.png',
+    'ETH':
+        'https://coin-images.coingecko.com/coins/images/279/thumb/ethereum.png',
+    'FARTCOIN':
+        'https://coin-images.coingecko.com/coins/images/50891/thumb/fart.jpg',
+    'GOLD':
+        'https://coin-images.coingecko.com/coins/images/102172044/thumb/LOGO.jpeg',
+    'HYPE':
+        'https://coin-images.coingecko.com/coins/images/50882/thumb/hyperliquid.jpg',
     'JTO': 'https://coin-images.coingecko.com/coins/images/33228/thumb/jto.png',
     'JUP': 'https://coin-images.coingecko.com/coins/images/34188/thumb/jup.png',
-    'LIT': 'https://coin-images.coingecko.com/coins/images/71121/thumb/lighter.png',
-    'MEGA': 'https://coin-images.coingecko.com/coins/images/69995/thumb/9fcb2fa4-b240-46e2-9016-c4f6101a139d.jpeg',
-    'MET': 'https://coin-images.coingecko.com/coins/images/69110/thumb/meteora.png',
+    'LIT':
+        'https://coin-images.coingecko.com/coins/images/71121/thumb/lighter.png',
+    'MEGA':
+        'https://coin-images.coingecko.com/coins/images/69995/thumb/9fcb2fa4-b240-46e2-9016-c4f6101a139d.jpeg',
+    'MET':
+        'https://coin-images.coingecko.com/coins/images/69110/thumb/meteora.png',
     'MON': 'https://coin-images.coingecko.com/coins/images/38927/thumb/mon.png',
-    'NEAR': 'https://coin-images.coingecko.com/coins/images/10365/thumb/near.jpg',
-    'PUMP': 'https://coin-images.coingecko.com/coins/images/67164/thumb/pump.jpg',
-    'SILVER': 'https://coin-images.coingecko.com/coins/images/71267/thumb/4ukvhg7d33t37fy3s25us5lsuogr.',
-    'SKR': 'https://coin-images.coingecko.com/coins/images/70974/thumb/seeker-logo.jpg',
-    'SOL': 'https://coin-images.coingecko.com/coins/images/4128/thumb/solana.png',
-    'SUI': 'https://coin-images.coingecko.com/coins/images/26375/thumb/sui-ocean-square.png',
-    'TAO': 'https://coin-images.coingecko.com/coins/images/28452/thumb/ARUsPeNQ_400x400.jpeg',
-    'TON': 'https://coin-images.coingecko.com/coins/images/17980/thumb/photo_2024-09-10_17.09.00.jpeg',
-    'VVV': 'https://coin-images.coingecko.com/coins/images/54023/thumb/VVV_Token_Transparent.png',
-    'WTIOIL': 'https://coin-images.coingecko.com/coins/images/102172516/thumb/crude_400x400.jpg',
-    'XPL': 'https://coin-images.coingecko.com/coins/images/66489/thumb/Plasma-symbol-green-1.png',
-    'SOL-PERP': 'https://coin-images.coingecko.com/coins/images/4128/thumb/solana.png',
+    'NEAR':
+        'https://coin-images.coingecko.com/coins/images/10365/thumb/near.jpg',
+    'PUMP':
+        'https://coin-images.coingecko.com/coins/images/67164/thumb/pump.jpg',
+    'SILVER':
+        'https://coin-images.coingecko.com/coins/images/71267/thumb/4ukvhg7d33t37fy3s25us5lsuogr.',
+    'SKR':
+        'https://coin-images.coingecko.com/coins/images/70974/thumb/seeker-logo.jpg',
+    'SOL':
+        'https://coin-images.coingecko.com/coins/images/4128/thumb/solana.png',
+    'SUI':
+        'https://coin-images.coingecko.com/coins/images/26375/thumb/sui-ocean-square.png',
+    'TAO':
+        'https://coin-images.coingecko.com/coins/images/28452/thumb/ARUsPeNQ_400x400.jpeg',
+    'TON':
+        'https://coin-images.coingecko.com/coins/images/17980/thumb/photo_2024-09-10_17.09.00.jpeg',
+    'VVV':
+        'https://coin-images.coingecko.com/coins/images/54023/thumb/VVV_Token_Transparent.png',
+    'WTIOIL':
+        'https://coin-images.coingecko.com/coins/images/102172516/thumb/crude_400x400.jpg',
+    'XPL':
+        'https://coin-images.coingecko.com/coins/images/66489/thumb/Plasma-symbol-green-1.png',
+    'SOL-PERP':
+        'https://coin-images.coingecko.com/coins/images/4128/thumb/solana.png',
   };
 
   const _SheetTokenLogo({required this.symbol, required this.size});

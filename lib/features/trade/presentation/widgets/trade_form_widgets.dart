@@ -104,8 +104,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final label =
-        tradeState.orderType == OrderType.market ? 'Market' : 'Limit';
+    final label = tradeState.orderType == OrderType.market ? 'Market' : 'Limit';
     return PopupMenuButton<OrderType>(
       initialValue: tradeState.orderType,
       onSelected: (v) => ref.read(tradeProvider.notifier).setOrderType(v),
@@ -122,10 +121,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
           height: 36.h,
           child: Text(
             'Market',
-            style: TextStyle(
-              color: AppColors.textPrimaryDark,
-              fontSize: 13.sp,
-            ),
+            style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 13.sp),
           ),
         ),
         PopupMenuItem(
@@ -133,10 +129,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
           height: 36.h,
           child: Text(
             'Limit',
-            style: TextStyle(
-              color: AppColors.textPrimaryDark,
-              fontSize: 13.sp,
-            ),
+            style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 13.sp),
           ),
         ),
       ],
@@ -191,12 +184,14 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
   @override
   void didUpdateWidget(covariant TradePriceInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final next =
-        widget.tradeState.price > 0 ? widget.tradeState.price.toString() : '';
+    final next = widget.tradeState.price > 0
+        ? widget.tradeState.price.toString()
+        : '';
     if (next != _ctrl.text && next.isNotEmpty) {
       _ctrl.text = next;
-      _ctrl.selection =
-          TextSelection.fromPosition(TextPosition(offset: next.length));
+      _ctrl.selection = TextSelection.fromPosition(
+        TextPosition(offset: next.length),
+      );
     }
   }
 
@@ -228,8 +223,9 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
           Expanded(
             child: TextField(
               controller: _ctrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
               ],
@@ -426,8 +422,9 @@ class _TradeInlineNumericFieldState extends State<TradeInlineNumericField> {
                     controller: _ctrl,
                     focusNode: _focus,
                     readOnly: widget.readOnly,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],

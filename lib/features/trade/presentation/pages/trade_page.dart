@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/providers/phoenix/phoenix_auth_provider.dart';
+import '../../../../core/providers/settings/ui_preferences_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../providers/trade_provider.dart';
@@ -71,7 +72,7 @@ class TradePage extends ConsumerWidget {
 // Phone — order form (62%) + compact ladder (38%) with optional chart on top
 // ---------------------------------------------------------------------------
 
-class _PhoneLayout extends StatefulWidget {
+class _PhoneLayout extends ConsumerStatefulWidget {
   final TradeState tradeState;
   final MarketsState marketsState;
   final bool isAuthed;
@@ -87,11 +88,24 @@ class _PhoneLayout extends StatefulWidget {
   });
 
   @override
-  State<_PhoneLayout> createState() => _PhoneLayoutState();
+  ConsumerState<_PhoneLayout> createState() => _PhoneLayoutState();
 }
 
-class _PhoneLayoutState extends State<_PhoneLayout> {
-  bool _chartVisible = false;
+class _PhoneLayoutState extends ConsumerState<_PhoneLayout> {
+  // Initialized from persisted pref in initState; falls back to true (show chart).
+  bool _chartVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Read persisted preference synchronously (SharedPreferences already loaded)
+    _chartVisible = ref.read(uiPreferencesProvider).tradeChartVisible;
+  }
+
+  void _onChartToggle(bool v) {
+    setState(() => _chartVisible = v);
+    ref.read(uiPreferencesProvider.notifier).setTradeChartVisible(v);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,16 +117,13 @@ class _PhoneLayoutState extends State<_PhoneLayout> {
           showBackButton: widget.showBackButton,
           onBackPressed: widget.onBackPressed,
           chartVisible: _chartVisible,
-          onChartToggle: (v) => setState(() => _chartVisible = v),
+          onChartToggle: _onChartToggle,
         ),
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           child: _chartVisible
-              ? PriceChartWidget(
-                  symbol: widget.tradeState.symbol,
-                  height: 220,
-                )
+              ? PriceChartWidget(symbol: widget.tradeState.symbol, height: 220)
               : const SizedBox.shrink(),
         ),
         Expanded(
@@ -176,13 +187,8 @@ class _TabletLayout extends StatelessWidget {
                 flex: 3,
                 child: Column(
                   children: [
-                    PriceChartWidget(
-                      symbol: tradeState.symbol,
-                      height: 340,
-                    ),
-                    Expanded(
-                      child: OrderbookWidget(symbol: tradeState.symbol),
-                    ),
+                    PriceChartWidget(symbol: tradeState.symbol, height: 340),
+                    Expanded(child: OrderbookWidget(symbol: tradeState.symbol)),
                   ],
                 ),
               ),

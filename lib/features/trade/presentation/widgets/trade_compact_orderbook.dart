@@ -27,8 +27,7 @@ class TradeCompactOrderbook extends ConsumerStatefulWidget {
       _TradeCompactOrderbookState();
 }
 
-class _TradeCompactOrderbookState
-    extends ConsumerState<TradeCompactOrderbook> {
+class _TradeCompactOrderbookState extends ConsumerState<TradeCompactOrderbook> {
   double _tick = 0.1;
 
   @override
@@ -64,7 +63,9 @@ class _TradeCompactOrderbookState
     final bidPct = totalVol > 0 ? bidVol / totalVol : 0.5;
     final askPct = 1 - bidPct;
 
-    final mid = liveMark > 0 ? liveMark : (ob.mid ?? (ob.bestBid + ob.bestAsk) / 2);
+    final mid = liveMark > 0
+        ? liveMark
+        : (ob.mid ?? (ob.bestBid + ob.bestAsk) / 2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,7 +298,9 @@ class _RatioBar extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.bullish.withAlpha(40),
-                  borderRadius: BorderRadius.horizontal(left: Radius.circular(2.r)),
+                  borderRadius: BorderRadius.horizontal(
+                    left: Radius.circular(2.r),
+                  ),
                 ),
                 child: Text(
                   bidLabel,
@@ -316,7 +319,9 @@ class _RatioBar extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.bearish.withAlpha(40),
-                  borderRadius: BorderRadius.horizontal(right: Radius.circular(2.r)),
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(2.r),
+                  ),
                 ),
                 child: Text(
                   askLabel,
@@ -374,10 +379,10 @@ class _TickAndLayoutRow extends StatelessWidget {
                   fontSize: 11.sp,
                 ),
                 items: _kTickSizes
-                    .map((t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(_fmtTick(t)),
-                        ))
+                    .map(
+                      (t) =>
+                          DropdownMenuItem(value: t, child: Text(_fmtTick(t))),
+                    )
                     .toList(),
                 onChanged: (v) => v == null ? null : onTickChanged(v),
               ),

@@ -99,8 +99,9 @@ class ReceiveUsdcSheet extends StatelessWidget {
             // QR card
             Container(
               padding: EdgeInsets.all(20.w),
+              margin: EdgeInsets.symmetric(horizontal: 40.w),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.primary.withAlpha(200),
                 borderRadius: BorderRadius.circular(16.r),
               ),
               child: Center(
@@ -108,14 +109,14 @@ class ReceiveUsdcSheet extends StatelessWidget {
                   data: walletAddress,
                   version: QrVersions.auto,
                   size: 220.w,
-                  backgroundColor: Colors.white,
+                  backgroundColor: Colors.transparent,
                   eyeStyle: const QrEyeStyle(
                     eyeShape: QrEyeShape.square,
-                    color: Colors.black,
+                    color: Colors.white,
                   ),
                   dataModuleStyle: const QrDataModuleStyle(
                     dataModuleShape: QrDataModuleShape.square,
-                    color: Colors.black,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -128,11 +129,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(10.r),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundDark,
-                  borderRadius: BorderRadius.circular(10.r),
-                  border: Border.all(color: AppColors.borderDark),
-                ),
+
                 child: Row(
                   children: [
                     Expanded(
@@ -209,37 +206,27 @@ class ReceiveUsdcSheet extends StatelessWidget {
             SizedBox(height: 16.h),
 
             // Warning
-            Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: AppColors.bearish.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(
-                  color: AppColors.bearish.withValues(alpha: 0.2),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16.sp,
+                  color: AppColors.bearish,
                 ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 16.sp,
-                    color: AppColors.bearish,
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      'Send only USDC on the Solana network. '
-                      'Other tokens or networks will be lost.',
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontSize: 11.sp,
-                        height: 1.4,
-                      ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'Send only USDC on the Solana network. '
+                    'Other tokens or networks will be lost.',
+                    style: TextStyle(
+                      color: AppColors.textPrimaryDark,
+                      fontSize: 11.sp,
+                      height: 1.4,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

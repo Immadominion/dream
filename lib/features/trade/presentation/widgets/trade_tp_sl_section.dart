@@ -102,140 +102,136 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
     final slPcts = isLong ? [-2.5, -5.0, -10.0] : [2.5, 5.0, 10.0];
 
     return Column(
-        children: [
-          // Toggle row
-          GestureDetector(
-            onTap: () => notifier.toggleTpSl(!s.tpSlEnabled),
-            behavior: HitTestBehavior.opaque,
-            child: Row(
-              children: [
-                Icon(
-                  Icons.flag_outlined,
-                  size: 14.sp,
+      children: [
+        // Toggle row
+        GestureDetector(
+          onTap: () => notifier.toggleTpSl(!s.tpSlEnabled),
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            children: [
+              Icon(
+                Icons.flag_outlined,
+                size: 14.sp,
+                color: s.tpSlEnabled
+                    ? AppColors.primary
+                    : AppColors.textMutedDark,
+              ),
+              SizedBox(width: 6.w),
+              Text(
+                'TP / SL',
+                style: TextStyle(
                   color: s.tpSlEnabled
-                      ? AppColors.primary
-                      : AppColors.textMutedDark,
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textSecondaryDark,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
                 ),
-                SizedBox(width: 6.w),
-                Text(
-                  'TP / SL',
-                  style: TextStyle(
-                    color: s.tpSlEnabled
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textSecondaryDark,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                _TinySwitch(
-                  value: s.tpSlEnabled,
-                  onChanged: notifier.toggleTpSl,
-                ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              _TinySwitch(value: s.tpSlEnabled, onChanged: notifier.toggleTpSl),
+            ],
           ),
+        ),
 
-          // Expanded inputs — only when enabled
-          if (s.tpSlEnabled) ...[
-            SizedBox(height: 10.h),
-            Padding(
-              padding: EdgeInsets.zero,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Mark price context row
-                  if (s.markPrice > 0) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 12.r,
-                          color: AppColors.textMutedDark,
-                        ),
-                        SizedBox(width: 4.w),
-                        Flexible(
-                          child: Text(
-                            'Mark: ${formatPrice(s.markPrice)}  •  '
-                            '${isLong ? 'Long' : 'Short'}: TP ${isLong ? 'above' : 'below'}, SL ${isLong ? 'below' : 'above'}',
-                            style: TextStyle(
-                              color: AppColors.textMutedDark,
-                              fontSize: 11.sp,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-                  ],
-
-                  // TP + SL fields side by side
+        // Expanded inputs — only when enabled
+        if (s.tpSlEnabled) ...[
+          SizedBox(height: 10.h),
+          Padding(
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Mark price context row
+                if (s.markPrice > 0) ...[
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- Take Profit ---
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _TpSlField(
-                              label: 'Take Profit \$',
-                              controller: _tpCtrl,
-                              labelColor: AppColors.bullish,
-                              onChanged: (v) => notifier.setTakeProfitPrice(
-                                double.tryParse(v),
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            _PctShortcuts(
-                              pcts: tpPcts,
-                              accentColor: AppColors.bullish,
-                              onSelect: (pct) =>
-                                  _applyPct(pctOffset: pct, isTp: true),
-                            ),
-                            if (errors.tp != null) ...[
-                              SizedBox(height: 4.h),
-                              _ValidationNote(message: errors.tp!),
-                            ],
-                          ],
-                        ),
+                      Icon(
+                        Icons.info_outline,
+                        size: 12.r,
+                        color: AppColors.textMutedDark,
                       ),
-                      SizedBox(width: 12.w),
-                      // --- Stop Loss ---
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _TpSlField(
-                              label: 'Stop Loss \$',
-                              controller: _slCtrl,
-                              labelColor: AppColors.bearish,
-                              onChanged: (v) =>
-                                  notifier.setStopLossPrice(double.tryParse(v)),
-                            ),
-                            SizedBox(height: 6.h),
-                            _PctShortcuts(
-                              pcts: slPcts,
-                              accentColor: AppColors.bearish,
-                              onSelect: (pct) =>
-                                  _applyPct(pctOffset: pct, isTp: false),
-                            ),
-                            if (errors.sl != null) ...[
-                              SizedBox(height: 4.h),
-                              _ValidationNote(message: errors.sl!),
-                            ],
-                          ],
+                      SizedBox(width: 4.w),
+                      Flexible(
+                        child: Text(
+                          'Mark: ${formatPrice(s.markPrice)}  •  '
+                          '${isLong ? 'Long' : 'Short'}: TP ${isLong ? 'above' : 'below'}, SL ${isLong ? 'below' : 'above'}',
+                          style: TextStyle(
+                            color: AppColors.textMutedDark,
+                            fontSize: 11.sp,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                       ),
                     ],
                   ),
+                  SizedBox(height: 12.h),
                 ],
-              ),
+
+                // TP + SL fields side by side
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- Take Profit ---
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _TpSlField(
+                            label: 'Take Profit \$',
+                            controller: _tpCtrl,
+                            labelColor: AppColors.bullish,
+                            onChanged: (v) =>
+                                notifier.setTakeProfitPrice(double.tryParse(v)),
+                          ),
+                          SizedBox(height: 6.h),
+                          _PctShortcuts(
+                            pcts: tpPcts,
+                            accentColor: AppColors.bullish,
+                            onSelect: (pct) =>
+                                _applyPct(pctOffset: pct, isTp: true),
+                          ),
+                          if (errors.tp != null) ...[
+                            SizedBox(height: 4.h),
+                            _ValidationNote(message: errors.tp!),
+                          ],
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    // --- Stop Loss ---
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _TpSlField(
+                            label: 'Stop Loss \$',
+                            controller: _slCtrl,
+                            labelColor: AppColors.bearish,
+                            onChanged: (v) =>
+                                notifier.setStopLossPrice(double.tryParse(v)),
+                          ),
+                          SizedBox(height: 6.h),
+                          _PctShortcuts(
+                            pcts: slPcts,
+                            accentColor: AppColors.bearish,
+                            onSelect: (pct) =>
+                                _applyPct(pctOffset: pct, isTp: false),
+                          ),
+                          if (errors.sl != null) ...[
+                            SizedBox(height: 4.h),
+                            _ValidationNote(message: errors.sl!),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ],
+      ],
     );
   }
 }

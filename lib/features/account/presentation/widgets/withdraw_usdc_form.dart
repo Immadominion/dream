@@ -236,11 +236,8 @@ class WithdrawUsdcFormBody extends StatelessWidget {
 
           // Network fee warning
           Container(
-            padding: EdgeInsets.all(10.w),
-            decoration: BoxDecoration(
-              color: AppColors.borderDark.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
+            padding: EdgeInsets.only(left: 10.w, right: 10.w, bottom: 32.h),
+
             child: Text(
               'A small SOL amount is required to pay the network fee. '
               'If the recipient has never received USDC, an extra ~0.002 SOL '

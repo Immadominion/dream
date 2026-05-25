@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/wallet/wallet_balance_provider.dart';
@@ -33,11 +34,7 @@ class AccountBalanceCard extends ConsumerWidget {
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: AppColors.borderDark),
-      ),
+
       child: Column(
         children: [
           // Balance stats row
@@ -46,19 +43,19 @@ class AccountBalanceCard extends ConsumerWidget {
               _BalanceStat(
                 label: 'Wallet USDC',
                 value: usdcAsync.isLoading ? '...' : formatUsdc(walletUsdc),
-                icon: Icons.account_balance_wallet_outlined,
+                icon: PhosphorIcons.wallet(),
               ),
               _VerticalDivider(),
               _BalanceStat(
                 label: 'Deposited',
                 value: formatUsdc(phoenixDeposited),
-                icon: Icons.swap_vert,
+                icon: PhosphorIcons.piggyBank(),
               ),
               _VerticalDivider(),
               _BalanceStat(
                 label: 'Available',
                 value: formatUsdc(available),
-                icon: Icons.bolt,
+                icon: PhosphorIcons.coin(),
                 valueColor: AppColors.primary,
               ),
             ],
@@ -102,11 +99,7 @@ class AccountBalanceCard extends ConsumerWidget {
             ),
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(6.r),
-                border: Border.all(color: AppColors.primary.withOpacity(0.18)),
-              ),
+
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -265,7 +258,7 @@ class _BalanceStat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 14.sp, color: AppColors.textMutedDark),
+          PhosphorIcon(icon, size: 32.sp, color: AppColors.textMutedDark),
           SizedBox(height: 4.h),
           Text(
             value,
@@ -314,7 +307,7 @@ class _CollateralButton extends StatelessWidget {
         height: 36.h,
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6.r),
+          borderRadius: BorderRadius.circular(24.r),
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         alignment: Alignment.center,
