@@ -34,16 +34,15 @@ class TradeActivePositionStrip extends ConsumerWidget {
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: sideColor.withOpacity(0.07),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: sideColor.withOpacity(0.25)),
+        color: sideColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
             decoration: BoxDecoration(
-              color: sideColor.withOpacity(0.15),
+              color: sideColor.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(4.r),
             ),
             child: Text(
@@ -112,9 +111,8 @@ class TradeErrorBanner extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: AppColors.bearish.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.bearish.withOpacity(0.3)),
+        color: AppColors.bearish.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
         children: [
@@ -147,9 +145,8 @@ class TradeSuccessBanner extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: AppColors.bullish.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.bullish.withOpacity(0.3)),
+        color: AppColors.bullish.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
         children: [
@@ -176,8 +173,8 @@ class TradeSuccessBanner extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
               decoration: BoxDecoration(
-                color: AppColors.bullish.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(4.r),
+                color: AppColors.bullish.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10.r),
               ),
               child: Text(
                 'Solscan ↗',

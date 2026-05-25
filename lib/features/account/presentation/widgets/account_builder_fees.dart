@@ -65,27 +65,29 @@ class AccountBuilderFeesCard extends ConsumerWidget {
                 ),
               ),
               SizedBox(width: 10.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Flight Builder Fees',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Flight Builder Fees',
+                      style: TextStyle(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Earned on every taker fill routed through Dream',
-                    style: TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 11.sp,
+                    Text(
+                      'Earned on every taker fill routed through Dream',
+                      style: TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 11.sp,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const Spacer(),
               // Refresh button
               GestureDetector(
                 onTap: () => ref.invalidate(_builderFeesProvider),

@@ -19,43 +19,60 @@ class ShellBottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isVisible = ref.watch(bottomNavVisibilityProvider);
     final posState = ref.watch(positionsProvider);
     final openCount = posState.positions.length + posState.openOrders.length;
     final inMarketFlow = currentIndex == 0 || currentIndex == 1;
 
-    return SafeArea(
-      top: false,
-      // Transparent so the scaffold body content shows through below the pill.
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 14.h),
-        child: _GlassPill(
-          child: Row(
-            children: [
-              Expanded(
-                child: ShellNavItem(
-                  icon: PhosphorIcons.storefront(),
-                  activeIcon: PhosphorIcons.storefront(
-                    PhosphorIconsStyle.duotone,
-                  ),
-                  label: 'Markets',
-                  selected: inMarketFlow,
-                  onTap: () =>
-                      ref.read(bottomNavIndexProvider.notifier).setIndex(0),
+    return IgnorePointer(
+      ignoring: !isVisible,
+      child: SafeArea(
+        top: false,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          offset: Offset(0, isVisible ? 0 : 1.3),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            opacity: isVisible ? 1 : 0,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(64.w, 8.h, 64.w, 12.h),
+              child: _GlassPill(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ShellNavItem(
+                        icon: PhosphorIcons.storefront(),
+                        activeIcon: PhosphorIcons.storefront(
+                          PhosphorIconsStyle.duotone,
+                        ),
+                        label: 'Markets',
+                        selected: inMarketFlow,
+                        onTap: () => ref
+                            .read(bottomNavIndexProvider.notifier)
+                            .setIndex(0),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: ShellNavItem(
+                        icon: PhosphorIcons.bag(),
+                        activeIcon: PhosphorIcons.bag(
+                          PhosphorIconsStyle.duotone,
+                        ),
+                        label: 'Positions',
+                        selected: currentIndex == 2,
+                        badgeCount: openCount,
+                        onTap: () => ref
+                            .read(bottomNavIndexProvider.notifier)
+                            .setIndex(2),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: ShellNavItem(
-                  icon: PhosphorIcons.bag(),
-                  activeIcon: PhosphorIcons.bag(PhosphorIconsStyle.duotone),
-                  label: 'Positions',
-                  selected: currentIndex == 2,
-                  badgeCount: openCount,
-                  onTap: () =>
-                      ref.read(bottomNavIndexProvider.notifier).setIndex(2),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -73,7 +90,7 @@ class _GlassPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const radius = 30.0;
+    const radius = 48.0;
     return DecoratedBox(
       // Shadow lives outside the ClipRRect so it isn't clipped.
       decoration: BoxDecoration(
@@ -83,13 +100,13 @@ class _GlassPill extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.44),
             blurRadius: 40,
             spreadRadius: -10,
-            offset: const Offset(0, 20),
+            offset: const Offset(1, 3),
           ),
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.07),
             blurRadius: 32,
             spreadRadius: -16,
-            offset: const Offset(0, 8),
+            offset: const Offset(-1, -3),
           ),
         ],
       ),
@@ -98,8 +115,8 @@ class _GlassPill extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
-            height: 68.h,
-            padding: EdgeInsets.all(8.r),
+            height: 48.h,
+            padding: EdgeInsets.all(4.r),
             decoration: BoxDecoration(
               // Semi-transparent fill — blurred content shows through.
               color: AppColors.cardDark.withValues(alpha: 0.65),
@@ -155,7 +172,7 @@ class ShellNavItem extends StatelessWidget {
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(18.r),
+          borderRadius: BorderRadius.circular(32.r),
           border: Border.all(
             color: selected
                 ? AppColors.primary.withValues(alpha: 0.30)

@@ -1,0 +1,191 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 93.0.0 (100.0.0 available)
+  analyzer 10.0.1 (13.0.0 available)
+  cli_util 0.4.2 (0.5.1 available)
+  code_assets 1.0.0 (1.1.0 available)
+  dbus 0.7.12 (0.7.13 available)
+  flutter_local_notifications 19.5.0 (21.0.0 available)
+  flutter_local_notifications_linux 6.0.0 (8.0.0 available)
+  flutter_local_notifications_platform_interface 9.1.0 (11.0.0 available)
+  flutter_local_notifications_windows 1.0.3 (3.0.0 available)
+  flutter_secure_storage 10.2.0 (10.3.0 available)
+  flutter_secure_storage_darwin 0.3.1 (0.3.2 available)
+  flutter_secure_storage_linux 3.0.0 (3.0.1 available)
+  flutter_secure_storage_windows 4.1.0 (4.2.2 available)
+  freezed_annotation 2.4.4 (3.1.0 available)
+  google_fonts 7.1.0 (8.1.0 available)
+  hooks 1.0.3 (2.0.0 available)
+  image 4.8.0 (4.9.0 available)
+  image_cropper 11.0.0 (12.2.1 available)
+  matcher 0.12.18 (0.12.20 available)
+  meta 1.17.0 (1.18.2 available)
+  native_toolchain_c 0.17.6 (0.19.0 available)
+  objective_c 9.3.0 (9.4.1 available)
+  pointycastle 3.9.1 (4.0.0 available)
+  privy_flutter 0.6.0 (0.8.0 available)
+  qr 3.0.2 (4.0.0 available)
+  share_plus 12.0.2 (13.1.0 available)
+  share_plus_platform_interface 6.1.0 (7.1.0 available)
+  solana 0.31.2+1 (0.32.0+1 available)
+  test 1.29.0 (1.31.1 available)
+  test_api 0.7.9 (0.7.12 available)
+  test_core 0.6.15 (0.6.18 available)
+  timezone 0.10.1 (0.11.0 available)
+  vector_math 2.2.0 (2.3.0 available)
+  win32 5.15.0 (6.3.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+35 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing dream...                                              
+
+   info • Statements in an if should be enclosed in a block • lib/core/services/phoenix/phoenix_trader_service.dart:179:9 • curly_braces_in_flow_control_structures
+  error • The prefix 'SizedBox' can't be used here because it's shadowed by a local declaration • lib/features/navigation/presentation/widgets/main_shell.dart:130:37 • prefix_shadowed_by_local_declaration
+  error • The prefix 'SizedBox' can't be used here because it's shadowed by a local declaration • lib/features/navigation/presentation/widgets/main_shell.dart:133:37 • prefix_shadowed_by_local_declaration
+  error • The prefix 'SizedBox' can't be used here because it's shadowed by a local declaration • lib/features/navigation/presentation/widgets/main_shell.dart:136:37 • prefix_shadowed_by_local_declaration
+  error • The prefix 'SizedBox' can't be used here because it's shadowed by a local declaration • lib/features/navigation/presentation/widgets/main_shell.dart:139:37 • prefix_shadowed_by_local_declaration
+  error • 'SizedBox' isn't a function • lib/features/navigation/presentation/widgets/main_shell.dart:261:17 • invocation_of_non_function
+  error • The name 'SizedBox' is defined in the libraries 'package:dream/features/trade/presentation/pages/trade_page.dart' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)' • lib/features/navigation/presentation/widgets/main_shell.dart:261:17 • ambiguous_import
+  error • 'SizedBox' isn't a function • lib/features/navigation/presentation/widgets/main_shell.dart:288:13 • invocation_of_non_function
+  error • The name 'SizedBox' is defined in the libraries 'package:dream/features/trade/presentation/pages/trade_page.dart' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)' • lib/features/navigation/presentation/widgets/main_shell.dart:288:13 • ambiguous_import
+  error • 'SizedBox' isn't a function • lib/features/navigation/presentation/widgets/main_shell.dart:354:17 • invocation_of_non_function
+  error • The name 'SizedBox' is defined in the libraries 'package:dream/features/trade/presentation/pages/trade_page.dart' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)' • lib/features/navigation/presentation/widgets/main_shell.dart:354:17 • ambiguous_import
+   info • Statements in an if should be enclosed in a block • lib/features/positions/presentation/widgets/position_card.dart:337:7 • curly_braces_in_flow_control_structures
+warning • The declaration '_PhoneTradeSurfaceMode' isn't referenced • lib/features/trade/presentation/pages/trade_page.dart:21:6 • unused_element
+warning • The value of the field 'market' isn't used • lib/features/trade/presentation/pages/trade_page.dart:21:31 • unused_field
+warning • The value of the field 'trade' isn't used • lib/features/trade/presentation/pages/trade_page.dart:21:39 • unused_field
+  error • The name 'AppColors' is defined in the libraries 'package:dream/core/theme/app_colors.dart' and 'package:dream/features/trade/presentation/widgets/trade_market_header.dart' • lib/features/trade/presentation/pages/trade_page.dart:41:24 • ambiguous_import
+  error • The named parameter 'child' isn't defined • lib/features/trade/presentation/pages/trade_page.dart:122:19 • undefined_named_parameter
+   info • Missing type annotation • lib/features/trade/presentation/pages/trade_page.dart:151:11 • strict_top_level_inference
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/trade/presentation/pages/trade_page.dart:151:11 • non_constant_identifier_names
+   info • Missing type annotation • lib/features/trade/presentation/pages/trade_page.dart:151:20 • strict_top_level_inference
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/trade/presentation/pages/trade_page.dart:151:26 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/trade/presentation/pages/trade_page.dart:151:26 • obsolete_colon_for_default_value
+  error • Extension methods can't be used in constant expressions • lib/features/trade/presentation/pages/trade_page.dart:151:28 • const_eval_extension_method
+  error • A function body must be provided • lib/features/trade/presentation/pages/trade_page.dart:151:33 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:151:33 • expected_executable
+   info • Missing type annotation • lib/features/trade/presentation/pages/trade_page.dart:152:11 • strict_top_level_inference
+   info • The variable name 'SizedBox' isn't a lowerCamelCase identifier • lib/features/trade/presentation/pages/trade_page.dart:152:11 • non_constant_identifier_names
+  error • The name 'SizedBox' is already defined • lib/features/trade/presentation/pages/trade_page.dart:152:11 • duplicate_definition
+   info • Missing type annotation • lib/features/trade/presentation/pages/trade_page.dart:152:20 • strict_top_level_inference
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/trade/presentation/pages/trade_page.dart:152:26 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/trade/presentation/pages/trade_page.dart:152:26 • obsolete_colon_for_default_value
+  error • Extension methods can't be used in constant expressions • lib/features/trade/presentation/pages/trade_page.dart:152:28 • const_eval_extension_method
+   info • Missing type annotation • lib/features/trade/presentation/pages/trade_page.dart:152:35 • strict_top_level_inference
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/trade/presentation/pages/trade_page.dart:152:40 • named_parameter_outside_group
+  error • Using a colon as the separator before a default value is no longer supported • lib/features/trade/presentation/pages/trade_page.dart:152:40 • obsolete_colon_for_default_value
+  error • The default value of an optional parameter must be constant • lib/features/trade/presentation/pages/trade_page.dart:152:42 • non_constant_default_value
+  error • Undefined name 'tradeState' • lib/features/trade/presentation/pages/trade_page.dart:152:66 • undefined_identifier
+  error • A function body must be provided • lib/features/trade/presentation/pages/trade_page.dart:152:85 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:152:85 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:153:9 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:153:10 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:154:7 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:154:8 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:155:5 • expected_executable
+  error • Unexpected text ';' • lib/features/trade/presentation/pages/trade_page.dart:155:6 • unexpected_token
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:156:3 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/pages/trade_page.dart:157:1 • expected_executable
+  error • The name 'AppColors' is defined in the libraries 'package:dream/core/theme/app_colors.dart' and 'package:dream/features/trade/presentation/widgets/trade_market_header.dart' • lib/features/trade/presentation/pages/trade_page.dart:205:24 • ambiguous_import
+  error • The named parameter 'width' isn't defined • lib/features/trade/presentation/pages/trade_page.dart:209:17 • undefined_named_parameter
+  error • The named parameter 'child' isn't defined • lib/features/trade/presentation/pages/trade_page.dart:210:17 • undefined_named_parameter
+warning • A value for optional parameter 'footer' isn't ever given • lib/features/trade/presentation/pages/trade_page.dart:235:10 • unused_element_parameter
+warning • The declaration '_ToggleButton' isn't referenced • lib/features/trade/presentation/widgets/trade_form_widgets.dart:278:7 • unused_element
+warning • The declaration '<unnamed>' isn't referenced • lib/features/trade/presentation/widgets/trade_market_header.dart:1:1 • unused_element
+  error • The getter 'bullish' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:42:48 • undefined_getter
+  error • The getter 'bearish' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:42:68 • undefined_getter
+  error • The getter 'bullish' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:44:21 • undefined_getter
+  error • The getter 'bearish' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:45:21 • undefined_getter
+  error • The getter 'backgroundDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:49:26 • undefined_getter
+  error • The getter 'borderDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:51:47 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:69:42 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:86:52 • undefined_getter
+  error • The getter 'w700' isn't defined for the type 'InvalidType Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:88:58 • undefined_getter
+  error • The getter 'textSecondaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:95:48 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:108:52 • undefined_getter
+  error • The getter 'w800' isn't defined for the type 'InvalidType Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:110:58 • undefined_getter
+  error • The getter 'w700' isn't defined for the type 'InvalidType Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:125:58 • undefined_getter
+  error • The getter 'primary' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:147:45 • undefined_getter
+  error • The getter 'surfaceDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:148:45 • undefined_getter
+  error • The getter 'primary' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:151:65 • undefined_getter
+  error • The getter 'borderDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:151:85 • undefined_getter
+  error • The getter 'primary' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:156:63 • undefined_getter
+  error • The getter 'textSecondaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:156:83 • undefined_getter
+  error • The getter 'surfaceDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:199:34 • undefined_getter
+  error • The getter 'textMutedDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:231:45 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:236:44 • undefined_getter
+  error • The getter 'w500' isn't defined for the type 'InvalidType Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:238:36 • undefined_getter
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:247:17 • expected_executable
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:247:19 • strict_top_level_inference
+   info • The variable name 'AppColors' isn't a lowerCamelCase identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:247:19 • non_constant_identifier_names
+  error • Functions must have an explicit list of parameters • lib/features/trade/presentation/widgets/trade_market_header.dart:247:19 • missing_function_parameters
+  error • A function body must be provided • lib/features/trade/presentation/widgets/trade_market_header.dart:247:28 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:247:28 • expected_executable
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:247:29 • prefer_typing_uninitialized_variables
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:247:29 • strict_top_level_inference
+  error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/trade/presentation/widgets/trade_market_header.dart:247:29 • missing_const_final_var_or_type
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:248:13 • prefer_typing_uninitialized_variables
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:248:13 • strict_top_level_inference
+  error • Expected to find ';' • lib/features/trade/presentation/widgets/trade_market_header.dart:248:13 • expected_token
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:248:21 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:248:23 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:248:25 • expected_executable
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:248:26 • prefer_typing_uninitialized_variables
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:248:26 • strict_top_level_inference
+  error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/trade/presentation/widgets/trade_market_header.dart:248:26 • missing_const_final_var_or_type
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:13 • prefer_typing_uninitialized_variables
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:13 • strict_top_level_inference
+  error • Expected to find ';' • lib/features/trade/presentation/widgets/trade_market_header.dart:249:13 • expected_token
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:249:23 • expected_executable
+  error • Undefined class 'selected' • lib/features/trade/presentation/widgets/trade_market_header.dart:249:25 • undefined_class
+   info • The variable name 'FontWeight' isn't a lowerCamelCase identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:249:36 • non_constant_identifier_names
+  error • Functions must have an explicit list of parameters • lib/features/trade/presentation/widgets/trade_market_header.dart:249:36 • missing_function_parameters
+  error • A function body must be provided • lib/features/trade/presentation/widgets/trade_market_header.dart:249:46 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:249:46 • expected_executable
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:47 • prefer_typing_uninitialized_variables
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:47 • strict_top_level_inference
+  error • Expected to find ';' • lib/features/trade/presentation/widgets/trade_market_header.dart:249:47 • expected_token
+  error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/trade/presentation/widgets/trade_market_header.dart:249:47 • missing_const_final_var_or_type
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:249:52 • expected_executable
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:54 • strict_top_level_inference
+   info • The variable name 'FontWeight' isn't a lowerCamelCase identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:249:54 • non_constant_identifier_names
+  error • Functions must have an explicit list of parameters • lib/features/trade/presentation/widgets/trade_market_header.dart:249:54 • missing_function_parameters
+  error • The name 'FontWeight' is already defined • lib/features/trade/presentation/widgets/trade_market_header.dart:249:54 • duplicate_definition
+  error • A function body must be provided • lib/features/trade/presentation/widgets/trade_market_header.dart:249:64 • missing_function_body
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:249:64 • expected_executable
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:65 • prefer_typing_uninitialized_variables
+   info • Missing type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:249:65 • strict_top_level_inference
+  error • Variables must be declared using the keywords 'const', 'final', 'var' or a type name • lib/features/trade/presentation/widgets/trade_market_header.dart:249:65 • missing_const_final_var_or_type
+  error • Expected an identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:250:11 • missing_identifier
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:250:12 • prefer_typing_uninitialized_variables
+  error • Expected an identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:251:9 • missing_identifier
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:251:10 • prefer_typing_uninitialized_variables
+  error • Expected an identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:252:7 • missing_identifier
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:252:8 • prefer_typing_uninitialized_variables
+  error • Expected an identifier • lib/features/trade/presentation/widgets/trade_market_header.dart:253:5 • missing_identifier
+   info • An uninitialized variable should have an explicit type annotation • lib/features/trade/presentation/widgets/trade_market_header.dart:253:6 • prefer_typing_uninitialized_variables
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:254:3 • expected_executable
+  error • Expected a method, getter, setter or operator declaration • lib/features/trade/presentation/widgets/trade_market_header.dart:255:1 • expected_executable
+  error • The getter 'borderDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:297:30 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:306:32 • undefined_getter
+  error • The getter 'w700' isn't defined for the type 'InvalidType Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:308:38 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:318:47 • undefined_getter
+  error • The getter 'textMutedDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:322:34 • undefined_getter
+  error • The getter 'textMutedDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:327:34 • undefined_getter
+  error • The getter 'textMutedDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:338:42 • undefined_getter
+  error • The getter 'cardDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:344:36 • undefined_getter
+  error • The getter 'primary' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:359:57 • undefined_getter
+  error • The getter 'textMutedDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:373:40 • undefined_getter
+  error • The getter 'textPrimaryDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:389:44 • undefined_getter
+  error • The getter 'w500' isn't defined for the type 'InvalidType Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:391:50 • undefined_getter
+  error • The getter 'textMutedDark' isn't defined for the type 'dynamic Function()' • lib/features/trade/presentation/widgets/trade_market_header.dart:397:44 • undefined_getter
+  error • Expected to find ';' • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:237:7 • expected_token
+warning • Dead code • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:237:8 • dead_code
+  error • Expected an identifier • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:237:8 • missing_identifier
+  error • Expected to find ';' • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:237:8 • expected_token
+  error • Unexpected text ';' • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:237:8 • unexpected_token
+  error • Expected an identifier • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:238:5 • missing_identifier
+  error • Unexpected text ';' • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:238:5 • unexpected_token
+   info • Unnecessary empty statement • lib/features/trade/presentation/widgets/trade_tp_sl_section.dart:238:6 • empty_statements
+

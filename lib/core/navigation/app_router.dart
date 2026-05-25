@@ -9,6 +9,7 @@ import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/account/presentation/pages/activate_page.dart';
 import '../../features/navigation/presentation/widgets/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/trade/presentation/pages/market_trade_page.dart';
 import '../providers/auth/client_auth_provider.dart';
 import '../../shared/services/storage_service.dart';
 
@@ -50,6 +51,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.home,
         name: 'home',
         builder: (context, state) => const MainShell(),
+      ),
+
+      // Full-screen market detail/trade route (outside shell chrome)
+      GoRoute(
+        path: '/market/:symbol',
+        name: 'market-detail',
+        builder: (context, state) =>
+            MarketTradePage(symbol: state.pathParameters['symbol'] ?? ''),
       ),
 
       // Activation gate — shown when Phoenix account not yet registered

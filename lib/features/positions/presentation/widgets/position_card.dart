@@ -49,7 +49,7 @@ class PositionCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: Colors.transparent),
       ),
       child: Column(
         children: [
@@ -333,8 +333,8 @@ class PositionCard extends ConsumerWidget {
 
   /// Conservative liq estimate: entry ∓ (collateral * 0.95 / sizeBase)
   double _estimateLiqPrice() {
-    if (position.sizeBase <= 0 || position.collateral <= 0)
-      return position.liquidationPrice;
+    if (position.sizeBase <= 0 || position.collateral <= 0) {
+      return position.liquidationPrice; }
     const mm = 0.05; // 5% maintenance margin
     final dir = position.side == 'long' ? 1.0 : -1.0;
     final buffer = (position.collateral / position.sizeBase) * (1 - mm);
@@ -504,11 +504,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                               ? AppColors.bearish.withValues(alpha: 0.12)
                               : AppColors.cardDark,
                           borderRadius: BorderRadius.circular(6.r),
-                          border: Border.all(
-                            color: sel
-                                ? AppColors.bearish
-                                : AppColors.borderDark,
-                          ),
+                          border: Border.all(color: Colors.transparent),
                         ),
                         child: Text(
                           '$p%',
@@ -557,19 +553,15 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                 fillColor: AppColors.cardDark,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6.r),
-                  borderSide: BorderSide(color: AppColors.borderDark),
+                  borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6.r),
-                  borderSide: BorderSide(
-                    color: _useCustom
-                        ? AppColors.primary
-                        : AppColors.borderDark,
-                  ),
+                  borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(6.r),
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderSide: BorderSide.none,
                 ),
                 contentPadding: EdgeInsets.symmetric(
                   horizontal: 12.w,
@@ -587,7 +579,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
                 borderRadius: BorderRadius.circular(6.r),
-                border: Border.all(color: AppColors.borderDark),
+                border: Border.all(color: Colors.transparent),
               ),
               child: Row(
                 children: [
@@ -845,7 +837,7 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceDark,
                   borderRadius: BorderRadius.circular(6.r),
-                  border: Border.all(color: AppColors.borderDark),
+                  border: Border.all(color: Colors.transparent),
                 ),
                 child: Row(
                   children: [
@@ -1234,9 +1226,9 @@ class _PriceInput extends StatelessWidget {
             filled: true,
             fillColor: AppColors.cardDark,
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
-            ),
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide.none,
+                ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
               borderSide: BorderSide(color: accentColor),

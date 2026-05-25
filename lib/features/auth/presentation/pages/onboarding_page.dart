@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../../shared/services/storage_service.dart';
 
@@ -47,9 +48,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       backgroundColor: const Color(0xFF6366F1),
     ),
     OnboardingStep(
-      title: 'Your Keys,\nYour Collateral',
+      title: 'Access your\ntrade everywhere',
       subtitle:
-          'Powered by Privy. Your USDC stays\non-chain — non-custodial, always.',
+          'View your portfolio, monitor markets, and manage positions on the go.',
       icon: Icons.lock_outline_rounded,
       backgroundColor: const Color(0xFF6366F1),
     ),
@@ -199,21 +200,31 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Icon illustration
-          Container(
-                width: 120.w,
-                height: 120.w,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(step.icon, size: 56.sp, color: Colors.white),
-              )
-              .animate()
-              .scale(
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.elasticOut,
-              )
-              .fadeIn(duration: const Duration(milliseconds: 400)),
+          // Container(
+          //       width: 120.w,
+          //       height: 120.w,
+          //       decoration: BoxDecoration(
+          //         color: Colors.white.withOpacity(0.15),
+          //         shape: BoxShape.circle,
+          //       ),
+          //       child: Icon(step.icon, size: 56.sp, color: Colors.white),
+          //     )
+          //     .animate()
+          //     .scale(
+          //       duration: const Duration(milliseconds: 600),
+          //       curve: Curves.elasticOut,
+          //     )
+          //     .fadeIn(duration: const Duration(milliseconds: 400)),
+
+          //lottie animations from assets/lottie/step1.json, step2.json, step3.json
+          SizedBox(
+            width: 200.w,
+            height: 200.w,
+            child: LottieBuilder.asset(
+              'assets/lottie/step${index + 1}.json',
+              fit: BoxFit.contain,
+            ),
+          ),
 
           SizedBox(height: 48.h),
 

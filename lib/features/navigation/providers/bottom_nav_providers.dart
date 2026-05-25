@@ -1,11 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Notifier for shell bottom navigation visibility.
+class BottomNavVisibilityNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  void setVisible(bool visible) => state = visible;
+
+  void show() => state = true;
+
+  void hide() => state = false;
+}
+
+final bottomNavVisibilityProvider =
+    NotifierProvider<BottomNavVisibilityNotifier, bool>(
+      BottomNavVisibilityNotifier.new,
+    );
+
 /// Notifier for bottom navigation index
 class BottomNavIndexNotifier extends Notifier<int> {
   @override
   int build() => 0;
 
-  void setIndex(int index) => state = index;
+  void setIndex(int index) {
+    state = index;
+    ref.read(bottomNavVisibilityProvider.notifier).show();
+  }
 
   void reset() => state = 0;
 }

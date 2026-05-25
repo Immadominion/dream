@@ -101,55 +101,46 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
     final tpPcts = isLong ? [2.5, 5.0, 10.0] : [-2.5, -5.0, -10.0];
     final slPcts = isLong ? [-2.5, -5.0, -10.0] : [2.5, 5.0, 10.0];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.borderDark),
-      ),
-      child: Column(
+    return Column(
         children: [
           // Toggle row
           GestureDetector(
             onTap: () => notifier.toggleTpSl(!s.tpSlEnabled),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.flag_outlined,
-                    size: 16.w,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.flag_outlined,
+                  size: 14.sp,
+                  color: s.tpSlEnabled
+                      ? AppColors.primary
+                      : AppColors.textMutedDark,
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  'TP / SL',
+                  style: TextStyle(
                     color: s.tpSlEnabled
-                        ? AppColors.primary
+                        ? AppColors.textPrimaryDark
                         : AppColors.textSecondaryDark,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
                   ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Take Profit / Stop Loss',
-                    style: TextStyle(
-                      color: s.tpSlEnabled
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textSecondaryDark,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Switch.adaptive(
-                    value: s.tpSlEnabled,
-                    onChanged: notifier.toggleTpSl,
-                    activeColor: AppColors.primary,
-                  ),
-                ],
-              ),
+                ),
+                const Spacer(),
+                _TinySwitch(
+                  value: s.tpSlEnabled,
+                  onChanged: notifier.toggleTpSl,
+                ),
+              ],
             ),
           ),
 
           // Expanded inputs — only when enabled
           if (s.tpSlEnabled) ...[
-            Divider(height: 1, color: AppColors.borderDark),
+            SizedBox(height: 10.h),
             Padding(
-              padding: EdgeInsets.all(14.w),
+              padding: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -163,12 +154,16 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
                           color: AppColors.textMutedDark,
                         ),
                         SizedBox(width: 4.w),
-                        Text(
-                          'Mark: ${formatPrice(s.markPrice)}  •  '
-                          '${isLong ? 'Long' : 'Short'}: TP ${isLong ? 'above' : 'below'}, SL ${isLong ? 'below' : 'above'}',
-                          style: TextStyle(
-                            color: AppColors.textMutedDark,
-                            fontSize: 11.sp,
+                        Flexible(
+                          child: Text(
+                            'Mark: ${formatPrice(s.markPrice)}  •  '
+                            '${isLong ? 'Long' : 'Short'}: TP ${isLong ? 'above' : 'below'}, SL ${isLong ? 'below' : 'above'}',
+                            style: TextStyle(
+                              color: AppColors.textMutedDark,
+                              fontSize: 11.sp,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
                           ),
                         ),
                       ],
@@ -241,6 +236,43 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
             ),
           ],
         ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tiny custom switch — avoids Switch.adaptive 60px minimum width
+// ---------------------------------------------------------------------------
+
+class _TinySwitch extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _TinySwitch({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 32.w,
+        height: 18.h,
+        padding: EdgeInsets.all(2.r),
+        decoration: BoxDecoration(
+          color: value ? AppColors.primary : AppColors.borderDark,
+          borderRadius: BorderRadius.circular(9.r),
+        ),
+        child: Align(
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 14.r,
+            height: 14.r,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -267,24 +299,24 @@ class _PctShortcuts extends StatelessWidget {
       children: pcts.map((pct) {
         final label =
             '${pct > 0 ? '+' : ''}${pct.toStringAsFixed(pct.truncateToDouble() == pct ? 0 : 1)}%';
+        final isLast = pct == pcts.last;
         return Expanded(
           child: GestureDetector(
             onTap: () => onSelect(pct),
             child: Container(
-              margin: EdgeInsets.only(right: pct == pcts.last ? 0 : 4.w),
-              height: 24.h,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(4.r),
-                border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-              ),
+              margin: EdgeInsets.only(right: isLast ? 0 : 3.w),
+              height: 22.h,
+              color: accentColor.withValues(alpha: 0.10),
               alignment: Alignment.center,
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: accentColor,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w600,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -376,15 +408,15 @@ class _TpSlField extends StatelessWidget {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(6.r),
-              borderSide: BorderSide(color: labelColor, width: 1.5),
+              borderSide: BorderSide(color: labelColor, width: 1.2),
             ),
           ),
           onChanged: onChanged,

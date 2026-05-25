@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,10 +8,6 @@ import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import 'orderbook_widget.dart';
-
-// ---------------------------------------------------------------------------
-// Compact price formatter (internal to this file)
-// ---------------------------------------------------------------------------
 
 String _obPrice(double price) {
   if (price >= 10000) return addThousandsSep(price.toStringAsFixed(0));
@@ -20,10 +18,6 @@ String _obPrice(double price) {
   if (price >= 100) return price.toStringAsFixed(2);
   return price.toStringAsFixed(3);
 }
-
-// ---------------------------------------------------------------------------
-// Orderbook Depth Tab
-// ---------------------------------------------------------------------------
 
 class OrderbookDepthTab extends ConsumerWidget {
   final String symbol;
@@ -43,155 +37,204 @@ class OrderbookDepthTab extends ConsumerWidget {
       );
     }
 
-    final asks = ob.asks.take(10).toList().reversed.toList();
-    final bids = ob.bids.take(10).toList();
-
+    final asks = ob.asks.take(12).toList();
+    final bids = ob.bids.take(12).toList();
+    final rowCount = math.max(asks.length, bids.length);
     final maxSize = [
-      ...ob.asks.take(10).map((e) => e.size),
-      ...ob.bids.take(10).map((e) => e.size),
+      ...asks.map((level) => level.size),
+      ...bids.map((level) => level.size),
     ].fold(0.0, (a, b) => a > b ? a : b);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.paddingOf(context).bottom + 24.h,
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Price (USDC)',
-                    style: TextStyle(
-                      color: AppColors.textMutedDark,
-                      fontSize: 10.sp,
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      'Bid Qty',
+                      style: TextStyle(
+                        color: AppColors.textMutedDark,
+                        fontSize: 10.sp,
+                      ),
                     ),
-                  ),
+                    const Spacer(),
+                    Text(
+                      'Bid',
+                      style: TextStyle(
+                        color: AppColors.textMutedDark,
+                        fontSize: 10.sp,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Size',
-                  style: TextStyle(
-                    color: AppColors.textMutedDark,
-                    fontSize: 10.sp,
-                  ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      'Ask',
+                      style: TextStyle(
+                        color: AppColors.textMutedDark,
+                        fontSize: 10.sp,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Ask Qty',
+                      style: TextStyle(
+                        color: AppColors.textMutedDark,
+                        fontSize: 10.sp,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.paddingOf(context).bottom + 24.h,
+            ),
+            itemCount: rowCount,
+            itemBuilder: (_, index) => _OrderbookPairRow(
+              bid: index < bids.length ? bids[index] : null,
+              ask: index < asks.length ? asks[index] : null,
+              maxSize: maxSize,
             ),
           ),
-          ...asks.map(
-            (level) =>
-                OrderbookLevel(level: level, isBid: false, maxSize: maxSize),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-            child: Row(
-              children: [
-                Text(
-                  _obPrice(ob.mid ?? ob.bestBid),
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  'Spread ${ob.spreadPct.toStringAsFixed(3)}%',
-                  style: TextStyle(
-                    color: AppColors.textMutedDark,
-                    fontSize: 10.sp,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ...bids.map(
-            (level) =>
-                OrderbookLevel(level: level, isBid: true, maxSize: maxSize),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Single depth level row
-// ---------------------------------------------------------------------------
-
-class OrderbookLevel extends StatelessWidget {
-  final PhoenixOrderLevel level;
-  final bool isBid;
+class _OrderbookPairRow extends StatelessWidget {
+  final PhoenixOrderLevel? bid;
+  final PhoenixOrderLevel? ask;
   final double maxSize;
 
-  const OrderbookLevel({
-    super.key,
-    required this.level,
-    required this.isBid,
+  const _OrderbookPairRow({
+    required this.bid,
+    required this.ask,
     required this.maxSize,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isBid ? AppColors.bullish : AppColors.bearish;
-    final pct = maxSize > 0 ? (level.size / maxSize).clamp(0.0, 1.0) : 0.0;
-    final priceStr = _obPrice(level.price);
-    final sizeStr = _formatSize(level.size);
-
     return SizedBox(
-      height: 20.h,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Align(
-              alignment: isBid ? Alignment.centerLeft : Alignment.centerRight,
-              child: FractionallySizedBox(
-                widthFactor: pct,
-                child: Container(color: color.withAlpha(25)),
+      height: 22.h,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        child: Row(
+          children: [
+            Expanded(
+              child: _OrderbookSideHalf(
+                level: bid,
+                maxSize: maxSize,
+                isBid: true,
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    priceStr,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Text(
-                  sizeStr,
-                  style: TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 11.sp,
-                  ),
-                ),
-              ],
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _OrderbookSideHalf(
+                level: ask,
+                maxSize: maxSize,
+                isBid: false,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
 
-  String _formatSize(double size) {
-    if (size >= 1000) return '${(size / 1000).toStringAsFixed(1)}K';
-    if (size >= 100) return size.toStringAsFixed(1);
-    return size.toStringAsFixed(3);
+class _OrderbookSideHalf extends StatelessWidget {
+  final PhoenixOrderLevel? level;
+  final double maxSize;
+  final bool isBid;
+
+  const _OrderbookSideHalf({
+    required this.level,
+    required this.maxSize,
+    required this.isBid,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isBid ? AppColors.bullish : AppColors.bearish;
+    final pct = level == null || maxSize <= 0
+        ? 0.0
+        : (level!.size / maxSize).clamp(0.0, 1.0);
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Align(
+            alignment: isBid ? Alignment.centerRight : Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: pct,
+              child: Container(color: color.withAlpha(22)),
+            ),
+          ),
+        ),
+        Row(
+          children: isBid
+              ? [
+                  Text(
+                    _formatDepthSize(level?.size),
+                    style: TextStyle(
+                      color: AppColors.textSecondaryDark,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    level == null ? '--' : _obPrice(level!.price),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ]
+              : [
+                  Text(
+                    level == null ? '--' : _obPrice(level!.price),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _formatDepthSize(level?.size),
+                    style: TextStyle(
+                      color: AppColors.textSecondaryDark,
+                      fontSize: 11.sp,
+                    ),
+                  ),
+                ],
+        ),
+      ],
+    );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Recent Trades Tab
-// ---------------------------------------------------------------------------
+String _formatDepthSize(double? size) {
+  if (size == null || size <= 0) return '--';
+  if (size >= 1000) return '${(size / 1000).toStringAsFixed(1)}K';
+  if (size >= 100) return size.toStringAsFixed(1);
+  return size.toStringAsFixed(3);
+}
 
 class OrderbookTradesTab extends ConsumerWidget {
   final String symbol;
@@ -218,9 +261,19 @@ class OrderbookTradesTab extends ConsumerWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 80.w,
+                width: 58.w,
                 child: Text(
-                  'Price',
+                  'Time',
+                  style: TextStyle(
+                    color: AppColors.textMutedDark,
+                    fontSize: 10.sp,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 42.w,
+                child: Text(
+                  'Side',
                   style: TextStyle(
                     color: AppColors.textMutedDark,
                     fontSize: 10.sp,
@@ -229,18 +282,22 @@ class OrderbookTradesTab extends ConsumerWidget {
               ),
               Expanded(
                 child: Text(
-                  'Size',
+                  'Price',
                   style: TextStyle(
                     color: AppColors.textMutedDark,
                     fontSize: 10.sp,
                   ),
                 ),
               ),
-              Text(
-                'Time',
-                style: TextStyle(
-                  color: AppColors.textMutedDark,
-                  fontSize: 10.sp,
+              SizedBox(
+                width: 70.w,
+                child: Text(
+                  'Qty',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: AppColors.textMutedDark,
+                    fontSize: 10.sp,
+                  ),
                 ),
               ),
             ],
@@ -260,10 +317,6 @@ class OrderbookTradesTab extends ConsumerWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Single recent-trade row
-// ---------------------------------------------------------------------------
-
 class OrderbookTradeTile extends StatelessWidget {
   final PhoenixRecentTrade trade;
   const OrderbookTradeTile({super.key, required this.trade});
@@ -271,23 +324,46 @@ class OrderbookTradeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = trade.isBuy ? AppColors.bullish : AppColors.bearish;
+    final sideLabel = trade.isBuy ? 'Buy' : 'Sell';
     final priceStr = _obPrice(trade.price);
-    final sizeStr = trade.size.toStringAsFixed(3);
+    final sizeStr = trade.size >= 100
+        ? trade.size.toStringAsFixed(2)
+        : trade.size.toStringAsFixed(4);
     final dt = DateTime.fromMillisecondsSinceEpoch(
       trade.timestamp > 9999999999 ? trade.timestamp : trade.timestamp * 1000,
       isUtc: true,
-    );
+    ).toLocal();
     final timeStr =
         '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
 
     return SizedBox(
-      height: 20.h,
+      height: 24.h,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Row(
           children: [
             SizedBox(
-              width: 80.w,
+              width: 58.w,
+              child: Text(
+                timeStr,
+                style: TextStyle(
+                  color: AppColors.textMutedDark,
+                  fontSize: 10.sp,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 42.w,
+              child: Text(
+                sideLabel,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Expanded(
               child: Text(
                 priceStr,
                 style: TextStyle(
@@ -297,18 +373,16 @@ class OrderbookTradeTile extends StatelessWidget {
                 ),
               ),
             ),
-            Expanded(
+            SizedBox(
+              width: 70.w,
               child: Text(
                 sizeStr,
+                textAlign: TextAlign.right,
                 style: TextStyle(
                   color: AppColors.textSecondaryDark,
                   fontSize: 11.sp,
                 ),
               ),
-            ),
-            Text(
-              timeStr,
-              style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
             ),
           ],
         ),

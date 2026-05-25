@@ -7,7 +7,6 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/auth/client_auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/account_provider.dart';
-import '../widgets/account_activate_card.dart';
 import '../widgets/account_analytics_card.dart';
 import '../widgets/account_balance_card.dart';
 import '../widgets/account_builder_fees.dart';
@@ -69,7 +68,7 @@ class AccountPage extends ConsumerWidget {
                   accountState.traderState!.isRegistered)
                 AccountPortfolioCard(accountState: accountState)
               else
-                AccountActivateCard(walletAddress: walletAddress),
+                const SizedBox.shrink(),
 
               SizedBox(height: 12.h),
 

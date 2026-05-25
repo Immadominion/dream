@@ -1,13 +1,16 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/markets_provider.dart';
+import '../../providers/market_search_provider.dart';
+import '../../providers/market_watchlist_filter_provider.dart';
 import '../../providers/watchlist_provider.dart';
-import '../../../trade/providers/trade_provider.dart';
-import '../../../navigation/providers/bottom_nav_providers.dart';
 import '../widgets/market_tile.dart';
 import '../widgets/markets_header.dart';
 
@@ -19,52 +22,121 @@ class MarketsPage extends ConsumerStatefulWidget {
 }
 
 class _MarketsPageState extends ConsumerState<MarketsPage> {
-  MarketSortMode _sort = MarketSortMode.change;
-  SortDirection _sortDir = SortDirection.none;
-  bool _watchlistOnly = false;
-
+  // Multiple filters can be active at once.
+  // Each entry: mode → direction (desc = high first, asc = low first).
+  // When multiple are active, a composite normalized score is used.
+  final Map<MarketSortMode, SortDirection> _filters = {};
   void _onSortTapped(MarketSortMode mode) {
     setState(() {
-      if (_sort == mode) {
-        // Cycle: none → desc → asc → none
-        switch (_sortDir) {
-          case SortDirection.none:
-            _sortDir = SortDirection.desc;
-          case SortDirection.desc:
-            _sortDir = SortDirection.asc;
-          case SortDirection.asc:
-            _sortDir = SortDirection.none;
-        }
-      } else {
-        _sort = mode;
-        _sortDir = SortDirection.desc;
+      final current = _filters[mode] ?? SortDirection.none;
+      switch (current) {
+        case SortDirection.none:
+          _filters[mode] = SortDirection.desc;
+        case SortDirection.desc:
+          _filters[mode] = SortDirection.asc;
+        case SortDirection.asc:
+          _filters.remove(mode);
       }
     });
+  }
+
+  double _rawValue(MarketSortMode mode, String sym, MarketsState state) =>
+      switch (mode) {
+        MarketSortMode.change => state.snapshots[sym]?.change24hPercent ?? 0,
+        MarketSortMode.volume => state.snapshots[sym]?.volume24hUsd ?? 0,
+        MarketSortMode.oi => state.snapshots[sym]?.openInterestUsd ?? 0,
+        MarketSortMode.funding =>
+          (state.snapshots[sym]?.fundingRate ?? 0).abs(),
+      };
+
+  List<PhoenixMarket> _sortMarkets(
+    List<PhoenixMarket> markets,
+    MarketsState state,
+  ) {
+    final active = Map.fromEntries(
+      _filters.entries.where((e) => e.value != SortDirection.none),
+    );
+    if (active.isEmpty) return markets;
+
+    if (active.length == 1) {
+      // Fast path — simple single-column sort
+      final entry = active.entries.first;
+      final sorted = List<PhoenixMarket>.from(markets)
+        ..sort((a, b) {
+          final cmp = _rawValue(
+            entry.key,
+            a.symbol,
+            state,
+          ).compareTo(_rawValue(entry.key, b.symbol, state));
+          return entry.value == SortDirection.desc ? -cmp : cmp;
+        });
+      return sorted;
+    }
+
+    // Multi-filter: normalize each criterion to [0,1] and sum scores.
+    // desc direction → high raw value = high score (good)
+    // asc  direction → low  raw value = high score (good)
+    final scores = <PhoenixMarket, double>{};
+    for (final entry in active.entries) {
+      final values = markets
+          .map((m) => _rawValue(entry.key, m.symbol, state))
+          .toList();
+      final minV = values.reduce(min);
+      final maxV = values.reduce(max);
+      final range = maxV - minV;
+
+      for (int i = 0; i < markets.length; i++) {
+        final normalized = range > 0 ? (values[i] - minV) / range : 0.5;
+        final score = entry.value == SortDirection.desc
+            ? normalized
+            : (1.0 - normalized);
+        scores[markets[i]] = (scores[markets[i]] ?? 0) + score;
+      }
+    }
+
+    return List<PhoenixMarket>.from(markets)
+      ..sort((a, b) => (scores[b] ?? 0).compareTo(scores[a] ?? 0));
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(marketsProvider);
     final watchlist = ref.watch(watchlistProvider);
+    final searchQuery = ref
+        .watch(marketSearchQueryProvider)
+        .toLowerCase()
+        .trim();
+    final watchlistOnly = ref.watch(marketWatchlistOnlyProvider);
 
     var markets = state.markets.where((m) {
-      if (_watchlistOnly && !watchlist.contains(m.symbol)) return false;
+      if (watchlistOnly && !watchlist.contains(m.symbol)) return false;
       return true;
     }).toList();
 
-    if (_sortDir != SortDirection.none) {
-      markets.sort((a, b) {
-        double sortVal(MarketSortMode s, String sym) => switch (s) {
-          MarketSortMode.change => state.snapshots[sym]?.change24hPercent ?? 0,
-          MarketSortMode.volume => state.snapshots[sym]?.volume24hUsd ?? 0,
-          MarketSortMode.oi => state.snapshots[sym]?.openInterestUsd ?? 0,
-          MarketSortMode.funding =>
-            (state.snapshots[sym]?.fundingRate ?? 0).abs(),
-        };
-        final cmp =
-            sortVal(_sort, a.symbol).compareTo(sortVal(_sort, b.symbol));
-        return _sortDir == SortDirection.desc ? -cmp : cmp;
-      });
+    // Search filtering — rank by relevance, skip sort chips when querying
+    if (searchQuery.isNotEmpty) {
+      int score(PhoenixMarket m) {
+        final symbol = m.symbol.toLowerCase();
+        final base = m.baseAsset.toLowerCase();
+        if (symbol == searchQuery || base == searchQuery) return 4;
+        if (base.startsWith(searchQuery)) return 3;
+        if (symbol.startsWith(searchQuery)) return 2;
+        if (symbol.contains(searchQuery) || base.contains(searchQuery)) {
+          return 1;
+        }
+        return -1;
+      }
+
+      markets = markets.where((m) => score(m) > 0).toList()
+        ..sort((a, b) {
+          final sc = score(b).compareTo(score(a));
+          if (sc != 0) return sc;
+          final volA = state.snapshots[a.symbol]?.volume24hUsd ?? 0;
+          final volB = state.snapshots[b.symbol]?.volume24hUsd ?? 0;
+          return volB.compareTo(volA);
+        });
+    } else {
+      markets = _sortMarkets(markets, state);
     }
 
     return Scaffold(
@@ -73,19 +145,12 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
         bottom: false,
         child: Column(
           children: [
-            MarketsHeader(
-              sort: _sort,
-              sortDir: _sortDir,
-              watchlistOnly: _watchlistOnly,
-              onSortChanged: _onSortTapped,
-              onWatchlistOnlyToggled: () =>
-                  setState(() => _watchlistOnly = !_watchlistOnly),
-            ),
+            MarketsHeader(activeFilters: _filters, onSortTapped: _onSortTapped),
             Expanded(
               child: _MarketsBody(
                 state: state,
                 filteredMarkets: markets,
-                watchlistOnly: _watchlistOnly,
+                watchlistOnly: watchlistOnly,
               ),
             ),
           ],
@@ -172,9 +237,7 @@ class _MarketsBody extends ConsumerWidget {
       color: AppColors.primary,
       backgroundColor: AppColors.surfaceDark,
       onRefresh: () => ref.read(marketsProvider.notifier).refresh(),
-      child: _CurveListView(
-        markets: filteredMarkets,
-      ),
+      child: _CurveListView(markets: filteredMarkets),
     );
   }
 }
@@ -203,7 +266,7 @@ class _CurveListViewState extends ConsumerState<_CurveListView> {
       cacheExtent: 320,
       padding: EdgeInsets.fromLTRB(
         0,
-        12.h,
+        6.h,
         0,
         MediaQuery.paddingOf(context).bottom + 24.h,
       ),
@@ -213,8 +276,7 @@ class _CurveListViewState extends ConsumerState<_CurveListView> {
         final child = MarketTile(
           market: market,
           onTap: () {
-            ref.read(tradeProvider.notifier).selectSymbol(market.symbol);
-            ref.read(bottomNavIndexProvider.notifier).setIndex(1);
+            context.push('/market/${market.symbol}');
           },
         );
 
@@ -222,7 +284,8 @@ class _CurveListViewState extends ConsumerState<_CurveListView> {
           animation: _controller,
           builder: (context, _) {
             // Only scale if attached and has dimensions
-            if (!_controller.hasClients || _controller.position.viewportDimension == 0.0) {
+            if (!_controller.hasClients ||
+                _controller.position.viewportDimension == 0.0) {
               return child;
             }
 
@@ -232,21 +295,18 @@ class _CurveListViewState extends ConsumerState<_CurveListView> {
             try {
               final offset = box.localToGlobal(Offset.zero);
               final itemCenterY = offset.dy + (box.size.height / 2);
-              
+
               // Find screen center roughly
               final screenHeight = MediaQuery.sizeOf(context).height;
               final centerY = screenHeight / 2;
-              
+
               final distance = (itemCenterY - centerY).abs();
               final ratio = (distance / (screenHeight / 2)).clamp(0.0, 1.0);
-              
+
               // Items at edges scale down slightly to 0.88, center items are 1.0
               final scale = 1.0 - (ratio * 0.12);
 
-              return Transform.scale(
-                scale: scale,
-                child: child,
-              );
+              return Transform.scale(scale: scale, child: child);
             } catch (e) {
               return child; // Fallback if layout isn't fully ready
             }

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import '../constants/app_constants.dart';
+import '../navigation/app_router.dart';
 import '../providers/auth/client_auth_provider.dart';
 import '../services/logger_service.dart';
+import '../services/phoenix/phoenix_trader_service.dart';
 import '../../shared/models/user.dart';
 
 /// Session manager widget that handles periodic session refresh and token expiration
@@ -21,6 +23,7 @@ class _SessionManagerState extends ConsumerState<SessionManager>
   Timer? _sessionTimer;
   Timer? _refreshTimer;
   final _logger = LoggerService();
+  bool _isCheckingRegistration = false;
 
   @override
   void initState() {
@@ -79,6 +82,48 @@ class _SessionManagerState extends ConsumerState<SessionManager>
 
     // Immediate session refresh
     _checkAndRefreshSession();
+
+    // Re-assert activation gate when app comes back to foreground.
+    _enforceActivationGate();
+  }
+
+  Future<void> _enforceActivationGate() async {
+    if (_isCheckingRegistration || !mounted) return;
+
+    final authState = ref.read(clientAuthProvider);
+    final wallet = authState.walletAddress;
+
+    if (!authState.isAuthenticated || wallet == null) return;
+
+    _isCheckingRegistration = true;
+    try {
+      final traderState = await ref
+          .read(phoenixTraderServiceProvider)
+          .fetchTraderState(wallet);
+      if (!mounted) return;
+
+      final router = ref.read(appRouterProvider);
+      final path = router.routeInformationProvider.value.uri.path;
+
+      if (!traderState.isRegistered) {
+        if (path != '/activate') {
+          _logger.info(
+            '[SessionManager] Trader not activated, routing to /activate',
+          );
+          router.go('/activate');
+        }
+        return;
+      }
+
+      if (path == '/activate') {
+        _logger.info('[SessionManager] Trader activated, routing to home');
+        router.go(AppRoutes.home);
+      }
+    } catch (e) {
+      _logger.warning('[SessionManager] Activation gate check failed: $e');
+    } finally {
+      _isCheckingRegistration = false;
+    }
   }
 
   Future<void> _checkAndRefreshSession() async {
@@ -118,8 +163,16 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       // Redirect to login when user signs out
       if (next.state == AuthState.unauthenticated &&
           previous?.state != AuthState.unauthenticated) {
+        final router = ref.read(appRouterProvider);
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) context.go('/enhanced-login');
+          router.go('/enhanced-login');
+        });
+      }
+
+      // Enforce activation gate whenever auth becomes active.
+      if (next.state == AuthState.authenticated) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _enforceActivationGate();
         });
       }
     });

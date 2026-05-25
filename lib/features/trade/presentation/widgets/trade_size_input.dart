@@ -88,8 +88,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                 decoration: BoxDecoration(
                   color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(4.r),
-                  border: Border.all(color: AppColors.borderDark),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: usdcAsync.isLoading
                     ? SizedBox(
@@ -177,15 +176,15 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.primary),
+              borderSide: BorderSide.none,
             ),
           ),
           onChanged: (v) {

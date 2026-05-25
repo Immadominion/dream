@@ -35,11 +35,10 @@ class TradeOrderSummary extends ConsumerWidget {
     final estFee = notional * takerFeeBps / 10000;
 
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.borderDark),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Column(
         children: [
@@ -226,9 +225,10 @@ class TradeSubmitButton extends ConsumerWidget {
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: buttonColor,
-          disabledBackgroundColor: buttonColor.withOpacity(0.3),
+          disabledBackgroundColor: buttonColor.withValues(alpha: 0.3),
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(26.r),
           ),
         ),
         child: tradeState.isSubmitting || phoenixLoading
@@ -277,31 +277,23 @@ class TradeSlippageSelector extends ConsumerWidget {
           final label = bps < 100
               ? '${(bps / 100).toStringAsFixed(1)}%'
               : '${(bps / 100).toStringAsFixed(0)}%';
-          return Padding(
-            padding: EdgeInsets.only(left: 6.w),
-            child: GestureDetector(
-              onTap: () => ref.read(tradeProvider.notifier).setSlippageBps(bps),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
+          return GestureDetector(
+            onTap: () =>
+                ref.read(tradeProvider.notifier).setSlippageBps(bps),
+            child: Padding(
+              padding: EdgeInsets.only(left: 14.w),
+              child: Text(
+                label,
+                style: TextStyle(
                   color: selected
-                      ? AppColors.primary.withValues(alpha: 0.18)
-                      : AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(6.r),
-                  border: Border.all(
-                    color: selected ? AppColors.primary : AppColors.borderDark,
-                  ),
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: selected
-                        ? AppColors.primary
-                        : AppColors.textSecondaryDark,
-                    fontSize: 11.sp,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                  ),
+                      ? AppColors.primary
+                      : AppColors.textMutedDark,
+                  fontSize: 12.sp,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                  decoration: selected
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationColor: AppColors.primary,
                 ),
               ),
             ),

@@ -43,14 +43,14 @@ class MarketTile extends ConsumerWidget {
     final changeColor = isPositive ? AppColors.bullish : AppColors.bearish;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 4.h),
+      padding: EdgeInsets.fromLTRB(16.w, 3.h, 16.w, 3.h),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12.r),
           child: Ink(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 7.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -106,8 +106,28 @@ class MarketTile extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                          SizedBox(width: 5.w),
+                          _MetaBadge(
+                            label: '${market.maxLeverage}x',
+                            color: AppColors.textMutedDark,
+                          ),
+                          if (market.isIsolatedOnly) ...[
+                            SizedBox(width: 4.w),
+                            _MetaBadge(
+                              label: 'ISO',
+                              color: const Color(0xFFD97706),
+                            ),
+                          ],
+                          if (market.isCommodity) ...[
+                            SizedBox(width: 3.w),
+                            Text(
+                              '🌙',
+                              style: TextStyle(fontSize: 10.sp, height: 1),
+                            ),
+                          ],
                         ],
                       ),
+                      // Market metadata tags inline with name row — done above
                       SizedBox(height: 4.h),
                       Text(
                         snapshot != null
@@ -137,9 +157,7 @@ class MarketTile extends ConsumerWidget {
                             color: AppColors.textPrimaryDark,
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w700,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures(),
-                            ],
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                         SizedBox(height: 4.h),
@@ -190,6 +208,37 @@ class MarketTile extends ConsumerWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Small inline metadata badge — e.g. "20x", "ISO"
+// ---------------------------------------------------------------------------
+
+class _MetaBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _MetaBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(3.r),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9.sp,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     );
@@ -307,4 +356,3 @@ class _TokenLogo extends StatelessWidget {
     );
   }
 }
-

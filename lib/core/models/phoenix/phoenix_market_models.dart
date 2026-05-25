@@ -10,6 +10,12 @@ class PhoenixMarket extends Equatable {
   final double makerFeeRateBps;
   final double minOrderSizeUsd;
   final bool isActive;
+  final bool isIsolatedOnly;
+
+  /// True for real-world-asset commodity markets that have after-hours trading.
+  /// Shown with a moon icon on the market list (GOLD, SILVER, COPPER, WTIOIL).
+  static const _commodityAssets = {'GOLD', 'SILVER', 'COPPER', 'WTIOIL'};
+  bool get isCommodity => _commodityAssets.contains(baseAsset.toUpperCase());
 
   const PhoenixMarket({
     required this.symbol,
@@ -20,6 +26,7 @@ class PhoenixMarket extends Equatable {
     required this.makerFeeRateBps,
     required this.minOrderSizeUsd,
     required this.isActive,
+    this.isIsolatedOnly = false,
   });
 
   factory PhoenixMarket.fromJson(Map<String, dynamic> json) {
@@ -42,6 +49,7 @@ class PhoenixMarket extends Equatable {
       isActive:
           json['isActive'] as bool? ??
           ((json['marketStatus'] as String?) == 'active'),
+      isIsolatedOnly: json['isolatedOnly'] as bool? ?? false,
     );
   }
 
@@ -72,6 +80,7 @@ class PhoenixMarket extends Equatable {
       makerFeeRateBps: makerFee * 100,
       minOrderSizeUsd: 1.0,
       isActive: status == 'active' || status == 'postOnly',
+      isIsolatedOnly: json['isolatedOnly'] as bool? ?? false,
     );
   }
 

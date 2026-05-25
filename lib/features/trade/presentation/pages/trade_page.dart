@@ -8,18 +8,28 @@ import '../../../markets/providers/markets_provider.dart';
 import '../../providers/trade_provider.dart';
 import '../widgets/orderbook_widget.dart';
 import '../widgets/price_chart_widget.dart';
+import '../widgets/trade_compact_orderbook.dart';
 import '../widgets/trade_form_widgets.dart';
-import '../widgets/trade_size_input.dart';
 import '../widgets/trade_market_header.dart';
 import '../widgets/trade_order_panel.dart';
+import '../widgets/trade_size_input.dart';
 import '../widgets/trade_status_widgets.dart';
 import '../widgets/trade_tp_sl_section.dart';
 
-// Width threshold above which a two-column iPad layout is used.
 const double _kTabletBreakpoint = 768.0;
 
+// ---------------------------------------------------------------------------
+// Bybit-style perp trade page.
+//   Phone — form on the left, compact ladder on the right.
+//           Chart is hidden by default; toggle pill in header reveals it.
+//   Tablet — chart + orderbook left column, full form right column.
+// ---------------------------------------------------------------------------
+
 class TradePage extends ConsumerWidget {
-  const TradePage({super.key});
+  final bool showBackButton;
+  final VoidCallback? onBackPressed;
+
+  const TradePage({super.key, this.showBackButton = false, this.onBackPressed});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,12 +49,16 @@ class TradePage extends ConsumerWidget {
                 tradeState: tradeState,
                 marketsState: marketsState,
                 isAuthed: isAuthed,
+                showBackButton: showBackButton,
+                onBackPressed: onBackPressed,
               );
             }
             return _PhoneLayout(
               tradeState: tradeState,
               marketsState: marketsState,
               isAuthed: isAuthed,
+              showBackButton: showBackButton,
+              onBackPressed: onBackPressed,
             );
           },
         ),
@@ -54,104 +68,128 @@ class TradePage extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Phone layout — stacked single column with Trade / Depth tabs
+// Phone — order form (62%) + compact ladder (38%) with optional chart on top
 // ---------------------------------------------------------------------------
 
-class _PhoneLayout extends StatelessWidget {
+class _PhoneLayout extends StatefulWidget {
   final TradeState tradeState;
   final MarketsState marketsState;
   final bool isAuthed;
+  final bool showBackButton;
+  final VoidCallback? onBackPressed;
 
   const _PhoneLayout({
     required this.tradeState,
     required this.marketsState,
     required this.isAuthed,
+    required this.showBackButton,
+    required this.onBackPressed,
   });
 
   @override
+  State<_PhoneLayout> createState() => _PhoneLayoutState();
+}
+
+class _PhoneLayoutState extends State<_PhoneLayout> {
+  bool _chartVisible = false;
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          TradeMarketHeader(tradeState: tradeState, marketsState: marketsState),
-          PriceChartWidget(symbol: tradeState.symbol, height: 210),
-          Container(
-            color: AppColors.surfaceDark,
-            child: TabBar(
-              indicatorColor: AppColors.primary,
-              indicatorSize: TabBarIndicatorSize.label,
-              labelColor: AppColors.textPrimaryDark,
-              unselectedLabelColor: AppColors.textMutedDark,
-              labelStyle: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+    return Column(
+      children: [
+        TradeMarketHeader(
+          tradeState: widget.tradeState,
+          marketsState: widget.marketsState,
+          showBackButton: widget.showBackButton,
+          onBackPressed: widget.onBackPressed,
+          chartVisible: _chartVisible,
+          onChartToggle: (v) => setState(() => _chartVisible = v),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: _chartVisible
+              ? PriceChartWidget(
+                  symbol: widget.tradeState.symbol,
+                  height: 220,
+                )
+              : const SizedBox.shrink(),
+        ),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 62,
+                child: _OrderFormScroll(
+                  tradeState: widget.tradeState,
+                  isAuthed: widget.isAuthed,
+                ),
               ),
-              unselectedLabelStyle: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
+              SizedBox(
+                width: 155.w,
+                child: TradeCompactOrderbook(symbol: widget.tradeState.symbol),
               ),
-              dividerColor: AppColors.borderDark,
-              tabs: const [
-                Tab(text: 'Trade'),
-                Tab(text: 'Depth'),
-              ],
-            ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _OrderFormScroll(tradeState: tradeState, isAuthed: isAuthed),
-                OrderbookWidget(symbol: tradeState.symbol),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Tablet / iPad layout — chart + orderbook on left, order form on right
+// Tablet — left: chart + orderbook · right: order form
 // ---------------------------------------------------------------------------
 
 class _TabletLayout extends StatelessWidget {
   final TradeState tradeState;
   final MarketsState marketsState;
   final bool isAuthed;
+  final bool showBackButton;
+  final VoidCallback? onBackPressed;
 
   const _TabletLayout({
     required this.tradeState,
     required this.marketsState,
     required this.isAuthed,
+    required this.showBackButton,
+    required this.onBackPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TradeMarketHeader(tradeState: tradeState, marketsState: marketsState),
+        TradeMarketHeader(
+          tradeState: tradeState,
+          marketsState: marketsState,
+          showBackButton: showBackButton,
+          onBackPressed: onBackPressed,
+          chartVisible: true,
+        ),
         Expanded(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Left column: chart + orderbook
               Expanded(
                 flex: 3,
                 child: Column(
                   children: [
-                    PriceChartWidget(symbol: tradeState.symbol, height: 340),
-                    Expanded(child: OrderbookWidget(symbol: tradeState.symbol)),
+                    PriceChartWidget(
+                      symbol: tradeState.symbol,
+                      height: 340,
+                    ),
+                    Expanded(
+                      child: OrderbookWidget(symbol: tradeState.symbol),
+                    ),
                   ],
                 ),
               ),
-              VerticalDivider(
+              Container(
                 width: 1,
-                thickness: 1,
-                color: AppColors.borderDark,
+                color: AppColors.borderDark.withValues(alpha: 0.4),
               ),
-              // Right column: scrollable order form
               SizedBox(
                 width: 340,
                 child: _OrderFormScroll(
@@ -181,36 +219,42 @@ class _OrderFormScroll extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-        16.w,
-        16.h,
-        16.w,
+        14.w,
+        12.h,
+        12.w,
         MediaQuery.paddingOf(context).bottom + 24.h,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TradeActivePositionStrip(symbol: tradeState.symbol),
-          TradeSideToggle(tradeState: tradeState),
+          // Order type inline with side toggle — same row, Bybit-style
+          Row(
+            children: [
+              TradeOrderTypeToggle(tradeState: tradeState),
+              SizedBox(width: 12.w),
+              Expanded(child: TradeSideToggle(tradeState: tradeState)),
+            ],
+          ),
           SizedBox(height: 12.h),
-          TradeOrderTypeToggle(tradeState: tradeState),
-          SizedBox(height: 16.h),
           if (tradeState.orderType == OrderType.limit) ...[
             TradePriceInput(tradeState: tradeState),
             SizedBox(height: 10.h),
-            TradePostOnlyToggle(tradeState: tradeState),
-            SizedBox(height: 12.h),
           ],
           TradeSizeInput(tradeState: tradeState),
-          SizedBox(height: 12.h),
+          SizedBox(height: 14.h),
           TradeLeverageSelector(tradeState: tradeState),
-          SizedBox(height: 16.h),
+          SizedBox(height: 14.h),
           TradeTpSlSection(tradeState: tradeState),
-          SizedBox(height: 20.h),
+          SizedBox(height: 10.h),
+          if (tradeState.orderType == OrderType.limit)
+            TradePostOnlyToggle(tradeState: tradeState),
           if (tradeState.orderType == OrderType.market) ...[
             TradeSlippageSelector(tradeState: tradeState),
-            SizedBox(height: 12.h),
           ],
+          SizedBox(height: 14.h),
           TradeOrderSummary(tradeState: tradeState),
-          SizedBox(height: 20.h),
+          SizedBox(height: 16.h),
           TradeSubmitButton(tradeState: tradeState, isAuthed: isAuthed),
           if (tradeState.submitError != null) ...[
             SizedBox(height: 12.h),
@@ -220,7 +264,7 @@ class _OrderFormScroll extends StatelessWidget {
             SizedBox(height: 12.h),
             TradeSuccessBanner(txSig: tradeState.lastTxSignature!),
           ],
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
         ],
       ),
     );

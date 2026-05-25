@@ -1,18 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/providers/auth/client_auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/format_utils.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../shared/widgets/dream_display.dart';
 import '../../../markets/presentation/pages/markets_page.dart';
-import '../../../markets/providers/markets_provider.dart';
+import '../../../markets/providers/market_search_provider.dart';
+import '../../../markets/providers/market_watchlist_filter_provider.dart';
 import '../../../trade/presentation/pages/trade_page.dart';
 import '../../../trade/providers/trade_provider.dart';
 import '../../../positions/presentation/pages/positions_page.dart';
@@ -33,6 +33,42 @@ class _MainShellState extends ConsumerState<MainShell> {
   final Set<int> _loadedTabs = {0};
 
   StreamSubscription<String>? _notifTapSub;
+
+  bool _handleShellScrollNotification(ScrollNotification notification) {
+    if (notification.depth != 0) return false;
+
+    final navVisibility = ref.read(bottomNavVisibilityProvider.notifier);
+
+    if (notification is UserScrollNotification) {
+      switch (notification.direction) {
+        case ScrollDirection.forward:
+          navVisibility.show();
+        case ScrollDirection.reverse:
+          navVisibility.hide();
+        case ScrollDirection.idle:
+          break;
+      }
+      return false;
+    }
+
+    if (notification is OverscrollNotification) {
+      if (notification.overscroll < -6) {
+        navVisibility.show();
+      } else if (notification.overscroll > 6) {
+        navVisibility.hide();
+      }
+      return false;
+    }
+
+    if (notification is ScrollEndNotification) {
+      final metrics = notification.metrics;
+      if (metrics.pixels <= metrics.minScrollExtent + 4) {
+        navVisibility.show();
+      }
+    }
+
+    return false;
+  }
 
   @override
   void initState() {
@@ -56,400 +92,290 @@ class _MainShellState extends ConsumerState<MainShell> {
     final currentIndex = ref.watch(bottomNavIndexProvider);
     _loadedTabs.add(currentIndex);
 
+    void handleHorizontalSwipe(DragEndDetails details) {
+      final velocity = details.primaryVelocity ?? 0;
+      // Right swipe: Markets -> Positions
+      if (velocity > 320 && currentIndex == 0) {
+        ref.read(bottomNavIndexProvider.notifier).setIndex(2);
+      }
+      // Left swipe: Positions -> Markets
+      if (velocity < -320 && currentIndex == 2) {
+        ref.read(bottomNavIndexProvider.notifier).setIndex(0);
+      }
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       extendBody: true,
       resizeToAvoidBottomInset: true,
-      body: Column(
+      body: Stack(
         children: [
-          const WsStatusBanner(),
-          _ShellTopBar(currentIndex: currentIndex),
-          // Lazy IndexedStack: only mount tabs after the user visits them.
-          // This avoids hammering Phoenix/Helius on app start.
-          Expanded(
-            child: IndexedStack(
-              index: currentIndex,
-              children: [
-                _loadedTabs.contains(0)
-                    ? const MarketsPage()
-                    : const SizedBox.shrink(),
-                _loadedTabs.contains(1)
-                    ? const TradePage()
-                    : const SizedBox.shrink(),
-                _loadedTabs.contains(2)
-                    ? const PositionsPage()
-                    : const SizedBox.shrink(),
-                _loadedTabs.contains(3)
-                    ? const AccountPage()
-                    : const SizedBox.shrink(),
-              ],
-            ),
+          Column(
+            children: [
+              const WsStatusBanner(),
+              _ShellTopBar(currentIndex: currentIndex),
+              // Lazy IndexedStack: only mount tabs after the user visits them.
+              // This avoids hammering Phoenix/Helius on app start.
+              Expanded(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _handleShellScrollNotification,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onHorizontalDragEnd: handleHorizontalSwipe,
+                    child: IndexedStack(
+                      index: currentIndex,
+                      children: [
+                        _loadedTabs.contains(0)
+                            ? const MarketsPage()
+                            : const SizedBox.shrink(),
+                        _loadedTabs.contains(1)
+                            ? const TradePage()
+                            : const SizedBox.shrink(),
+                        _loadedTabs.contains(2)
+                            ? const PositionsPage()
+                            : const SizedBox.shrink(),
+                        _loadedTabs.contains(3)
+                            ? const AccountPage()
+                            : const SizedBox.shrink(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (currentIndex != 3)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ShellBottomNav(currentIndex: currentIndex),
+            ),
         ],
       ),
-      bottomNavigationBar: ShellBottomNav(currentIndex: currentIndex),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Shell-level top bar — search + profile icons, always visible
+// Shell-level top bar — greeting + search + profile avatar
 // ---------------------------------------------------------------------------
 
-class _ShellTopBar extends ConsumerWidget {
+class _ShellTopBar extends ConsumerStatefulWidget {
   final int currentIndex;
   const _ShellTopBar({required this.currentIndex});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(clientAuthProvider).session?.user;
-    final isAccount = currentIndex == 3;
+  ConsumerState<_ShellTopBar> createState() => _ShellTopBarState();
+}
+
+class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
+  final _textCtrl = TextEditingController();
+  final _focusNode = FocusNode();
+  bool _searchFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (!mounted) return;
+      setState(() => _searchFocused = _focusNode.hasFocus);
+    });
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  String _greetingName(AuthStateData auth) {
+    // 1. Display name (Google/Apple OAuth typically provides full name)
+    final dn = auth.session?.user.displayName;
+    if (dn != null && dn.trim().isNotEmpty) {
+      return dn.trim().split(' ').first;
+    }
+    // 2. Email → part before @, capitalised
+    final email = auth.userEmail ?? '';
+    if (email.contains('@')) {
+      final local = email.split('@').first;
+      final part = local
+          .replaceAll(RegExp(r'[._+\-]'), ' ')
+          .trim()
+          .split(' ')
+          .first;
+      if (part.isNotEmpty) {
+        return part[0].toUpperCase() + part.substring(1).toLowerCase();
+      }
+    }
+    // 3. Wallet address → truncated
+    final wallet = auth.walletAddress;
+    if (wallet != null && wallet.length >= 8) {
+      return '${wallet.substring(0, 4)}…${wallet.substring(wallet.length - 4)}';
+    }
+    return 'there';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(clientAuthProvider);
+    final user = auth.session?.user;
+    final isAccount = widget.currentIndex == 3;
+    final isMarkets = widget.currentIndex == 0;
+    final watchlistOnly = ref.watch(marketWatchlistOnlyProvider);
     final avatarSeed = user?.walletAddress ?? user?.id ?? user?.email;
 
     return SafeArea(
       bottom: false,
-      child: Container(
-        color: Colors.transparent,
-        height: 52.h,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 2.h, 16.w, 6.h),
-          child: Row(
-            children: [
-              const Spacer(),
-              _ShellActionButton(
-                isActive: false,
-                onTap: () async {
-                  final marketsState = ref.read(marketsProvider);
-                  final selectedSymbol = await showSearch<String?>(
-                    context: context,
-                    delegate: _MarketSearchDelegate(
-                      markets: marketsState.markets,
-                      snapshots: marketsState.snapshots,
-                    ),
-                  );
-                  if (!context.mounted || selectedSymbol == null) {
-                    return;
-                  }
-                  ref.read(tradeProvider.notifier).selectSymbol(selectedSymbol);
-                  ref.read(bottomNavIndexProvider.notifier).setIndex(1);
-                },
-                child: Icon(
-                  PhosphorIcons.magnifyingGlass(),
-                  color: AppColors.textPrimaryDark,
-                  size: 20.sp,
-                ),
-              ),
-              SizedBox(width: 8.w),
-              _ShellActionButton(
-                isActive: isAccount,
-                onTap: () =>
-                    ref.read(bottomNavIndexProvider.notifier).setIndex(3),
-                child: avatarSeed != null
-                    ? DreamAvatar(
-                        imageUrl: user?.photoUrl,
-                        seed: avatarSeed,
-                        size: 28.r,
-                        borderColor: isAccount
-                            ? AppColors.primary.withValues(alpha: 0.65)
-                            : AppColors.borderDark,
-                      )
-                    : Icon(
-                        PhosphorIcons.userCircle(
-                          isAccount
-                              ? PhosphorIconsStyle.duotone
-                              : PhosphorIconsStyle.regular,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 32.h, 16.w, 2.h),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: () =>
+                      ref.read(bottomNavIndexProvider.notifier).setIndex(3),
+                  behavior: HitTestBehavior.opaque,
+                  child: avatarSeed != null
+                      ? DreamAvatar(
+                          imageUrl: user?.photoUrl,
+                          seed: avatarSeed,
+                          size: 45.r,
+                          borderColor: isAccount
+                              ? AppColors.primary.withValues(alpha: 0.65)
+                              : AppColors.borderDark,
+                        )
+                      : Icon(
+                          PhosphorIcons.userCircle(
+                            isAccount
+                                ? PhosphorIconsStyle.duotone
+                                : PhosphorIconsStyle.regular,
+                          ),
+                          color: isAccount
+                              ? AppColors.primaryLight
+                              : AppColors.textSecondaryDark,
+                          size: 26.sp,
                         ),
-                        color: isAccount
-                            ? AppColors.primaryLight
-                            : AppColors.textSecondaryDark,
-                        size: 22.sp,
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Hi, ',
+                          style: TextStyle(
+                            color: AppColors.textSecondaryDark,
+                            fontSize: 17.sp,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        TextSpan(
+                          text: _greetingName(auth),
+                          style: TextStyle(
+                            color: AppColors.textPrimaryDark,
+                            fontSize: 17.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (widget.currentIndex != 3) ...[  
+            SizedBox(height: 12.h),
+            Row(
+              children: [
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 36.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDark,
+                      borderRadius: BorderRadius.circular(18.r),
+                      border: Border.all(
+                        color: _searchFocused
+                            ? AppColors.primary
+                            : AppColors.borderDark,
+                        width: _searchFocused ? 1.2 : 1,
                       ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShellActionButton extends StatelessWidget {
-  final bool isActive;
-  final VoidCallback onTap;
-  final Widget child;
-
-  const _ShellActionButton({
-    required this.isActive,
-    required this.onTap,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        width: 44.w,
-        height: 44.h,
-        padding: EdgeInsets.all(6.r),
-        decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.primary.withValues(alpha: 0.14)
-              : AppColors.surfaceDark.withValues(alpha: 0.84),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: isActive
-                ? AppColors.primary.withValues(alpha: 0.34)
-                : AppColors.borderDark,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
-              spreadRadius: -10,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Center(child: child),
-      ),
-    );
-  }
-}
-
-class _MarketSearchDelegate extends SearchDelegate<String?> {
-  final List<PhoenixMarket> markets;
-  final Map<String, PhoenixMarketSnapshot> snapshots;
-
-  _MarketSearchDelegate({required this.markets, required this.snapshots});
-
-  @override
-  String get searchFieldLabel => 'Search markets';
-
-  @override
-  TextStyle? get searchFieldStyle => TextStyle(
-    color: AppColors.textPrimaryDark,
-    fontSize: 15.sp,
-    fontWeight: FontWeight.w600,
-  );
-
-  @override
-  ThemeData appBarTheme(BuildContext context) {
-    final base = Theme.of(context);
-    return base.copyWith(
-      scaffoldBackgroundColor: AppColors.backgroundDark,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.backgroundDark,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        hintStyle: TextStyle(
-          color: AppColors.textMutedDark,
-          fontSize: 15.sp,
-          fontWeight: FontWeight.w500,
-        ),
-        border: InputBorder.none,
-      ),
-    );
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      onPressed: () => close(context, null),
-      icon: Icon(
-        PhosphorIcons.arrowLeft(),
-        color: AppColors.textPrimaryDark,
-        size: 20.sp,
-      ),
-    );
-  }
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    if (query.isEmpty) {
-      return [SizedBox(width: 12.w)];
-    }
-    return [
-      IconButton(
-        onPressed: () => query = '',
-        icon: Icon(
-          PhosphorIcons.xCircle(),
-          color: AppColors.textMutedDark,
-          size: 18.sp,
-        ),
-      ),
-    ];
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) => _buildBody(context);
-
-  @override
-  Widget buildResults(BuildContext context) => _buildBody(context);
-
-  Widget _buildBody(BuildContext context) {
-    final results = _rankedMarkets();
-
-    if (results.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32.w),
-          child: Text(
-            'No markets match "$query"',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 14.sp,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 24.h),
-      itemCount: results.length,
-      separatorBuilder: (context, index) => SizedBox(height: 10.h),
-      itemBuilder: (context, index) {
-        final market = results[index];
-        final snapshot = snapshots[market.symbol];
-        return _MarketSearchResultTile(
-          market: market,
-          snapshot: snapshot,
-          onTap: () => close(context, market.symbol),
-        );
-      },
-    );
-  }
-
-  List<PhoenixMarket> _rankedMarkets() {
-    final normalizedQuery = query.trim().toLowerCase();
-    final sorted = [...markets];
-
-    int score(PhoenixMarket market) {
-      if (normalizedQuery.isEmpty) return 0;
-      final symbol = market.symbol.toLowerCase();
-      final base = market.baseAsset.toLowerCase();
-      if (symbol == normalizedQuery || base == normalizedQuery) return 4;
-      if (base.startsWith(normalizedQuery)) return 3;
-      if (symbol.startsWith(normalizedQuery)) return 2;
-      if (symbol.contains(normalizedQuery) || base.contains(normalizedQuery)) {
-        return 1;
-      }
-      return -1;
-    }
-
-    sorted.sort((a, b) {
-      final scoreCompare = score(b).compareTo(score(a));
-      if (scoreCompare != 0) return scoreCompare;
-      final volumeA = snapshots[a.symbol]?.volume24hUsd ?? 0;
-      final volumeB = snapshots[b.symbol]?.volume24hUsd ?? 0;
-      return volumeB.compareTo(volumeA);
-    });
-
-    if (normalizedQuery.isEmpty) {
-      return sorted.take(24).toList();
-    }
-
-    return sorted.where((market) => score(market) > 0).take(30).toList();
-  }
-}
-
-class _MarketSearchResultTile extends StatelessWidget {
-  final PhoenixMarket market;
-  final PhoenixMarketSnapshot? snapshot;
-  final VoidCallback onTap;
-
-  const _MarketSearchResultTile({
-    required this.market,
-    required this.snapshot,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final change = snapshot?.change24hPercent ?? 0;
-    final changeColor = change >= 0 ? AppColors.bullish : AppColors.bearish;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22.r),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(22.r),
-            border: Border.all(color: AppColors.borderDark),
-          ),
-          padding: EdgeInsets.all(14.r),
-          child: Row(
-            children: [
-              DreamAvatar(seed: market.baseAsset, size: 42.r),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      market.baseAsset,
+                    ),
+                    child: TextField(
+                      controller: _textCtrl,
+                      focusNode: _focusNode,
                       style: TextStyle(
                         color: AppColors.textPrimaryDark,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 14.sp,
                       ),
-                    ),
-                    SizedBox(height: 3.h),
-                    Text(
-                      '${market.quoteAsset} perpetual · ${market.maxLeverage}x max',
-                      style: TextStyle(
-                        color: AppColors.textSecondaryDark,
-                        fontSize: 11.sp,
+                      decoration: InputDecoration(
+                        hintText: 'Search markets…',
+                        hintStyle: TextStyle(
+                          color: AppColors.textMutedDark,
+                          fontSize: 14.sp,
+                        ),
+                        prefixIcon: Icon(
+                          PhosphorIcons.magnifyingGlass(),
+                          size: 17.sp,
+                          color: AppColors.textMutedDark,
+                        ),
+                        suffixIcon: _textCtrl.text.isNotEmpty
+                            ? GestureDetector(
+                                onTap: () {
+                                  _textCtrl.clear();
+                                  ref
+                                          .read(
+                                            marketSearchQueryProvider.notifier,
+                                          )
+                                          .state =
+                                      '';
+                                  setState(() {});
+                                },
+                                child: Icon(
+                                  PhosphorIcons.xCircle(),
+                                  color: AppColors.textMutedDark,
+                                  size: 16.sp,
+                                ),
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(top: 9.h),
+                        isDense: true,
                       ),
+                      onChanged: (v) {
+                        ref.read(marketSearchQueryProvider.notifier).state = v
+                            .trim();
+                        setState(() {});
+                      },
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              SizedBox(width: 12.w),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    snapshot != null ? formatPrice(snapshot!.markPrice) : '--',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
+                SizedBox(width: 8.w),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: isMarkets
+                      ? () {
+                          ref.read(marketWatchlistOnlyProvider.notifier).state =
+                              !watchlistOnly;
+                        }
+                      : null,
+                  child: Icon(
+                    watchlistOnly
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    size: 20.sp,
+                    color: watchlistOnly
+                        ? const Color(0xFFF5C518)
+                        : AppColors.textSecondaryDark,
                   ),
-                  SizedBox(height: 4.h),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: changeColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999.r),
-                    ),
-                    child: Text(
-                      formatPercent(change),
-                      style: TextStyle(
-                        color: changeColor,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+            ], // end if (currentIndex != 3)
+          ],
         ),
       ),
     );

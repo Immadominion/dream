@@ -7,7 +7,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../providers/trade_provider.dart';
 
 // ---------------------------------------------------------------------------
-// Long / Short side toggle
+// Bybit-style trade form primitives.
+// Borderless filled inputs with INLINE floating labels, pill Buy/Sell toggle,
+// dropdown order type, segmented leverage slider.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Buy / Sell pill toggle — single rounded container, soft fill on active half
 // ---------------------------------------------------------------------------
 
 class TradeSideToggle extends ConsumerWidget {
@@ -17,243 +23,49 @@ class TradeSideToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLong = tradeState.side == OrderSide.buy;
-    return Row(
-      children: [
-        Expanded(
-          child: _ToggleButton(
-            label: 'Long',
-            selected: isLong,
-            selectedColor: AppColors.bullish,
-            onTap: () =>
-                ref.read(tradeProvider.notifier).setSide(OrderSide.buy),
+    return Container(
+      height: 36.h,
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(18.r),
+      ),
+      padding: EdgeInsets.all(2.r),
+      child: Row(
+        children: [
+          Expanded(
+            child: _PillSide(
+              label: 'Buy',
+              selected: isLong,
+              color: AppColors.bullish,
+              onTap: () =>
+                  ref.read(tradeProvider.notifier).setSide(OrderSide.buy),
+            ),
           ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: _ToggleButton(
-            label: 'Short',
-            selected: !isLong,
-            selectedColor: AppColors.bearish,
-            onTap: () =>
-                ref.read(tradeProvider.notifier).setSide(OrderSide.sell),
+          Expanded(
+            child: _PillSide(
+              label: 'Sell',
+              selected: !isLong,
+              color: AppColors.bearish,
+              onTap: () =>
+                  ref.read(tradeProvider.notifier).setSide(OrderSide.sell),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Market / Limit order type toggle
-// ---------------------------------------------------------------------------
-
-class TradeOrderTypeToggle extends ConsumerWidget {
-  final TradeState tradeState;
-  const TradeOrderTypeToggle({super.key, required this.tradeState});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isMarket = tradeState.orderType == OrderType.market;
-    return Row(
-      children: [
-        Expanded(
-          child: _ToggleButton(
-            label: 'Market',
-            selected: isMarket,
-            selectedColor: AppColors.primary,
-            onTap: () =>
-                ref.read(tradeProvider.notifier).setOrderType(OrderType.market),
-          ),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: _ToggleButton(
-            label: 'Limit',
-            selected: !isMarket,
-            selectedColor: AppColors.primary,
-            onTap: () =>
-                ref.read(tradeProvider.notifier).setOrderType(OrderType.limit),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Limit price input
-// ---------------------------------------------------------------------------
-
-class TradePriceInput extends ConsumerWidget {
-  final TradeState tradeState;
-  const TradePriceInput({super.key, required this.tradeState});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return _NumericField(
-      label: 'Limit Price (USD)',
-      hint: '0.00',
-      initialValue: tradeState.price > 0 ? tradeState.price.toString() : null,
-      suffix: 'USD',
-      onChanged: (v) {
-        final d = double.tryParse(v);
-        if (d != null) ref.read(tradeProvider.notifier).setPrice(d);
-      },
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Leverage selector — preset chips
-// ---------------------------------------------------------------------------
-
-class TradeLeverageSelector extends ConsumerWidget {
-  final TradeState tradeState;
-  const TradeLeverageSelector({super.key, required this.tradeState});
-
-  static const _levels = [1.0, 2.0, 3.0, 5.0, 10.0, 20.0];
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final current = tradeState.leverage;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Leverage',
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
-        ),
-        SizedBox(height: 6.h),
-        Row(
-          children: _levels.map((lev) {
-            final selected = current == lev;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => ref.read(tradeProvider.notifier).setLeverage(lev),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  margin: EdgeInsets.only(right: lev == _levels.last ? 0 : 6.w),
-                  height: 34.h,
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AppColors.primary.withValues(alpha: 0.15)
-                        : AppColors.cardDark,
-                    borderRadius: BorderRadius.circular(6.r),
-                    border: Border.all(
-                      color: selected
-                          ? AppColors.primary
-                          : AppColors.borderDark,
-                      width: selected ? 1.5 : 1,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${lev.toInt()}x',
-                    style: TextStyle(
-                      color: selected
-                          ? AppColors.primary
-                          : AppColors.textSecondaryDark,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared numeric text field (label + text input)
-// ---------------------------------------------------------------------------
-
-class _NumericField extends StatelessWidget {
-  final String label;
-  final String hint;
-  final String? suffix;
-  final String? initialValue;
-  final ValueChanged<String> onChanged;
-
-  const _NumericField({
-    required this.label,
-    required this.hint,
-    required this.onChanged,
-    this.suffix,
-    this.initialValue,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
-        ),
-        SizedBox(height: 6.h),
-        TextFormField(
-          initialValue: initialValue,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-          ],
-          style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 15.sp),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: AppColors.textMutedDark,
-              fontSize: 15.sp,
-            ),
-            suffixText: suffix,
-            suffixStyle: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 13.sp,
-            ),
-            filled: true,
-            fillColor: AppColors.cardDark,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12.w,
-              vertical: 14.h,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.borderDark),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: AppColors.primary),
-            ),
-          ),
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Reusable toggle button (used by side toggle + order type toggle)
-// ---------------------------------------------------------------------------
-
-class _ToggleButton extends StatelessWidget {
+class _PillSide extends StatelessWidget {
   final String label;
   final bool selected;
-  final Color selectedColor;
+  final Color color;
   final VoidCallback onTap;
 
-  const _ToggleButton({
+  const _PillSide({
     required this.label,
     required this.selected,
-    required this.selectedColor,
+    required this.color,
     required this.onTap,
   });
 
@@ -261,26 +73,20 @@ class _ToggleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        height: 40.h,
         decoration: BoxDecoration(
-          color: selected
-              ? selectedColor.withValues(alpha: 0.15)
-              : AppColors.cardDark,
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(
-            color: selected ? selectedColor : AppColors.borderDark,
-            width: selected ? 1.5 : 1,
-          ),
+          color: selected ? color.withValues(alpha: 0.22) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16.r),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? selectedColor : AppColors.textSecondaryDark,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
+            color: selected ? color : AppColors.textSecondaryDark,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -289,8 +95,387 @@ class _ToggleButton extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Post-only toggle — shown below order type selector for limit orders.
-// When enabled the order is only placed if it would be a maker (no crossing).
+// Order type — Limit / Market dropdown (borderless filled)
+// ---------------------------------------------------------------------------
+
+class TradeOrderTypeToggle extends ConsumerWidget {
+  final TradeState tradeState;
+  const TradeOrderTypeToggle({super.key, required this.tradeState});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final label =
+        tradeState.orderType == OrderType.market ? 'Market' : 'Limit';
+    return PopupMenuButton<OrderType>(
+      initialValue: tradeState.orderType,
+      onSelected: (v) => ref.read(tradeProvider.notifier).setOrderType(v),
+      color: AppColors.surfaceDark,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6.r),
+        side: BorderSide(color: AppColors.borderDark),
+      ),
+      padding: EdgeInsets.zero,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: OrderType.market,
+          height: 36.h,
+          child: Text(
+            'Market',
+            style: TextStyle(
+              color: AppColors.textPrimaryDark,
+              fontSize: 13.sp,
+            ),
+          ),
+        ),
+        PopupMenuItem(
+          value: OrderType.limit,
+          height: 36.h,
+          child: Text(
+            'Limit',
+            style: TextStyle(
+              color: AppColors.textPrimaryDark,
+              fontSize: 13.sp,
+            ),
+          ),
+        ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textPrimaryDark,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(width: 2.w),
+          Icon(
+            Icons.expand_more_rounded,
+            size: 16.sp,
+            color: AppColors.textMutedDark,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Limit price input — inline floating label "Price", suffix "USDC"
+// ---------------------------------------------------------------------------
+
+class TradePriceInput extends ConsumerStatefulWidget {
+  final TradeState tradeState;
+  const TradePriceInput({super.key, required this.tradeState});
+
+  @override
+  ConsumerState<TradePriceInput> createState() => _TradePriceInputState();
+}
+
+class _TradePriceInputState extends ConsumerState<TradePriceInput> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(
+      text: widget.tradeState.price > 0
+          ? widget.tradeState.price.toString()
+          : '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant TradePriceInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next =
+        widget.tradeState.price > 0 ? widget.tradeState.price.toString() : '';
+    if (next != _ctrl.text && next.isNotEmpty) {
+      _ctrl.text = next;
+      _ctrl.selection =
+          TextSelection.fromPosition(TextPosition(offset: next.length));
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44.h,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Price',
+            style: TextStyle(
+              color: AppColors.textSecondaryDark,
+              fontSize: 12.sp,
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _ctrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+              ],
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: AppColors.textPrimaryDark,
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: const InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: (v) {
+                final d = double.tryParse(v);
+                if (d != null) ref.read(tradeProvider.notifier).setPrice(d);
+              },
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            'USDC',
+            style: TextStyle(
+              color: AppColors.textSecondaryDark,
+              fontSize: 12.sp,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Leverage selector — Bybit-style segmented slider
+// ---------------------------------------------------------------------------
+
+class TradeLeverageSelector extends ConsumerWidget {
+  final TradeState tradeState;
+  const TradeLeverageSelector({super.key, required this.tradeState});
+
+  static const _levels = [1.0, 2.0, 5.0, 10.0, 20.0];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = tradeState.leverage;
+    int idx = _levels.indexWhere((l) => l >= current);
+    if (idx < 0) idx = _levels.length - 1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Leverage',
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 12.sp,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${_levels[idx].toInt()}×',
+              style: TextStyle(
+                color: AppColors.textPrimaryDark,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 2.h,
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.cardDark,
+            thumbColor: AppColors.textPrimaryDark,
+            overlayColor: AppColors.primary.withValues(alpha: 0.12),
+            thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7.r),
+            tickMarkShape: RoundSliderTickMarkShape(tickMarkRadius: 3.r),
+            activeTickMarkColor: AppColors.primary,
+            inactiveTickMarkColor: AppColors.borderDark,
+          ),
+          child: Slider(
+            value: idx.toDouble(),
+            min: 0,
+            max: (_levels.length - 1).toDouble(),
+            divisions: _levels.length - 1,
+            onChanged: (v) => ref
+                .read(tradeProvider.notifier)
+                .setLeverage(_levels[v.round()]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Borderless inline numeric field — Price / Quantity / Order Value
+// ---------------------------------------------------------------------------
+
+class TradeInlineNumericField extends StatefulWidget {
+  final String label;
+  final String? suffix;
+  final String? initialValue;
+  final TextEditingController? controller;
+  final ValueChanged<String> onChanged;
+  final bool readOnly;
+  final Widget? trailing;
+
+  const TradeInlineNumericField({
+    super.key,
+    required this.label,
+    required this.onChanged,
+    this.suffix,
+    this.initialValue,
+    this.controller,
+    this.readOnly = false,
+    this.trailing,
+  });
+
+  @override
+  State<TradeInlineNumericField> createState() =>
+      _TradeInlineNumericFieldState();
+}
+
+class _TradeInlineNumericFieldState extends State<TradeInlineNumericField> {
+  late final TextEditingController _ctrl;
+  late final FocusNode _focus;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller != null) {
+      _ctrl = widget.controller!;
+    } else {
+      _ctrl = TextEditingController(text: widget.initialValue);
+      _ownsController = true;
+    }
+    _focus = FocusNode();
+    _focus.addListener(() => setState(() {}));
+    _ctrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValue = _ctrl.text.isNotEmpty;
+    final showLabelTop = _focus.hasFocus || hasValue;
+
+    return Container(
+      height: 52.h,
+      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Stack(
+        children: [
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            left: 0,
+            top: showLabelTop ? 6.h : 16.h,
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 150),
+              style: TextStyle(
+                color: AppColors.textMutedDark,
+                fontSize: showLabelTop ? 10.sp : 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
+              child: Text(widget.label),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 14.h),
+                  child: TextField(
+                    controller: _ctrl,
+                    focusNode: _focus,
+                    readOnly: widget.readOnly,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                    ],
+                    style: TextStyle(
+                      color: AppColors.textPrimaryDark,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: widget.onChanged,
+                  ),
+                ),
+              ),
+              if (widget.suffix != null)
+                Padding(
+                  padding: EdgeInsets.only(left: 8.w, top: 14.h),
+                  child: Text(
+                    widget.suffix!,
+                    style: TextStyle(
+                      color: AppColors.textSecondaryDark,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              if (widget.trailing != null) ...[
+                SizedBox(width: 6.w),
+                Padding(
+                  padding: EdgeInsets.only(top: 14.h),
+                  child: widget.trailing!,
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Post-only checkbox row — flat, borderless
 // ---------------------------------------------------------------------------
 
 class TradePostOnlyToggle extends ConsumerWidget {
@@ -311,10 +496,10 @@ class TradePostOnlyToggle extends ConsumerWidget {
             height: 16.r,
             decoration: BoxDecoration(
               color: enabled ? AppColors.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(4.r),
+              borderRadius: BorderRadius.circular(3.r),
               border: Border.all(
-                color: enabled ? AppColors.primary : AppColors.borderDark,
-                width: 1.5,
+                color: enabled ? AppColors.primary : AppColors.textMutedDark,
+                width: 1.4,
               ),
             ),
             child: enabled
@@ -329,18 +514,15 @@ class TradePostOnlyToggle extends ConsumerWidget {
                   ? AppColors.textPrimaryDark
                   : AppColors.textSecondaryDark,
               fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
             ),
           ),
-          SizedBox(width: 4.w),
-          Tooltip(
-            message:
-                'Order cancelled if it would immediately fill (maker-only)',
-            triggerMode: TooltipTriggerMode.tap,
-            child: Icon(
-              Icons.info_outline,
-              size: 13.r,
-              color: AppColors.textMutedDark,
+          const Spacer(),
+          Text(
+            'GTC',
+            style: TextStyle(
+              color: AppColors.textSecondaryDark,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
