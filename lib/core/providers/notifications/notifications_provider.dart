@@ -12,8 +12,8 @@ import '../../services/logger_service.dart';
 
 final notificationsProvider =
     NotifierProvider<NotificationsNotifier, List<AppNotification>>(
-  NotificationsNotifier.new,
-);
+      NotificationsNotifier.new,
+    );
 
 /// Convenience: count of unread notifications.
 final unreadCountProvider = Provider<int>((ref) {
@@ -64,22 +64,28 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     if (prefs.getBool(welcomedKey) == true) return;
 
     final now = DateTime.now();
-    add(AppNotification(
-      id: 'welcome_2',
-      category: AppNotifCategory.system,
-      title: 'Powered by Phoenix Trade',
-      body: 'All orders route through Phoenix — the fastest on-chain perps DEX on Solana. '
-          'Zero custody, full transparency.',
-      timestamp: now.subtract(const Duration(seconds: 1)),
-    ));
-    add(AppNotification(
-      id: 'welcome_1',
-      category: AppNotifCategory.marketing,
-      title: 'Welcome to Dream 👋',
-      body: 'Trade perpetual futures on Solana with institutional-grade tools. '
-          'Tap any market to open your first position.',
-      timestamp: now,
-    ));
+    add(
+      AppNotification(
+        id: 'welcome_2',
+        category: AppNotifCategory.system,
+        title: 'Powered by Phoenix Trade',
+        body:
+            'All orders route through Phoenix. The fastest on-chain perps DEX on Solana. '
+            'Zero custody, full transparency.',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+      ),
+    );
+    add(
+      AppNotification(
+        id: 'welcome_1',
+        category: AppNotifCategory.marketing,
+        title: 'Welcome to Dream 👋',
+        body:
+            'Trade perpetual futures on Solana with institutional-grade tools. '
+            'Tap any market to open your first position.',
+        timestamp: now,
+      ),
+    );
 
     await prefs.setBool(welcomedKey, true);
     _logger.info('Welcome notifications sent', tag: '[Notifications]');
@@ -94,8 +100,10 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
       state = state.sublist(0, _maxStored);
     }
     _persist();
-    _logger.info('Notification added: ${notification.title}',
-        tag: '[Notifications]');
+    _logger.info(
+      'Notification added: ${notification.title}',
+      tag: '[Notifications]',
+    );
   }
 
   /// Convenience helper — build and add in one call.
@@ -106,15 +114,16 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     String? payload,
     String? id,
   }) {
-    add(AppNotification(
-      id: id ??
-          'notif_${DateTime.now().millisecondsSinceEpoch}',
-      category: category,
-      title: title,
-      body: body,
-      timestamp: DateTime.now(),
-      payload: payload,
-    ));
+    add(
+      AppNotification(
+        id: id ?? 'notif_${DateTime.now().millisecondsSinceEpoch}',
+        category: category,
+        title: title,
+        body: body,
+        timestamp: DateTime.now(),
+        payload: payload,
+      ),
+    );
   }
 
   /// Mark a single notification as read.
@@ -151,8 +160,10 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
       final encoded = json.encode(state.map((n) => n.toJson()).toList());
       await prefs.setString(_storageKey, encoded);
     } catch (e) {
-      _logger.error('Failed to persist notifications: $e',
-          tag: '[Notifications]');
+      _logger.error(
+        'Failed to persist notifications: $e',
+        tag: '[Notifications]',
+      );
     }
   }
 }

@@ -138,13 +138,15 @@ class NotificationService {
         ),
       );
       await _plugin.show(_nextId(), title, body, details);
-      _inAppController.add(AppNotification(
-        id: 'fill_${DateTime.now().millisecondsSinceEpoch}',
-        category: AppNotifCategory.trade,
-        title: title,
-        body: body,
-        timestamp: DateTime.now(),
-      ));
+      _inAppController.add(
+        AppNotification(
+          id: 'fill_${DateTime.now().millisecondsSinceEpoch}',
+          category: AppNotifCategory.trade,
+          title: title,
+          body: body,
+          timestamp: DateTime.now(),
+        ),
+      );
     } catch (e) {
       _logger.error(
         'showFillNotification failed',
@@ -188,14 +190,16 @@ class NotificationService {
         details,
         payload: symbol,
       );
-      _inAppController.add(AppNotification(
-        id: 'alert_${DateTime.now().millisecondsSinceEpoch}',
-        category: AppNotifCategory.alert,
-        title: '⚡ $symbol Alert',
-        body: '$symbol $dirLabel $formattedPrice',
-        timestamp: DateTime.now(),
-        payload: symbol,
-      ));
+      _inAppController.add(
+        AppNotification(
+          id: 'alert_${DateTime.now().millisecondsSinceEpoch}',
+          category: AppNotifCategory.alert,
+          title: '⚡ $symbol Alert',
+          body: '$symbol $dirLabel $formattedPrice',
+          timestamp: DateTime.now(),
+          payload: symbol,
+        ),
+      );
     } catch (e) {
       _logger.error(
         'showPriceAlertNotification failed',
@@ -242,14 +246,16 @@ class NotificationService {
         details,
         payload: symbol,
       );
-      _inAppController.add(AppNotification(
-        id: 'risk_${DateTime.now().millisecondsSinceEpoch}',
-        category: AppNotifCategory.risk,
-        title: '⚠️ $base $sideLabel — Liquidation Risk',
-        body: 'Only $pctStr% from liquidation. Add margin or close now.',
-        timestamp: DateTime.now(),
-        payload: symbol,
-      ));
+      _inAppController.add(
+        AppNotification(
+          id: 'risk_${DateTime.now().millisecondsSinceEpoch}',
+          category: AppNotifCategory.risk,
+          title: '⚠️ $base $sideLabel — Liquidation Risk',
+          body: 'Only $pctStr% from liquidation. Add margin or close now.',
+          timestamp: DateTime.now(),
+          payload: symbol,
+        ),
+      );
     } catch (e) {
       _logger.error(
         'showLiquidationWarning failed',

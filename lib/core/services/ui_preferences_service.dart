@@ -18,8 +18,10 @@ class UiPreferencesService {
 
   // ── Master switch ─────────────────────────────────────────────────────────
   /// Whether UI memory is active. Default: true.
-  static bool get enabled => StorageService.getBool(_keyEnabled, defaultValue: true);
-  static Future<void> setEnabled(bool v) => StorageService.setBool(_keyEnabled, v);
+  static bool get enabled =>
+      StorageService.getBool(_keyEnabled, defaultValue: true);
+  static Future<void> setEnabled(bool v) =>
+      StorageService.setBool(_keyEnabled, v);
 
   // ── Trade chart visibility ────────────────────────────────────────────────
   /// Returns true (chart visible) by default — first-time users see the chart.

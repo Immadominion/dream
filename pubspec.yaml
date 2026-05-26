@@ -126,6 +126,7 @@ flutter:
     - assets/lottie/
     - assets/icons/
     - assets/html/
+    - assets/data/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

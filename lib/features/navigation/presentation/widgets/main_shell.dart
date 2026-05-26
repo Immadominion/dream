@@ -14,6 +14,7 @@ import '../../../../core/services/notification_service.dart';
 import '../../../../core/providers/notifications/notifications_provider.dart';
 import '../../../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../../../shared/widgets/dream_display.dart';
+import '../../../intelligence/presentation/pages/intelligence_tab_page.dart';
 import '../../../markets/presentation/pages/markets_page.dart';
 import '../../../markets/providers/market_search_provider.dart';
 import '../../../markets/providers/market_watchlist_filter_provider.dart';
@@ -91,8 +92,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     // Send welcome notifications on first ever sign-in.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.listen<AuthStateData>(clientAuthProvider, (prev, next) {
-        if (next.isAuthenticated &&
-            (prev == null || !prev.isAuthenticated)) {
+        if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
           ref.read(notificationsProvider.notifier).onFirstSignIn();
         }
       });
@@ -120,10 +120,14 @@ class _MainShellState extends ConsumerState<MainShell> {
       final velocity = details.primaryVelocity ?? 0;
       // Right swipe: Markets -> Positions
       if (velocity > 320 && currentIndex == 0) {
+        ref.read(bottomNavIndexProvider.notifier).setIndex(4);
+      } else if (velocity > 320 && currentIndex == 4) {
         ref.read(bottomNavIndexProvider.notifier).setIndex(2);
       }
-      // Left swipe: Positions -> Markets
+      // Left swipe: Positions -> Intelligence -> Markets
       if (velocity < -320 && currentIndex == 2) {
+        ref.read(bottomNavIndexProvider.notifier).setIndex(4);
+      } else if (velocity < -320 && currentIndex == 4) {
         ref.read(bottomNavIndexProvider.notifier).setIndex(0);
       }
     }
@@ -160,6 +164,9 @@ class _MainShellState extends ConsumerState<MainShell> {
                             : const SizedBox.shrink(),
                         _loadedTabs.contains(3)
                             ? const AccountPage()
+                            : const SizedBox.shrink(),
+                        _loadedTabs.contains(4)
+                            ? const IntelligenceTabPage()
                             : const SizedBox.shrink(),
                       ],
                     ),
@@ -437,9 +444,7 @@ class _BellIcon extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const NotificationsPage(),
-          ),
+          MaterialPageRoute<void>(builder: (_) => const NotificationsPage()),
         );
       },
       behavior: HitTestBehavior.opaque,

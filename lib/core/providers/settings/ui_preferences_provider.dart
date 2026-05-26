@@ -86,5 +86,5 @@ class UiPreferencesNotifier extends Notifier<UiPreferencesState> {
 
 final uiPreferencesProvider =
     NotifierProvider<UiPreferencesNotifier, UiPreferencesState>(
-  UiPreferencesNotifier.new,
-);
+      UiPreferencesNotifier.new,
+    );

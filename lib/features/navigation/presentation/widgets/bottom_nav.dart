@@ -37,7 +37,7 @@ class ShellBottomNav extends ConsumerWidget {
             curve: Curves.easeOutCubic,
             opacity: isVisible ? 1 : 0,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(64.w, 8.h, 64.w, 12.h),
+              padding: EdgeInsets.fromLTRB(48.w, 8.h, 48.w, 12.h),
               child: _GlassPill(
                 child: Row(
                   children: [
@@ -54,7 +54,21 @@ class ShellBottomNav extends ConsumerWidget {
                             .setIndex(0),
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: ShellNavItem(
+                        icon: PhosphorIcons.brain(),
+                        activeIcon: PhosphorIcons.brain(
+                          PhosphorIconsStyle.duotone,
+                        ),
+                        label: 'Intelligence',
+                        selected: currentIndex == 4,
+                        onTap: () => ref
+                            .read(bottomNavIndexProvider.notifier)
+                            .setIndex(4),
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
                     Expanded(
                       child: ShellNavItem(
                         icon: PhosphorIcons.bag(),

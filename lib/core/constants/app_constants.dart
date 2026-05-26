@@ -86,6 +86,20 @@ class AppConstants {
       ) ??
       0;
 
+  // =========================================================================
+  // DREAM AI WORKER
+  // =========================================================================
+
+  /// Cloudflare Worker URL — AI proxy that holds HuggingFace + Anthropic keys
+  /// as CF Secrets so they never appear in the APK.
+  static String get dreamAiWorkerUrl =>
+      dotenv.get('DREAM_AI_WORKER_URL', fallback: 'https://dream-ai.workers.dev');
+
+  /// Treasury wallet address for AI credit purchases (SOL micropayments).
+  /// Set DREAM_TREASURY_ADDRESS in .env — must be a valid Solana base58 pubkey.
+  static String get dreamTreasuryAddress =>
+      dotenv.get('DREAM_TREASURY_ADDRESS', fallback: '');
+
   // Legacy Bags API — kept until Bags-dependent features are fully removed
   static const String bagsApiBaseUrl = 'https://public-api-v2.bags.fm/api/v1';
   static const String bagsWebSocketUrl = 'wss://restream.bags.fm';

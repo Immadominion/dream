@@ -90,10 +90,7 @@ class NotificationsPage extends ConsumerWidget {
                     SizedBox(width: 8.w),
                     Text(
                       'Clear all',
-                      style: TextStyle(
-                        color: AppColors.error,
-                        fontSize: 13.sp,
-                      ),
+                      style: TextStyle(color: AppColors.error, fontSize: 13.sp),
                     ),
                   ],
                 ),
@@ -126,18 +123,25 @@ class _Timeline extends ConsumerWidget {
     final yesterdayStart = todayStart.subtract(const Duration(days: 1));
 
     final sections = <(String, List<AppNotification>)>[
-      ('Today', notifications.where((n) => n.timestamp.isAfter(todayStart)).toList()),
+      (
+        'Today',
+        notifications.where((n) => n.timestamp.isAfter(todayStart)).toList(),
+      ),
       (
         'Yesterday',
         notifications
-            .where((n) =>
-                n.timestamp.isAfter(yesterdayStart) &&
-                !n.timestamp.isAfter(todayStart))
-            .toList()
+            .where(
+              (n) =>
+                  n.timestamp.isAfter(yesterdayStart) &&
+                  !n.timestamp.isAfter(todayStart),
+            )
+            .toList(),
       ),
       (
         'Older',
-        notifications.where((n) => !n.timestamp.isAfter(yesterdayStart)).toList()
+        notifications
+            .where((n) => !n.timestamp.isAfter(yesterdayStart))
+            .toList(),
       ),
     ].where((s) => s.$2.isNotEmpty).toList();
 
@@ -154,13 +158,16 @@ class _Timeline extends ConsumerWidget {
           final itemIndex = index - pos;
           if (itemIndex < section.$2.length) {
             final n = section.$2[itemIndex];
-            final isLast = itemIndex == section.$2.length - 1 &&
+            final isLast =
+                itemIndex == section.$2.length - 1 &&
                 sections.last.$1 == section.$1;
             return _TimelineRow(
               notification: n,
               isLast: isLast,
-              onTap: () => ref.read(notificationsProvider.notifier).markRead(n.id),
-              onDismiss: () => ref.read(notificationsProvider.notifier).remove(n.id),
+              onTap: () =>
+                  ref.read(notificationsProvider.notifier).markRead(n.id),
+              onDismiss: () =>
+                  ref.read(notificationsProvider.notifier).remove(n.id),
             );
           }
           pos += section.$2.length;
@@ -249,9 +256,7 @@ class _TimelineRow extends StatelessWidget {
                       height: 8.r,
                       margin: EdgeInsets.only(top: 5.h),
                       decoration: BoxDecoration(
-                        color: n.isRead
-                            ? AppColors.borderDark
-                            : accent,
+                        color: n.isRead ? AppColors.borderDark : accent,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -339,17 +344,32 @@ class _TimelineRow extends StatelessWidget {
   static (IconData, Color) _categoryStyle(AppNotifCategory cat) {
     switch (cat) {
       case AppNotifCategory.trade:
-        return (PhosphorIcons.chartLine(PhosphorIconsStyle.bold), AppColors.success);
+        return (
+          PhosphorIcons.chartLineUp(PhosphorIconsStyle.bold),
+          AppColors.success,
+        );
       case AppNotifCategory.alert:
-        return (PhosphorIcons.bell(PhosphorIconsStyle.bold), const Color(0xFFF59E0B));
+        return (
+          PhosphorIcons.bellSimpleRinging(PhosphorIconsStyle.bold),
+          const Color(0xFFF59E0B),
+        );
       case AppNotifCategory.risk:
-        return (PhosphorIcons.warning(PhosphorIconsStyle.bold), AppColors.error);
+        return (PhosphorIcons.siren(PhosphorIconsStyle.bold), AppColors.error);
       case AppNotifCategory.system:
-        return (PhosphorIcons.lightning(PhosphorIconsStyle.bold), AppColors.textMutedDark);
+        return (
+          PhosphorIcons.appWindow(PhosphorIconsStyle.bold),
+          AppColors.textMutedDark,
+        );
       case AppNotifCategory.marketing:
-        return (PhosphorIcons.megaphone(PhosphorIconsStyle.bold), AppColors.primary);
+        return (
+          PhosphorIcons.megaphone(PhosphorIconsStyle.bold),
+          AppColors.primary,
+        );
       case AppNotifCategory.intelligence:
-        return (PhosphorIcons.robot(PhosphorIconsStyle.bold), const Color(0xFF8B5CF6));
+        return (
+          PhosphorIcons.sparkle(PhosphorIconsStyle.bold),
+          const Color(0xFF8B5CF6),
+        );
     }
   }
 
@@ -397,4 +417,3 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-

@@ -41,24 +41,24 @@ class AppNotification {
   });
 
   AppNotification copyWith({bool? isRead}) => AppNotification(
-        id: id,
-        category: category,
-        title: title,
-        body: body,
-        timestamp: timestamp,
-        isRead: isRead ?? this.isRead,
-        payload: payload,
-      );
+    id: id,
+    category: category,
+    title: title,
+    body: body,
+    timestamp: timestamp,
+    isRead: isRead ?? this.isRead,
+    payload: payload,
+  );
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'category': category.name,
-        'title': title,
-        'body': body,
-        'timestamp': timestamp.millisecondsSinceEpoch,
-        'isRead': isRead,
-        'payload': payload,
-      };
+    'id': id,
+    'category': category.name,
+    'title': title,
+    'body': body,
+    'timestamp': timestamp.millisecondsSinceEpoch,
+    'isRead': isRead,
+    'payload': payload,
+  };
 
   factory AppNotification.fromJson(Map<String, dynamic> json) =>
       AppNotification(
