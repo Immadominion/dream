@@ -7,9 +7,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/providers/auth/client_auth_provider.dart';
+import '../../../../core/models/app_notification.dart';
 import '../../../../core/providers/solana/wallet_name_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/providers/notifications/notifications_provider.dart';
+import '../../../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../../../shared/widgets/dream_display.dart';
 import '../../../markets/presentation/pages/markets_page.dart';
 import '../../../markets/providers/market_search_provider.dart';
@@ -34,6 +37,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   final Set<int> _loadedTabs = {0};
 
   StreamSubscription<String>? _notifTapSub;
+  StreamSubscription<AppNotification>? _notifFeedSub;
 
   bool _handleShellScrollNotification(ScrollNotification notification) {
     if (notification.depth != 0) return false;
@@ -80,11 +84,16 @@ class _MainShellState extends ConsumerState<MainShell> {
       ref.read(tradeProvider.notifier).selectSymbol(symbol);
       ref.read(bottomNavIndexProvider.notifier).setIndex(1);
     });
+    // Forward all shown notifications into the in-app feed store.
+    _notifFeedSub = notifService.notificationFeed.listen((appNotif) {
+      ref.read(notificationsProvider.notifier).add(appNotif);
+    });
   }
 
   @override
   void dispose() {
     _notifTapSub?.cancel();
+    _notifFeedSub?.cancel();
     super.dispose();
   }
 
@@ -299,6 +308,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                     ),
                   ),
                 ),
+                _BellIcon(),
               ],
             ),
             if (widget.currentIndex != 3) ...[
@@ -392,6 +402,68 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                 ],
               ),
             ], // end if (currentIndex != 3)
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bell icon with unread badge — opens NotificationsPage
+// ---------------------------------------------------------------------------
+
+class _BellIcon extends ConsumerWidget {
+  const _BellIcon();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadCountProvider);
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const NotificationsPage(),
+          ),
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.only(left: 8.w),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              PhosphorIcons.bell(PhosphorIconsStyle.bold),
+              color: AppColors.textSecondaryDark,
+              size: 22.sp,
+            ),
+            if (unread > 0)
+              Positioned(
+                top: -3.h,
+                right: -5.w,
+                child: Container(
+                  constraints: BoxConstraints(minWidth: 14.w),
+                  height: 14.h,
+                  padding: EdgeInsets.symmetric(horizontal: 3.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(7.r),
+                  ),
+                  child: Center(
+                    child: Text(
+                      unread > 99 ? '99+' : '$unread',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.sp,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

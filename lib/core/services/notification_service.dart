@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/app_notification.dart';
 import 'logger_service.dart';
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
@@ -31,6 +32,14 @@ class NotificationService {
   /// Stream of market symbols (e.g. `"SOL-PERP"`) that the user tapped
   /// from a price-alert notification. Listen in the app shell to navigate.
   Stream<String> get alertTapSymbol => _tapController.stream;
+
+  // Emits every notification that gets shown, so the in-app feed can store it.
+  final StreamController<AppNotification> _inAppController =
+      StreamController<AppNotification>.broadcast();
+
+  /// Stream of all displayed notifications — subscribe in the shell to
+  /// persist them in [NotificationsProvider].
+  Stream<AppNotification> get notificationFeed => _inAppController.stream;
 
   // ── Android channel constants ───────────────────────────────────────────
   static const _fillChannelId = 'dream_fills';
@@ -129,6 +138,13 @@ class NotificationService {
         ),
       );
       await _plugin.show(_nextId(), title, body, details);
+      _inAppController.add(AppNotification(
+        id: 'fill_${DateTime.now().millisecondsSinceEpoch}',
+        category: AppNotifCategory.trade,
+        title: title,
+        body: body,
+        timestamp: DateTime.now(),
+      ));
     } catch (e) {
       _logger.error(
         'showFillNotification failed',
@@ -172,6 +188,14 @@ class NotificationService {
         details,
         payload: symbol,
       );
+      _inAppController.add(AppNotification(
+        id: 'alert_${DateTime.now().millisecondsSinceEpoch}',
+        category: AppNotifCategory.alert,
+        title: '⚡ $symbol Alert',
+        body: '$symbol $dirLabel $formattedPrice',
+        timestamp: DateTime.now(),
+        payload: symbol,
+      ));
     } catch (e) {
       _logger.error(
         'showPriceAlertNotification failed',
@@ -218,6 +242,14 @@ class NotificationService {
         details,
         payload: symbol,
       );
+      _inAppController.add(AppNotification(
+        id: 'risk_${DateTime.now().millisecondsSinceEpoch}',
+        category: AppNotifCategory.risk,
+        title: '⚠️ $base $sideLabel — Liquidation Risk',
+        body: 'Only $pctStr% from liquidation. Add margin or close now.',
+        timestamp: DateTime.now(),
+        payload: symbol,
+      ));
     } catch (e) {
       _logger.error(
         'showLiquidationWarning failed',
@@ -242,5 +274,6 @@ class NotificationService {
 
   void dispose() {
     _tapController.close();
+    _inAppController.close();
   }
 }
