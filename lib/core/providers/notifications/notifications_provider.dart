@@ -43,8 +43,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_storageKey);
       if (raw == null) {
-        // First launch — seed welcome notifications
-        _seedWelcome();
+        // No stored data yet — start empty; welcome fires on first sign-in
         return;
       }
       final list = (json.decode(raw) as List<dynamic>)
@@ -54,33 +53,36 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
       state = list;
     } catch (e) {
       _logger.error('Failed to load notifications: $e', tag: '[Notifications]');
-      _seedWelcome();
     }
   }
 
-  void _seedWelcome() {
+  /// Call once after the user signs in for the first time.
+  /// Adds welcome notifications and sets a persisted flag so they never repeat.
+  Future<void> onFirstSignIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    const welcomedKey = 'dream_welcomed_v1';
+    if (prefs.getBool(welcomedKey) == true) return;
+
     final now = DateTime.now();
-    state = [
-      AppNotification(
-        id: 'welcome_1',
-        category: AppNotifCategory.marketing,
-        title: 'Welcome to Dream',
-        body:
-            'Trade perpetual futures on Solana with institutional-grade tools. '
-            'Tap a market to open your first position.',
-        timestamp: now.subtract(const Duration(minutes: 2)),
-      ),
-      AppNotification(
-        id: 'welcome_2',
-        category: AppNotifCategory.system,
-        title: 'Powered by Phoenix Trade',
-        body:
-            'Dream routes all orders through Phoenix Trade — the fastest on-chain '
-            'perpetuals DEX on Solana. Zero custody, full transparency.',
-        timestamp: now.subtract(const Duration(minutes: 1)),
-      ),
-    ];
-    _persist();
+    add(AppNotification(
+      id: 'welcome_2',
+      category: AppNotifCategory.system,
+      title: 'Powered by Phoenix Trade',
+      body: 'All orders route through Phoenix — the fastest on-chain perps DEX on Solana. '
+          'Zero custody, full transparency.',
+      timestamp: now.subtract(const Duration(seconds: 1)),
+    ));
+    add(AppNotification(
+      id: 'welcome_1',
+      category: AppNotifCategory.marketing,
+      title: 'Welcome to Dream 👋',
+      body: 'Trade perpetual futures on Solana with institutional-grade tools. '
+          'Tap any market to open your first position.',
+      timestamp: now,
+    ));
+
+    await prefs.setBool(welcomedKey, true);
+    _logger.info('Welcome notifications sent', tag: '[Notifications]');
   }
 
   // ── Write helpers ────────────────────────────────────────────────────────

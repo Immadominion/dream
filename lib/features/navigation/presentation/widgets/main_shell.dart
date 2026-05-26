@@ -88,6 +88,20 @@ class _MainShellState extends ConsumerState<MainShell> {
     _notifFeedSub = notifService.notificationFeed.listen((appNotif) {
       ref.read(notificationsProvider.notifier).add(appNotif);
     });
+    // Send welcome notifications on first ever sign-in.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listen<AuthStateData>(clientAuthProvider, (prev, next) {
+        if (next.isAuthenticated &&
+            (prev == null || !prev.isAuthenticated)) {
+          ref.read(notificationsProvider.notifier).onFirstSignIn();
+        }
+      });
+      // Handle the case where the user is already authenticated on load.
+      final auth = ref.read(clientAuthProvider);
+      if (auth.isAuthenticated) {
+        ref.read(notificationsProvider.notifier).onFirstSignIn();
+      }
+    });
   }
 
   @override
