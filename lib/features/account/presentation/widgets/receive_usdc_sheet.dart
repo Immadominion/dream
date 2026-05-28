@@ -8,9 +8,8 @@ import '../../../../core/theme/app_colors.dart';
 
 /// Bottom sheet that shows the user's wallet address + QR for receiving USDC.
 ///
-/// This is how users *fund* their Dream account — Phoenix isolated orders
-/// transfer USDC from the wallet's token account into the position at order
-/// time. Users just need USDC sitting in their connected wallet on Solana.
+/// Shows the wallet address used to receive Solana USDC before depositing it
+/// into Phoenix collateral.
 class ReceiveUsdcSheet extends StatelessWidget {
   final String walletAddress;
   const ReceiveUsdcSheet({super.key, required this.walletAddress});
@@ -87,7 +86,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
             ),
             SizedBox(height: 4.h),
             Text(
-              'Send USDC (Solana) to this address to fund your account',
+              'Send Solana USDC here, then deposit it to Phoenix collateral',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondaryDark,
@@ -217,8 +216,9 @@ class ReceiveUsdcSheet extends StatelessWidget {
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
-                    'Send only USDC on the Solana network. '
-                    'Other tokens or networks will be lost.',
+                    'Dream trading uses Phoenix collateral. Keep a small SOL '
+                    'balance here for network fees, and do not send funds over '
+                    'non-Solana networks.',
                     style: TextStyle(
                       color: AppColors.textPrimaryDark,
                       fontSize: 11.sp,

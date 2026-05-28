@@ -70,97 +70,100 @@ class _CopySettingsSheetState extends State<CopySettingsSheet> {
           topLeft: Radius.circular(20.r),
           topRight: Radius.circular(20.r),
         ),
-        border: Border.all(
-          color: AppColors.borderDark.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.borderDark.withValues(alpha: 0.5)),
       ),
-      padding: EdgeInsets.fromLTRB(
-        16.w,
-        16.h,
-        16.w,
-        MediaQuery.of(context).viewInsets.bottom + 24.h,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _Handle(),
-          SizedBox(height: 16.h),
-          Text(
-            'Copy ${widget.leader.displayLabel}',
-            style: TextStyle(
-              color: AppColors.textPrimaryDark,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-            ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(
+            16.w,
+            16.h,
+            16.w,
+            MediaQuery.of(context).viewInsets.bottom + 24.h,
           ),
-          SizedBox(height: 4.h),
-          Text(
-            'Orders are mirrored proportionally as the trader opens positions.',
-            style: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 12.sp,
-            ),
-          ),
-          SizedBox(height: 20.h),
-          // USDC per trade
-          _Label('Size per copy trade (USDC)'),
-          SizedBox(height: 6.h),
-          _TextField(
-            controller: _usdcController,
-            suffix: 'USDC',
-            keyboardType: TextInputType.number,
-            onChanged: (v) {
-              final parsed = double.tryParse(v);
-              if (parsed != null && parsed > 0) {
-                setState(() => _copyUSDC = parsed);
-              }
-            },
-          ),
-          SizedBox(height: 16.h),
-          // Slippage
-          _Label(
-            'Max slippage: ${(_slippage * 100).toStringAsFixed(1)}%',
-          ),
-          SizedBox(height: 4.h),
-          Slider(
-            value: _slippage,
-            min: 0.001,
-            max: 0.05,
-            divisions: 49,
-            activeColor: AppColors.primary,
-            inactiveColor: AppColors.borderDark,
-            onChanged: (v) => setState(() => _slippage = v),
-          ),
-          SizedBox(height: 12.h),
-          // Stop-loss
-          _Label(
-            'Stop-loss: ${(_stopLoss * 100).toStringAsFixed(0)}% of entry',
-          ),
-          SizedBox(height: 4.h),
-          Slider(
-            value: _stopLoss,
-            min: 0.05,
-            max: 0.5,
-            divisions: 45,
-            activeColor: AppColors.warning,
-            inactiveColor: AppColors.borderDark,
-            onChanged: (v) => setState(() => _stopLoss = v),
-          ),
-          SizedBox(height: 24.h),
-          _ConfirmButton(
-            onTap: () {
-              Navigator.of(context).pop();
-              widget.onConfirm(
-                CopySettings(
-                  copyUSDC: _copyUSDC,
-                  maxSlippage: _slippage,
-                  stopLossRatio: _stopLoss,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Handle(),
+              SizedBox(height: 16.h),
+              Text(
+                'Copy ${widget.leader.displayLabel}',
+                style: TextStyle(
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
                 ),
-              );
-            },
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'Orders are mirrored proportionally as the trader opens positions.',
+                style: TextStyle(
+                  color: AppColors.textSecondaryDark,
+                  fontSize: 12.sp,
+                ),
+              ),
+              SizedBox(height: 20.h),
+              // USDC per trade
+              _Label('Size per copy trade (USDC)'),
+              SizedBox(height: 6.h),
+              _TextField(
+                controller: _usdcController,
+                suffix: 'USDC',
+                keyboardType: TextInputType.number,
+                onChanged: (v) {
+                  final parsed = double.tryParse(v);
+                  if (parsed != null && parsed > 0) {
+                    setState(() => _copyUSDC = parsed);
+                  }
+                },
+              ),
+              SizedBox(height: 16.h),
+              // Slippage
+              _Label('Max slippage: ${(_slippage * 100).toStringAsFixed(1)}%'),
+              SizedBox(height: 4.h),
+              Slider(
+                value: _slippage,
+                min: 0.001,
+                max: 0.05,
+                divisions: 49,
+                activeColor: AppColors.primary,
+                inactiveColor: AppColors.borderDark,
+                onChanged: (v) => setState(() => _slippage = v),
+              ),
+              SizedBox(height: 12.h),
+              // Stop-loss
+              _Label(
+                'Stop-loss: ${(_stopLoss * 100).toStringAsFixed(0)}% of entry',
+              ),
+              SizedBox(height: 4.h),
+              Slider(
+                value: _stopLoss,
+                min: 0.05,
+                max: 0.5,
+                divisions: 45,
+                activeColor: AppColors.warning,
+                inactiveColor: AppColors.borderDark,
+                onChanged: (v) => setState(() => _stopLoss = v),
+              ),
+              SizedBox(height: 24.h),
+              _ConfirmButton(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  widget.onConfirm(
+                    CopySettings(
+                      copyUSDC: _copyUSDC,
+                      maxSlippage: _slippage,
+                      stopLossRatio: _stopLoss,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -279,10 +282,7 @@ class _ConfirmButton extends StatelessWidget {
             SizedBox(width: 8.w),
             Text(
               'Start Copy Trading',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
             ),
           ],
         ),

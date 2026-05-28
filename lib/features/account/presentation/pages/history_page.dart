@@ -18,7 +18,6 @@ class HistoryPage extends ConsumerWidget {
         bottom: false,
         child: Column(
           children: [
-            // Top Bar
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: Row(
@@ -41,35 +40,23 @@ class HistoryPage extends ConsumerWidget {
                     ),
                   ),
                   SizedBox(width: 16.w),
-                  Text(
-                    'Transaction History',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
+                  Expanded(
+                    child: Text(
+                      'History',
+                      style: TextStyle(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-
+            SizedBox(height: 4.h),
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 40.h),
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(20.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(26.r),
-                      border: Border.all(color: AppColors.borderDark),
-                    ),
-                    child: AccountHistorySection(walletAddress: walletAddress),
-                  ),
-                ],
-              ),
+              child: AccountHistorySection(walletAddress: walletAddress),
             ),
           ],
         ),

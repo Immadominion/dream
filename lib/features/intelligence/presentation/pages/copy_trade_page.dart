@@ -4,10 +4,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../models/intelligence_models.dart';
 import '../../providers/copy_trading_provider.dart';
 import '../widgets/copy_settings_sheet.dart';
-import '../widgets/leader_card.dart';
 
 class CopyTradePage extends ConsumerStatefulWidget {
   const CopyTradePage({super.key});
@@ -16,15 +16,12 @@ class CopyTradePage extends ConsumerStatefulWidget {
   ConsumerState<CopyTradePage> createState() => _CopyTradePageState();
 }
 
-class _CopyTradePageState extends ConsumerState<CopyTradePage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tab;
+class _CopyTradePageState extends ConsumerState<CopyTradePage> {
+  final _addressController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
-    // Load leaders once when page first appears
     Future.microtask(
       () => ref.read(copyTradingProvider.notifier).loadDiscover(),
     );
@@ -32,48 +29,622 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage>
 
   @override
   void dispose() {
-    _tab.dispose();
+    _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleAddTrader() async {
+    final address = _addressController.text.trim();
+    if (address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Paste a Phoenix trader wallet address first.'),
+          backgroundColor: AppColors.surfaceDark,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final leader = await ref
+        .read(copyTradingProvider.notifier)
+        .findLeader(address);
+    if (!mounted || leader == null) return;
+
+    CopySettingsSheet.show(
+      context,
+      leader: leader,
+      onConfirm: (settings) {
+        ref.read(copyTradingProvider.notifier).followLeader(leader, settings);
+        _addressController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Now watching ${leader.displayLabel}'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(copyTradingProvider);
 
-    return Column(
-      children: [
-        // Tab bar
-        Container(
-          margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          height: 36.h,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
-            borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(color: AppColors.borderDark),
+    return RefreshIndicator(
+      color: AppColors.primary,
+      backgroundColor: AppColors.cardDark,
+      onRefresh: () => ref.read(copyTradingProvider.notifier).loadDiscover(),
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(
+          24.w,
+          8.h,
+          24.w,
+          MediaQuery.paddingOf(context).bottom + 104.h,
+        ),
+        children: [
+          SizedBox(height: 12.h),
+          _AddressComposer(
+            controller: _addressController,
+            isLoading: state.isAddingLeader,
+            onSubmit: _handleAddTrader,
           ),
-          child: TabBar(
-            controller: _tab,
-            indicator: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8.r),
+          if (state.error != null) ...[
+            SizedBox(height: 12.h),
+            _InlineError(message: state.error!),
+          ],
+          SizedBox(height: 34.h),
+          _SectionLabel(
+            title: 'Following',
+            trailing: state.following.isEmpty
+                ? 'none'
+                : '${state.following.length} active',
+          ),
+          SizedBox(height: 14.h),
+          if (state.following.isEmpty)
+            const _EmptyFollowing()
+          else
+            ...state.following.asMap().entries.map(
+              (entry) => _FollowedRow(
+                followed: entry.value,
+                isLast: entry.key == state.following.length - 1,
+              ),
             ),
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: Colors.transparent,
-            labelColor: Colors.white,
-            unselectedLabelColor: AppColors.textSecondaryDark,
-            labelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
-            tabs: [
-              Tab(text: 'Discover (${state.discover.length})'),
-              Tab(text: 'Following (${state.following.length})'),
-            ],
+          SizedBox(height: 34.h),
+          _SectionLabel(
+            title: 'Verified Directory',
+            trailing: state.isLoadingDiscover
+                ? 'loading'
+                : '${state.discover.length}',
+          ),
+          SizedBox(height: 14.h),
+          if (state.isLoadingDiscover && state.discover.isEmpty)
+            const _LoadingDirectory()
+          else if (state.discover.isEmpty)
+            const _DirectoryNote()
+          else
+            ...state.discover.asMap().entries.map((entry) {
+              final leader = entry.value;
+              final isFollowing = state.following.any(
+                (followed) => followed.leader.address == leader.address,
+              );
+              return _DirectoryRow(
+                leader: leader,
+                isFollowing: isFollowing,
+                isLast: entry.key == state.discover.length - 1,
+                onFollow: isFollowing ? null : () => _showSettingsFor(leader),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  void _showSettingsFor(LeaderProfile leader) {
+    CopySettingsSheet.show(
+      context,
+      leader: leader,
+      onConfirm: (settings) {
+        ref.read(copyTradingProvider.notifier).followLeader(leader, settings);
+      },
+    );
+  }
+}
+
+class _AddressComposer extends StatelessWidget {
+  final TextEditingController controller;
+  final bool isLoading;
+  final VoidCallback onSubmit;
+
+  const _AddressComposer({
+    required this.controller,
+    required this.isLoading,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Follow by wallet address',
+          style: TextStyle(
+            color: AppColors.textPrimaryDark,
+            fontSize: 22.sp,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+            height: 1.0,
           ),
         ),
+        SizedBox(height: 7.h),
+        Text(
+          'Paste a Phoenix trader authority and set your copy-risk profile in the bottom sheet.',
+          style: TextStyle(
+            color: AppColors.textMutedDark,
+            fontSize: 12.sp,
+            height: 1.45,
+          ),
+        ),
+        SizedBox(height: 14.h),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: controller,
+                style: TextStyle(
+                  color: AppColors.textPrimaryDark,
+                  fontSize: 13.sp,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Trader wallet address',
+                  hintStyle: TextStyle(
+                    color: AppColors.textMutedDark,
+                    fontSize: 12.sp,
+                  ),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(
+                      color: AppColors.borderDark.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: AppColors.primary),
+                  ),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 10.h),
+                ),
+              ),
+            ),
+            SizedBox(width: 14.w),
+            GestureDetector(
+              onTap: isLoading ? null : onSubmit,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 6.h),
+                child: isLoading
+                    ? SizedBox(
+                        width: 17.r,
+                        height: 17.r,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Verify',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          SizedBox(width: 5.w),
+                          Icon(
+                            PhosphorIcons.arrowRight(PhosphorIconsStyle.bold),
+                            color: AppColors.primary,
+                            size: 13.r,
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String title;
+  final String trailing;
+
+  const _SectionLabel({required this.title, required this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            color: AppColors.textMutedDark,
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.0,
+          ),
+        ),
+        SizedBox(width: 10.w),
         Expanded(
-          child: TabBarView(
-            controller: _tab,
+          child: Container(
+            height: 1,
+            color: AppColors.borderDark.withValues(alpha: 0.4),
+          ),
+        ),
+        SizedBox(width: 10.w),
+        Text(
+          trailing.toUpperCase(),
+          style: TextStyle(
+            color: AppColors.textMutedDark,
+            fontSize: 9.sp,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FollowedRow extends ConsumerWidget {
+  final FollowedLeader followed;
+  final bool isLast;
+
+  const _FollowedRow({required this.followed, required this.isLast});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leader = followed.leader;
+    final isPaused = followed.isPaused;
+    final statusColor = isPaused ? AppColors.warning : AppColors.success;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 18.h),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _DiscoverTab(state: state),
-              _FollowingTab(state: state),
+              Container(
+                margin: EdgeInsets.only(top: 4.h),
+                width: 2,
+                height: 40.h,
+                color: statusColor.withValues(alpha: 0.8),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            leader.displayLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryDark,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          isPaused ? 'PAUSED' : 'LIVE',
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.7,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                        _ActionMenu(followed: followed),
+                      ],
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      _short(leader.address),
+                      style: TextStyle(
+                        color: AppColors.textMutedDark,
+                        fontSize: 11.sp,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Wrap(
+                      spacing: 12.w,
+                      runSpacing: 6.h,
+                      children: [
+                        _InlineMeta(
+                          label: 'size',
+                          value: formatUsdc(followed.settings.copyUSDC),
+                        ),
+                        _InlineMeta(
+                          label: 'slippage',
+                          value:
+                              '${(followed.settings.maxSlippage * 100).toStringAsFixed(1)}%',
+                        ),
+                        _InlineMeta(
+                          label: 'open',
+                          value: '${leader.openPositions.length}',
+                        ),
+                        if (followed.gainSinceFollow != 0)
+                          _InlineMeta(
+                            label: 'since',
+                            value: formatPnl(followed.gainSinceFollow),
+                            valueColor: followed.gainSinceFollow >= 0
+                                ? AppColors.bullish
+                                : AppColors.bearish,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (!isLast) ...[
+            SizedBox(height: 16.h),
+            Container(
+              height: 1,
+              color: AppColors.borderDark.withValues(alpha: 0.28),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _short(String address) {
+    if (address.length <= 10) return address;
+    return '${address.substring(0, 6)}…${address.substring(address.length - 6)}';
+  }
+}
+
+class _DirectoryRow extends StatelessWidget {
+  final LeaderProfile leader;
+  final bool isFollowing;
+  final bool isLast;
+  final VoidCallback? onFollow;
+
+  const _DirectoryRow({
+    required this.leader,
+    required this.isFollowing,
+    required this.isLast,
+    required this.onFollow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (leader.isLoading) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
+        child: const _DirectorySkeleton(),
+      );
+    }
+
+    final pnlColor = leader.pnl7d >= 0 ? AppColors.bullish : AppColors.bearish;
+    final marketSummary = leader.openPositions.isEmpty
+        ? 'No open positions'
+        : leader.openPositions
+              .take(2)
+              .map((p) => p.market.replaceAll('-PERP', ''))
+              .join(' · ');
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _AvatarChar(label: leader.displayLabel),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            leader.displayLabel,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textPrimaryDark,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (leader.hasPnlHistory)
+                          Text(
+                            formatPnl(leader.pnl7d),
+                            style: TextStyle(
+                              color: pnlColor,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w800,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      marketSummary,
+                      style: TextStyle(
+                        color: AppColors.textMutedDark,
+                        fontSize: 11.sp,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    Wrap(
+                      spacing: 12.w,
+                      runSpacing: 6.h,
+                      children: [
+                        _InlineMeta(
+                          label: 'win',
+                          value: leader.hasTradeStats
+                              ? '${(leader.winRate * 100).toStringAsFixed(0)}%'
+                              : '--',
+                        ),
+                        _InlineMeta(
+                          label: 'trades',
+                          value: leader.hasTradeStats
+                              ? '${leader.totalTrades}'
+                              : '--',
+                        ),
+                        _InlineMeta(
+                          label: 'equity',
+                          value: leader.equity > 0
+                              ? formatCompact(leader.equity)
+                              : '--',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 10.w),
+              GestureDetector(
+                onTap: onFollow,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 2.h),
+                  child: Text(
+                    isFollowing ? 'Following' : 'Follow',
+                    style: TextStyle(
+                      color: isFollowing
+                          ? AppColors.textMutedDark
+                          : AppColors.primary,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (!isLast) ...[
+            SizedBox(height: 14.h),
+            Container(
+              height: 1,
+              color: AppColors.borderDark.withValues(alpha: 0.24),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineMeta extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _InlineMeta({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label ',
+          style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor ?? AppColors.textSecondaryDark,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AvatarChar extends StatelessWidget {
+  final String label;
+  const _AvatarChar({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30.r,
+      height: 30.r,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.primary.withValues(alpha: 0.14),
+      ),
+      child: Text(
+        label.substring(0, 1).toUpperCase(),
+        style: TextStyle(
+          color: AppColors.primaryLight,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _DirectorySkeleton extends StatelessWidget {
+  const _DirectorySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 30.r,
+          height: 30.r,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.surfaceDark,
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 120.w,
+                height: 10.h,
+                color: AppColors.surfaceDark,
+              ),
+              SizedBox(height: 6.h),
+              Container(width: 90.w, height: 9.h, color: AppColors.surfaceDark),
             ],
           ),
         ),
@@ -82,276 +653,107 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage>
   }
 }
 
-// ── Discover tab ───────────────────────────────────────────────────────────
-
-class _DiscoverTab extends ConsumerWidget {
-  final CopyTradingState state;
-  const _DiscoverTab({required this.state});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (state.isLoadingDiscover) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: AppColors.primary,
-          strokeWidth: 2,
-        ),
-      );
-    }
-
-    if (state.discover.isEmpty) {
-      return _EmptyDiscover(
-        onRefresh: () => ref.read(copyTradingProvider.notifier).loadDiscover(),
-      );
-    }
-
-    final followingAddresses =
-        state.following.map((f) => f.leader.address).toSet();
-
-    return RefreshIndicator(
-      color: AppColors.primary,
-      backgroundColor: AppColors.cardDark,
-      onRefresh: () => ref.read(copyTradingProvider.notifier).loadDiscover(),
-      child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
-        itemCount: state.discover.length,
-        itemBuilder: (_, i) {
-          final leader = state.discover[i];
-          final isFollowing = followingAddresses.contains(leader.address);
-          return LeaderCard(
-            leader: leader,
-            isFollowing: isFollowing,
-            onFollow: isFollowing
-                ? null
-                : () => _handleFollow(context, ref, leader),
-          );
-        },
-      ),
-    );
-  }
-
-  void _handleFollow(
-    BuildContext context,
-    WidgetRef ref,
-    LeaderProfile leader,
-  ) {
-    CopySettingsSheet.show(
-      context,
-      leader: leader,
-      onConfirm: (settings) {
-        ref.read(copyTradingProvider.notifier).followLeader(leader, settings);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Now copying ${leader.displayLabel}'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _EmptyDiscover extends StatelessWidget {
-  final VoidCallback onRefresh;
-  const _EmptyDiscover({required this.onRefresh});
+class _InlineError extends StatelessWidget {
+  final String message;
+  const _InlineError({required this.message});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            PhosphorIcons.users(PhosphorIconsStyle.duotone),
-            size: 48.r,
-            color: AppColors.textMutedDark,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: 1.h),
+          child: Icon(
+            PhosphorIcons.warningCircle(PhosphorIconsStyle.fill),
+            color: AppColors.error,
+            size: 14.r,
           ),
-          SizedBox(height: 16.h),
-          Text(
-            'No leaders found',
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Text(
+            message,
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            'Pull to refresh or check your connection.',
-            style: TextStyle(
-              color: AppColors.textMutedDark,
+              color: AppColors.error.withValues(alpha: 0.88),
               fontSize: 12.sp,
+              height: 1.4,
             ),
           ),
-          SizedBox(height: 20.h),
-          TextButton(
-            onPressed: onRefresh,
-            child: Text(
-              'Refresh',
-              style: TextStyle(color: AppColors.primary, fontSize: 13.sp),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Following tab ──────────────────────────────────────────────────────────
-
-class _FollowingTab extends ConsumerWidget {
-  final CopyTradingState state;
-  const _FollowingTab({required this.state});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (state.following.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PhosphorIcons.copy(PhosphorIconsStyle.duotone),
-              size: 48.r,
-              color: AppColors.textMutedDark,
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              'Not following anyone',
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              'Discover top traders and follow them to mirror their trades.',
-              style: TextStyle(
-                color: AppColors.textMutedDark,
-                fontSize: 12.sp,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
-      itemCount: state.following.length,
-      itemBuilder: (_, i) {
-        final followed = state.following[i];
-        return _FollowedCard(followed: followed);
-      },
+      ],
     );
   }
 }
 
-class _FollowedCard extends ConsumerWidget {
-  final FollowedLeader followed;
-  const _FollowedCard({required this.followed});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isPaused = followed.isPaused;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(14.r),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: isPaused
-              ? AppColors.borderDark
-              : AppColors.primary.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _StatusDot(active: !isPaused),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      followed.leader.displayLabel,
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '\$${followed.settings.copyUSDC.toStringAsFixed(0)} USDC / trade',
-                      style: TextStyle(
-                        color: AppColors.textSecondaryDark,
-                        fontSize: 11.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _ActionMenu(followed: followed),
-            ],
-          ),
-          if (followed.gainSinceFollow != 0) ...[
-            SizedBox(height: 8.h),
-            Row(
-              children: [
-                Text(
-                  'Since follow: ',
-                  style: TextStyle(
-                    color: AppColors.textMutedDark,
-                    fontSize: 11.sp,
-                  ),
-                ),
-                Text(
-                  '${followed.gainSinceFollow >= 0 ? '+' : ''}'
-                  '\$${followed.gainSinceFollow.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: followed.gainSinceFollow >= 0
-                        ? AppColors.bullish
-                        : AppColors.bearish,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusDot extends StatelessWidget {
-  final bool active;
-  const _StatusDot({required this.active});
+class _EmptyFollowing extends StatelessWidget {
+  const _EmptyFollowing();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 8.r,
-      height: 8.r,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: active ? AppColors.success : AppColors.textMutedDark,
-        boxShadow: active
-            ? [
-                BoxShadow(
-                  color: AppColors.success.withValues(alpha: 0.5),
-                  blurRadius: 6,
-                ),
-              ]
-            : null,
+    return Column(
+      children: [
+        Icon(
+          PhosphorIcons.usersThree(PhosphorIconsStyle.duotone),
+          size: 34.r,
+          color: AppColors.textMutedDark.withValues(alpha: 0.45),
+        ),
+        SizedBox(height: 12.h),
+        Text(
+          'No leaders followed yet',
+          style: TextStyle(
+            color: AppColors.textSecondaryDark,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: 6.h),
+        Text(
+          'Verify a trader address above to start mirroring\nnew position changes automatically.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textMutedDark,
+            fontSize: 12.sp,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DirectoryNote extends StatelessWidget {
+  const _DirectoryNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'No verified trader directory available yet. Curated leaders will appear here after Phoenix account checks complete.',
+      style: TextStyle(
+        color: AppColors.textMutedDark,
+        fontSize: 12.sp,
+        height: 1.5,
+      ),
+    );
+  }
+}
+
+class _LoadingDirectory extends StatelessWidget {
+  const _LoadingDirectory();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 16.h),
+      child: Center(
+        child: SizedBox(
+          width: 18.r,
+          height: 18.r,
+          child: const CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.primary,
+          ),
+        ),
       ),
     );
   }
@@ -364,11 +766,12 @@ class _ActionMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(copyTradingProvider.notifier);
+
     return PopupMenuButton<_Action>(
       icon: Icon(
         PhosphorIcons.dotsThreeVertical(PhosphorIconsStyle.bold),
         color: AppColors.textSecondaryDark,
-        size: 18.r,
+        size: 17.r,
       ),
       color: AppColors.cardDark,
       shape: RoundedRectangleBorder(

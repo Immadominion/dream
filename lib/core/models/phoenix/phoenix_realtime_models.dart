@@ -5,6 +5,11 @@ class PhoenixTradeHistoryItem {
   final double price;
   final double size;
   final double fee;
+  final double realizedPnl;
+  final double baseLotsBefore;
+  final double baseLotsAfter;
+  final double baseLotsDelta;
+  final String instructionType;
   final int timestamp;
 
   const PhoenixTradeHistoryItem({
@@ -13,10 +18,60 @@ class PhoenixTradeHistoryItem {
     required this.price,
     required this.size,
     required this.fee,
+    required this.realizedPnl,
+    required this.baseLotsBefore,
+    required this.baseLotsAfter,
+    required this.baseLotsDelta,
+    required this.instructionType,
     required this.timestamp,
   });
 
   bool get isBuy => side == 'bid';
+
+  bool get isOpeningFill =>
+      _isNearZero(baseLotsBefore) && !_isNearZero(baseLotsAfter);
+  bool get isClosingFill =>
+      !_isNearZero(baseLotsBefore) && _isNearZero(baseLotsAfter);
+  bool get isFlipFill =>
+      !_isNearZero(baseLotsBefore) &&
+      !_isNearZero(baseLotsAfter) &&
+      baseLotsBefore.sign != baseLotsAfter.sign;
+  bool get isIncreaseFill =>
+      !_isNearZero(baseLotsBefore) &&
+      !_isNearZero(baseLotsAfter) &&
+      baseLotsBefore.sign == baseLotsAfter.sign &&
+      baseLotsAfter.abs() > baseLotsBefore.abs();
+  bool get isReduceFill =>
+      !_isNearZero(baseLotsBefore) &&
+      !_isNearZero(baseLotsAfter) &&
+      baseLotsBefore.sign == baseLotsAfter.sign &&
+      baseLotsAfter.abs() < baseLotsBefore.abs();
+  bool get isStopLossExecution =>
+      instructionType.toLowerCase().contains('stoploss');
+  bool get isTakeProfitExecution =>
+      instructionType.toLowerCase().contains('takeprofit');
+
+  String get exposureSideBefore =>
+      _signedExposure(baseLotsBefore, fallback: baseLotsDelta);
+  String get exposureSideAfter =>
+      _signedExposure(baseLotsAfter, fallback: baseLotsDelta);
+  String get lifecycleSideLabel => _titleCase(
+    (isClosingFill || isReduceFill || isFlipFill)
+        ? exposureSideBefore
+        : exposureSideAfter,
+  );
+  String get lifecycleLabel {
+    if (isStopLossExecution) return 'Stop Loss';
+    if (isTakeProfitExecution) return 'Take Profit';
+    if (isFlipFill) return 'Flipped';
+    if (isClosingFill) return 'Closed';
+    if (isReduceFill) return 'Reduced';
+    if (isIncreaseFill) return 'Added';
+    if (isOpeningFill) return 'Opened';
+    return 'Filled';
+  }
+
+  String get instructionLabel => _humanizeInstructionType(instructionType);
 
   DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(
     timestamp > 9999999999 ? timestamp : timestamp * 1000,
@@ -24,19 +79,27 @@ class PhoenixTradeHistoryItem {
   );
 
   factory PhoenixTradeHistoryItem.fromJson(Map<String, dynamic> json) {
-    final sym = json['symbol'] as String? ?? '';
-    final baseAmt = _toDouble(json['baseAmount']);
-    final quoteAmt = _toDouble(json['quoteAmount']);
-    final price = baseAmt > 0 ? quoteAmt / baseAmt : 0.0;
+    final rawSymbol = (json['symbol'] ?? json['marketSymbol'] ?? '') as String;
+    final sym = rawSymbol.endsWith('-PERP') ? rawSymbol : '$rawSymbol-PERP';
+    final baseAmt = _historyBaseAmount(json);
+    final quoteAmt = _historyQuoteAmount(json);
+    final price = _toDouble(json['price']) > 0
+        ? _toDouble(json['price'])
+        : (baseAmt > 0 ? quoteAmt / baseAmt : 0.0);
+    final delta = _toDouble(json['baseLotsDelta'] ?? json['baseAmount']);
+    final side = (json['side'] as String?) ?? (delta >= 0 ? 'bid' : 'ask');
     return PhoenixTradeHistoryItem(
-      symbol: sym.endsWith('-PERP') ? sym : '$sym-PERP',
-      side: json['side'] as String? ?? 'bid',
+      symbol: sym,
+      side: side,
       price: price,
       size: baseAmt,
-      fee: _toDouble(json['fee']),
-      timestamp: json['timestamp'] != null
-          ? int.tryParse(json['timestamp'].toString()) ?? 0
-          : 0,
+      fee: _toDouble(json['fee'] ?? json['fees']),
+      realizedPnl: _toDouble(json['realizedPnl']),
+      baseLotsBefore: _toDouble(json['baseLotsBefore']),
+      baseLotsAfter: _toDouble(json['baseLotsAfter']),
+      baseLotsDelta: delta,
+      instructionType: json['instructionType'] as String? ?? 'Fill',
+      timestamp: _parseHistoryTimestamp(json['timestamp']),
     );
   }
 }
@@ -182,4 +245,63 @@ int _toInt(dynamic value) {
   if (value is double) return value.toInt();
   if (value is String) return int.tryParse(value) ?? 0;
   return 0;
+}
+
+double _historyBaseAmount(Map<String, dynamic> json) {
+  final directBaseAmount = _toDouble(json['baseAmount']);
+  if (directBaseAmount > 0) return directBaseAmount;
+  return _toDouble(json['baseLotsDelta']).abs();
+}
+
+double _historyQuoteAmount(Map<String, dynamic> json) {
+  final directQuoteAmount = _toDouble(json['quoteAmount']);
+  if (directQuoteAmount > 0) return directQuoteAmount;
+  return _toDouble(json['virtualQuoteLotsDelta']).abs();
+}
+
+int _parseHistoryTimestamp(dynamic value) {
+  if (value == null) return 0;
+  if (value is num) return value.toInt();
+
+  if (value is String) {
+    final parsedInt = int.tryParse(value);
+    if (parsedInt != null) return parsedInt;
+
+    final parsedDateTime = DateTime.tryParse(value);
+    if (parsedDateTime != null) {
+      return parsedDateTime.millisecondsSinceEpoch;
+    }
+  }
+
+  return 0;
+}
+
+bool _isNearZero(double value) => value.abs() < 0.0000001;
+
+String _signedExposure(double value, {required double fallback}) {
+  final source = _isNearZero(value) ? fallback : value;
+  return source >= 0 ? 'long' : 'short';
+}
+
+String _titleCase(String value) {
+  if (value.isEmpty) return value;
+  return value[0].toUpperCase() + value.substring(1);
+}
+
+String _humanizeInstructionType(String value) {
+  if (value.isEmpty) return 'Fill';
+
+  final words = value
+      .replaceAllMapped(
+        RegExp(r'([a-z0-9])([A-Z])'),
+        (match) => '${match.group(1)} ${match.group(2)}',
+      )
+      .replaceAll('_', ' ')
+      .trim()
+      .split(RegExp(r'\s+'));
+
+  return words
+      .where((word) => word.isNotEmpty)
+      .map((word) => _titleCase(word.toLowerCase()))
+      .join(' ');
 }

@@ -225,53 +225,69 @@ class SolanaTransactionService {
   static const _usdcMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
   Future<double> getUsdcBalance(String walletAddress) async {
-    try {
-      _logger.info('Fetching USDC balance for $walletAddress', tag: 'SolanaTx');
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-        ),
-      );
-      final response = await dio.post<Map<String, dynamic>>(
-        AppConstants.heliusRpcUrl,
-        data: {
-          'jsonrpc': '2.0',
-          'id': 1,
-          'method': 'getTokenAccountsByOwner',
-          'params': [
-            walletAddress,
-            {'mint': _usdcMint},
-            {'encoding': 'jsonParsed'},
-          ],
-        },
-      );
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 20),
+      ),
+    );
 
-      final result = response.data?['result'] as Map<String, dynamic>?;
-      final accounts = result?['value'] as List<dynamic>? ?? [];
+    for (var attempt = 1; attempt <= 2; attempt++) {
+      try {
+        _logger.info(
+          'Fetching USDC balance for $walletAddress',
+          tag: 'SolanaTx',
+        );
+        final response = await dio.post<Map<String, dynamic>>(
+          AppConstants.heliusRpcUrl,
+          data: {
+            'jsonrpc': '2.0',
+            'id': 1,
+            'method': 'getTokenAccountsByOwner',
+            'params': [
+              walletAddress,
+              {'mint': _usdcMint},
+              {'encoding': 'jsonParsed'},
+            ],
+          },
+        );
 
-      double total = 0.0;
-      for (final acct in accounts) {
-        final info =
-            (acct
-                as Map<
-                  String,
-                  dynamic
-                >?)?['account']?['data']?['parsed']?['info'];
-        if (info != null) {
-          final uiAmount = info['tokenAmount']?['uiAmount'] as num?;
-          total += uiAmount?.toDouble() ?? 0.0;
+        final result = response.data?['result'] as Map<String, dynamic>?;
+        final accounts = result?['value'] as List<dynamic>? ?? [];
+
+        double total = 0.0;
+        for (final acct in accounts) {
+          final info =
+              (acct
+                  as Map<
+                    String,
+                    dynamic
+                  >?)?['account']?['data']?['parsed']?['info'];
+          if (info != null) {
+            final uiAmount = info['tokenAmount']?['uiAmount'] as num?;
+            total += uiAmount?.toDouble() ?? 0.0;
+          }
         }
+        _logger.info('USDC balance: $total', tag: 'SolanaTx');
+        return total;
+      } catch (error, stackTrace) {
+        if (attempt < 2) {
+          _logger.warning(
+            'USDC balance fetch failed; retrying',
+            tag: 'SolanaTx',
+          );
+          continue;
+        }
+        _logger.error(
+          'Failed to get USDC balance',
+          error: error,
+          stackTrace: stackTrace,
+          tag: 'SolanaTx',
+        );
+        rethrow;
       }
-      _logger.info('USDC balance: $total', tag: 'SolanaTx');
-      return total;
-    } catch (error) {
-      _logger.error(
-        'Failed to get USDC balance',
-        error: error,
-        tag: 'SolanaTx',
-      );
-      return 0.0;
     }
+
+    throw StateError('USDC balance fetch failed');
   }
 }

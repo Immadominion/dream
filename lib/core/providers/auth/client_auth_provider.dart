@@ -59,13 +59,25 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
       final session = await _sessionManager.loadSession();
 
       if (session == null || !session.isValid) {
-        _logger.warning('Invalid or expired session', tag: 'ClientAuth');
-        // Privy says authenticated but no valid session - sign out
-        await _privySdk.logout();
+        _logger.warning(
+          'Local session missing or expired; attempting Privy restore',
+          tag: 'ClientAuth',
+        );
+
+        final restoredSession = await _rebuildSessionFromPrivy();
+        if (restoredSession == null) {
+          state = state.copyWith(
+            state: AuthState.unauthenticated,
+            isInitialized: true,
+            clearSession: true,
+          );
+          return;
+        }
+
         state = state.copyWith(
-          state: AuthState.unauthenticated,
+          state: AuthState.authenticated,
+          session: restoredSession,
           isInitialized: true,
-          clearSession: true,
         );
         return;
       }
@@ -299,19 +311,72 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
         return;
       }
 
-      // Extend session by 24 hours
-      final newExpiration = DateTime.now().add(const Duration(hours: 24));
-      await _sessionManager.updateExpiration(newExpiration);
-
-      // Reload session
-      final session = await _sessionManager.loadSession();
+      final session = await _rebuildSessionFromPrivy();
       if (session != null) {
         state = state.copyWith(session: session);
         _logger.info('Session refreshed', tag: 'ClientAuth');
+      } else {
+        await signOut();
       }
     } catch (error) {
       _logger.error('Session refresh failed', error: error);
     }
+  }
+
+  Future<AuthSession?> _rebuildSessionFromPrivy() async {
+    try {
+      final privyUser = await _privySdk.getCurrentUser();
+      if (privyUser == null) {
+        _logger.warning(
+          'Privy user unavailable during restore',
+          tag: 'ClientAuth',
+        );
+        await _sessionManager.clearSession();
+        return null;
+      }
+
+      final walletAddress = await _resolveWalletAddress(privyUser);
+      if (walletAddress == null || walletAddress.isEmpty) {
+        _logger.warning('Wallet unavailable during restore', tag: 'ClientAuth');
+        await _sessionManager.clearSession();
+        return null;
+      }
+
+      final session = await _createLocalSession(privyUser, walletAddress);
+      await _sessionManager.saveSession(session);
+      return session;
+    } catch (error) {
+      _logger.error('Failed to rebuild session from Privy', error: error);
+      await _sessionManager.clearSession();
+      return null;
+    }
+  }
+
+  Future<String?> _resolveWalletAddress(privy.PrivyUser privyUser) async {
+    final embeddedWallets = privyUser.embeddedSolanaWallets;
+    if (embeddedWallets.isNotEmpty) {
+      return embeddedWallets.first.address;
+    }
+
+    for (final account in privyUser.linkedAccounts) {
+      final dynamic dynAccount = account;
+      try {
+        final address = dynAccount.address?.toString().trim();
+        if (address != null && address.isNotEmpty) {
+          return address;
+        }
+      } catch (_) {
+        // Ignore non-wallet linked accounts.
+      }
+    }
+
+    final storedWallet = await _sessionManager.getWalletAddress();
+    if (storedWallet != null && storedWallet.isNotEmpty) {
+      return storedWallet;
+    }
+
+    final wallet = await _walletManager.getOrCreateWallet();
+    return wallet?.address;
   }
 
   /// Create local session from Privy user (NO backend call)
@@ -337,9 +402,11 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
         email: email,
         walletAddress: walletAddress,
         createdAt: DateTime.now(),
+        lastLoginAt: DateTime.now(),
       ),
-      // Session valid for 24 hours
-      expiresAt: DateTime.now().add(const Duration(hours: 24)),
+      // Privy is the real auth source; keep the app session generous and
+      // rebuild it from Privy when needed instead of forcing a daily re-login.
+      expiresAt: DateTime.now().add(const Duration(days: 30)),
     );
   }
 

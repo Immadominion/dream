@@ -1,15 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/app_constants.dart';
 import '../../models/phoenix/phoenix_models.dart';
 import '../logger_service.dart';
-import '../phoenix/phoenix_auth_service.dart';
 
 final phoenixTraderServiceProvider = Provider<PhoenixTraderService>((ref) {
   final logger = ref.watch(loggerServiceProvider);
-  final authService = ref.watch(phoenixAuthServiceProvider);
-  return PhoenixTraderService(logger: logger, authService: authService);
+  return PhoenixTraderService(logger: logger);
 });
 
 /// Handles trader-specific Phoenix endpoints (public read, authenticated writes).
@@ -18,14 +19,9 @@ final phoenixTraderServiceProvider = Provider<PhoenixTraderService>((ref) {
 /// Order endpoints require Phoenix JWT (handled by phoenix_order_service).
 class PhoenixTraderService {
   final LoggerService _logger;
-  final PhoenixAuthService _authService;
   late final Dio _dio;
 
-  PhoenixTraderService({
-    required LoggerService logger,
-    required PhoenixAuthService authService,
-  }) : _logger = logger,
-       _authService = authService {
+  PhoenixTraderService({required LoggerService logger}) : _logger = logger {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.phoenixApiBaseUrl,
@@ -35,16 +31,8 @@ class PhoenixTraderService {
       ),
     );
 
-    // Attach Bearer token when available
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final session = await _authService.getStoredSession();
-          if (session != null) {
-            options.headers['Authorization'] = 'Bearer ${session.accessToken}';
-          }
-          handler.next(options);
-        },
         onError: (err, handler) {
           _logger.error(
             'Trader HTTP ${err.response?.statusCode}: ${err.requestOptions.path}',
@@ -63,7 +51,9 @@ class PhoenixTraderService {
 
   /// Fetch the complete trader state for [authority].
   ///
-  /// Returns the first (index 0) trader PDA — sufficient for standard accounts.
+  /// Uses the primary cross account `(traderPdaIndex=0, traderSubaccountIndex=0)`
+  /// for collateral/margin fields, while aggregating positions and resting orders
+  /// across all returned trader views so isolated subaccounts remain visible.
   /// On 404 (trader not registered), returns an empty state.
   Future<PhoenixTraderState> fetchTraderState(String authority) async {
     try {
@@ -80,8 +70,12 @@ class PhoenixTraderService {
         return _emptyState(authority);
       }
 
-      final traderView = traders.first as Map<String, dynamic>;
-      return PhoenixTraderState.fromApiJson(traderView, authority);
+      final primaryTraderView = selectPrimaryCrossTraderView(traders);
+      final mergedTraderView = mergeTraderViews(
+        primaryTraderView: primaryTraderView,
+        traders: traders,
+      );
+      return PhoenixTraderState.fromApiJson(mergedTraderView, authority);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         // Trader not registered yet
@@ -165,18 +159,17 @@ class PhoenixTraderService {
     int limit = 50,
   }) async {
     try {
-      final response = await _dio.get<List<dynamic>>(
+      final response = await _dio.get<dynamic>(
         '/trader/$authority/trades-history',
         queryParameters: {'limit': limit},
       );
-      return (response.data ?? [])
-          .map(
-            (e) => PhoenixTradeHistoryItem.fromJson(e as Map<String, dynamic>),
-          )
-          .toList();
+      return _extractHistoryRows(
+        response.data,
+      ).map(PhoenixTradeHistoryItem.fromJson).toList();
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404)
+      if (e.response?.statusCode == 404) {
         return []; // new wallet — no history yet
+      }
       _logger.error('fetchTradeHistory failed', error: e, tag: 'Trader');
       return [];
     } catch (e) {
@@ -191,11 +184,13 @@ class PhoenixTraderService {
     int limit = 50,
   }) async {
     try {
-      final response = await _dio.get<List<dynamic>>(
+      final response = await _dio.get<dynamic>(
         '/trader/$authority/funding-history',
         queryParameters: {'limit': limit},
       );
-      return (response.data ?? []).cast<Map<String, dynamic>>();
+      return _extractHistoryRows(
+        response.data,
+      ).map(_normalizeFundingHistoryRow).toList(growable: false);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return [];
       _logger.error('fetchFundingHistory failed', error: e, tag: 'Trader');
@@ -211,11 +206,13 @@ class PhoenixTraderService {
     int limit = 50,
   }) async {
     try {
-      final response = await _dio.get<List<dynamic>>(
+      final response = await _dio.get<dynamic>(
         '/trader/$authority/collateral-history',
         queryParameters: {'limit': limit},
       );
-      return (response.data ?? []).cast<Map<String, dynamic>>();
+      return _extractHistoryRows(
+        response.data,
+      ).map(_normalizeCollateralHistoryRow).toList(growable: false);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return [];
       _logger.error('fetchCollateralHistory failed', error: e, tag: 'Trader');
@@ -231,11 +228,11 @@ class PhoenixTraderService {
     int limit = 50,
   }) async {
     try {
-      final response = await _dio.get<List<dynamic>>(
+      final response = await _dio.get<dynamic>(
         '/trader/$authority/order-history',
         queryParameters: {'limit': limit},
       );
-      return (response.data ?? []).cast<Map<String, dynamic>>();
+      return _extractHistoryRows(response.data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) return [];
       _logger.error('fetchOrderHistory failed', error: e, tag: 'Trader');
@@ -295,4 +292,138 @@ class PhoenixTraderService {
     updatedAt: DateTime.now(),
     isRegistered: false,
   );
+}
+
+@visibleForTesting
+Map<String, dynamic> selectPrimaryCrossTraderView(List<dynamic> traders) {
+  final typedTraders = traders.whereType<Map<String, dynamic>>().toList();
+  if (typedTraders.isEmpty) {
+    throw StateError('Phoenix trader response contained no trader objects');
+  }
+
+  return typedTraders.firstWhere(
+    (trader) =>
+        _toInt(trader['traderPdaIndex']) == 0 &&
+        _toInt(trader['traderSubaccountIndex']) == 0,
+    orElse: () => typedTraders.firstWhere(
+      (trader) => _toInt(trader['traderSubaccountIndex']) == 0,
+      orElse: () => typedTraders.first,
+    ),
+  );
+}
+
+@visibleForTesting
+Map<String, dynamic> mergeTraderViews({
+  required Map<String, dynamic> primaryTraderView,
+  required List<dynamic> traders,
+}) {
+  final typedTraders = traders.whereType<Map<String, dynamic>>().toList();
+  final merged = Map<String, dynamic>.from(primaryTraderView);
+  final mergedPositions = <dynamic>[];
+  final mergedLimitOrders = <String, List<dynamic>>{};
+  var totalUnrealizedPnl = 0.0;
+
+  for (final trader in typedTraders) {
+    mergedPositions.addAll((trader['positions'] as List<dynamic>?) ?? const []);
+
+    final limitOrders = Map<String, dynamic>.from(
+      (trader['limitOrders'] as Map?) ?? const {},
+    );
+    for (final entry in limitOrders.entries) {
+      mergedLimitOrders
+          .putIfAbsent(entry.key, () => <dynamic>[])
+          .addAll((entry.value as List<dynamic>?) ?? const []);
+    }
+
+    totalUnrealizedPnl += _toDoubleLike(trader['unrealizedPnl']);
+  }
+
+  merged['positions'] = mergedPositions;
+  merged['limitOrders'] = mergedLimitOrders.map(
+    (symbol, orders) => MapEntry(symbol, List<dynamic>.from(orders)),
+  );
+  merged['unrealizedPnl'] = totalUnrealizedPnl;
+  return merged;
+}
+
+@visibleForTesting
+List<Map<String, dynamic>> extractPhoenixHistoryRows(dynamic payload) {
+  return _extractHistoryRows(payload);
+}
+
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
+List<Map<String, dynamic>> _extractHistoryRows(dynamic payload) {
+  if (payload is List) {
+    return payload.whereType<Map<String, dynamic>>().toList(growable: false);
+  }
+
+  if (payload is Map<String, dynamic>) {
+    for (final key in const ['data', 'events']) {
+      final value = payload[key];
+      if (value is List) {
+        return value.whereType<Map<String, dynamic>>().toList(growable: false);
+      }
+    }
+  }
+
+  return const [];
+}
+
+Map<String, dynamic> _normalizeFundingHistoryRow(Map<String, dynamic> row) {
+  return {
+    ...row,
+    'symbol': row['symbol'] ?? row['marketSymbol'],
+    'amount': _toDoubleLike(row['fundingPayment'] ?? row['amount']),
+    'ratePct': _toDoubleLike(
+      row['fundingRatePercentage'] ?? row['fundingRate'] ?? row['rate'],
+    ),
+    'positionSize': _toDoubleLike(row['positionSize'] ?? row['size']),
+    'positionSide': row['positionSide'] ?? row['side'],
+    'timestamp': row['timestamp'] ?? row['createdAt'] ?? row['time'],
+  };
+}
+
+Map<String, dynamic> _normalizeCollateralHistoryRow(Map<String, dynamic> row) {
+  return {
+    ...row,
+    'amount': _toUiAmount(row['amount']),
+    'collateralAfter': _toUiAmount(row['collateralAfter']),
+    'timestamp': row['timestamp'] ?? row['createdAt'] ?? row['time'],
+  };
+}
+
+double _toUiAmount(dynamic value, {int decimals = 6}) {
+  if (value == null) return 0.0;
+  if (value is Map<String, dynamic>) return _toDoubleLike(value);
+
+  final parsed = _toDoubleLike(value);
+  if (parsed.abs() >= 1000) {
+    return parsed / math.pow(10, decimals);
+  }
+  return parsed;
+}
+
+double _toDoubleLike(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  if (value is Map<String, dynamic>) {
+    final ui = value['ui'] ?? value['uiAmount'] ?? value['ui_amount'];
+    if (ui != null) {
+      return _toDoubleLike(ui);
+    }
+
+    final rawValue = value['value'] ?? value['amount'];
+    final decimals = value['decimals'];
+    if (rawValue != null && decimals is num) {
+      final parsedRaw = _toDoubleLike(rawValue);
+      return parsedRaw / math.pow(10, decimals.toInt());
+    }
+  }
+  return 0.0;
 }

@@ -92,8 +92,10 @@ class AppConstants {
 
   /// Cloudflare Worker URL — AI proxy that holds HuggingFace + Anthropic keys
   /// as CF Secrets so they never appear in the APK.
-  static String get dreamAiWorkerUrl =>
-      dotenv.get('DREAM_AI_WORKER_URL', fallback: 'https://dream-ai.workers.dev');
+  static String get dreamAiWorkerUrl => dotenv.get(
+    'DREAM_AI_WORKER_URL',
+    fallback: 'https://dream-ai.workers.dev',
+  );
 
   /// Treasury wallet address for AI credit purchases (SOL micropayments).
   /// Set DREAM_TREASURY_ADDRESS in .env — must be a valid Solana base58 pubkey.
@@ -122,6 +124,40 @@ class AppConstants {
 
   /// Helius API Key for query parameters
   static String get heliusApiKey => dotenv.get('HELIUS_API_KEY', fallback: '');
+
+  // =========================================================================
+  // SUPABASE NOTIFICATION BACKEND
+  // =========================================================================
+
+  static String get supabaseUrl => dotenv.get('SUPABASE_URL', fallback: '');
+
+  static String get supabaseAnonKey => dotenv.get(
+    'SUPABASE_ANON_KEY',
+    fallback: dotenv.get('SUPABASE_PUBLISHABLE_KEY', fallback: ''),
+  );
+
+  static bool get hasSupabaseConfig =>
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  static String get supabaseRegisterDeviceFunction => dotenv.get(
+    'SUPABASE_REGISTER_DEVICE_FUNCTION',
+    fallback: 'register-device',
+  );
+
+  static String get supabaseHeliusWebhookFunction => dotenv.get(
+    'SUPABASE_HELIUS_WEBHOOK_FUNCTION',
+    fallback: 'helius-webhook',
+  );
+
+  static String get supabaseDispatchNotificationsFunction => dotenv.get(
+    'SUPABASE_DISPATCH_NOTIFICATIONS_FUNCTION',
+    fallback: 'dispatch-notifications',
+  );
+
+  static String get supabaseRecordClientEventFunction => dotenv.get(
+    'SUPABASE_RECORD_CLIENT_EVENT_FUNCTION',
+    fallback: 'record-client-event',
+  );
 
   // Network Configuration
   static const Duration apiTimeout = Duration(seconds: 30);

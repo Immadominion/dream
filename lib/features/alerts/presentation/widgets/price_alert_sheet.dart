@@ -83,9 +83,13 @@ class _PriceAlertSheetState extends ConsumerState<PriceAlertSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
-          child: Column(
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -244,6 +248,7 @@ class _PriceAlertSheetState extends ConsumerState<PriceAlertSheet> {
                 ),
               ],
             ],
+            ),
           ),
         ),
       ),

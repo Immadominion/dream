@@ -5,7 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/intelligence_models.dart';
 
-/// A single AI bot log entry row.
+/// A single signal-cycle log entry row.
 class BotLogTile extends StatelessWidget {
   final BotLogEntry entry;
   const BotLogTile({super.key, required this.entry});
@@ -21,9 +21,7 @@ class BotLogTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: iconColor.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: iconColor.withValues(alpha: 0.15)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

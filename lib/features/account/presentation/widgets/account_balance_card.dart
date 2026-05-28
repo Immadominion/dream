@@ -3,12 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/wallet/wallet_balance_provider.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../providers/account_provider.dart';
+import 'deposit_phoenix_collateral_sheet.dart';
 import 'receive_usdc_sheet.dart';
 import 'withdraw_usdc_sheet.dart';
 
@@ -71,7 +72,14 @@ class AccountBalanceCard extends ConsumerWidget {
                   label: 'Receive',
                   icon: Icons.qr_code,
                   color: AppColors.bullish,
-                  onTap: () => ReceiveUsdcSheet.show(context, walletAddress),
+                  onTap: () async {
+                    await ref
+                        .read(notificationServiceProvider)
+                        .requestPermission();
+                    if (context.mounted) {
+                      ReceiveUsdcSheet.show(context, walletAddress);
+                    }
+                  },
                 ),
               ),
               SizedBox(width: 10.w),
@@ -91,42 +99,34 @@ class AccountBalanceCard extends ConsumerWidget {
 
           SizedBox(height: 10.h),
 
-          // Phoenix cross-margin collateral management deep link
-          GestureDetector(
-            onTap: () => launchUrl(
-              Uri.parse('https://app.phoenix.trade'),
-              mode: LaunchMode.externalApplication,
-            ),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.swap_horiz,
-                    size: 13.sp,
-                    color: AppColors.primary.withOpacity(0.8),
+          Row(
+            children: [
+              Expanded(
+                child: _CollateralButton(
+                  label: 'Deposit to Phoenix',
+                  icon: Icons.savings_outlined,
+                  color: AppColors.primary,
+                  onTap: () => DepositPhoenixCollateralSheet.show(
+                    context,
+                    walletAddress: walletAddress,
+                    initialAmountUsdc: walletUsdc > 0 ? walletUsdc : null,
                   ),
-                  SizedBox(width: 5.w),
-                  Text(
-                    'Deposit / Withdraw Phoenix Collateral',
-                    style: TextStyle(
-                      color: AppColors.primary.withOpacity(0.9),
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(width: 4.w),
-                  Icon(
-                    Icons.open_in_new,
-                    size: 11.sp,
-                    color: AppColors.primary.withOpacity(0.7),
-                  ),
-                ],
+                ),
+              ),
+            ],
+          ),
+          if (walletUsdc > 0 && available <= 0) ...[
+            SizedBox(height: 8.h),
+            Text(
+              'Wallet USDC is not tradable until it is deposited to Phoenix collateral.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textMutedDark,
+                fontSize: 10.sp,
+                height: 1.3,
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

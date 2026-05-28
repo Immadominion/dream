@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../positions/providers/positions_provider.dart';
+import '../../providers/trade_provider.dart';
+import 'trade_receipt_sheet.dart';
 
 // ---------------------------------------------------------------------------
 // Active position strip — shown when user already has a position open
@@ -14,7 +14,12 @@ import '../../../positions/providers/positions_provider.dart';
 
 class TradeActivePositionStrip extends ConsumerWidget {
   final String symbol;
-  const TradeActivePositionStrip({super.key, required this.symbol});
+  final TradeSubmittedTrade? lastSubmittedTrade;
+  const TradeActivePositionStrip({
+    super.key,
+    required this.symbol,
+    this.lastSubmittedTrade,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,6 +34,8 @@ class TradeActivePositionStrip extends ConsumerWidget {
     final pnl = position.unrealizedPnl;
     final pnlColor = pnl >= 0 ? AppColors.bullish : AppColors.bearish;
     final baseSymbol = symbol.split('-').first;
+    final shareTrade =
+        lastSubmittedTrade ?? TradeSubmittedTrade.fromPosition(position);
 
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
@@ -72,6 +79,27 @@ class TradeActivePositionStrip extends ConsumerWidget {
             ),
           ),
           const Spacer(),
+          GestureDetector(
+            onTap: () => TradeReceiptSheet.show(
+              context,
+              trade: shareTrade,
+              position: position,
+            ),
+            child: Container(
+              width: 32.w,
+              height: 32.w,
+              margin: EdgeInsets.only(right: 8.w),
+              decoration: BoxDecoration(
+                color: AppColors.textPrimaryDark.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Icon(
+                Icons.ios_share_rounded,
+                color: AppColors.textPrimaryDark,
+                size: 16.sp,
+              ),
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -84,7 +112,7 @@ class TradeActivePositionStrip extends ConsumerWidget {
                 ),
               ),
               Text(
-                'Open position',
+                position.isProfitable ? 'Shareable P&L' : 'Open position',
                 style: TextStyle(
                   color: AppColors.textMutedDark,
                   fontSize: 9.sp,
@@ -131,76 +159,33 @@ class TradeErrorBanner extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Success banner with Solscan link and copy button
+// Plain submission status line shown after a trade is submitted.
 // ---------------------------------------------------------------------------
 
-class TradeSuccessBanner extends StatelessWidget {
-  final String txSig;
-  const TradeSuccessBanner({super.key, required this.txSig});
+class TradeSubmissionStatusText extends StatelessWidget {
+  final TradeSubmittedTrade trade;
+
+  const TradeSubmissionStatusText({super.key, required this.trade});
 
   @override
   Widget build(BuildContext context) {
-    final short =
-        '${txSig.substring(0, 8)}…${txSig.substring(txSig.length - 8)}';
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: AppColors.bullish.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10.r),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.check_circle_outline,
-            color: AppColors.bullish,
-            size: 16.sp,
-          ),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: Text(
-              'Order submitted · $short',
-              style: TextStyle(color: AppColors.bullish, fontSize: 12.sp),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: () async {
-              final uri = Uri.parse('https://solscan.io/tx/$txSig');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
-              decoration: BoxDecoration(
-                color: AppColors.bullish.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              child: Text(
-                'Solscan ↗',
-                style: TextStyle(
-                  color: AppColors.bullish,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 6.w),
-          GestureDetector(
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: txSig));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Transaction signature copied'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            child: Icon(Icons.copy, color: AppColors.bullish, size: 14.sp),
-          ),
-        ],
+    final baseSymbol = trade.symbol.split('-').first;
+    final sideLabel = trade.side == OrderSide.buy ? 'Long' : 'Short';
+
+    return Text(
+      '$sideLabel $baseSymbol order placed · ${_formatTradeSubmissionTime(trade.submittedAt)}',
+      style: TextStyle(
+        color: AppColors.textSecondaryDark,
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
+}
+
+String _formatTradeSubmissionTime(DateTime value) {
+  final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
+  final minute = value.minute.toString().padLeft(2, '0');
+  final meridiem = value.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $meridiem';
 }

@@ -9,10 +9,16 @@ class LeaderProfile {
   final String? label;
   final String? twitter;
   final double pnl7d;
+  final bool hasPnlHistory;
   final double winRate;
   final int totalTrades;
   final double maxDrawdown;
+  final double collateral;
+  final double equity;
+  final double openNotional;
+  final DateTime? lastTradeAt;
   final List<LeaderPosition> openPositions;
+  final bool isRegistered;
   final bool isLoading;
 
   const LeaderProfile({
@@ -20,34 +26,54 @@ class LeaderProfile {
     this.label,
     this.twitter,
     this.pnl7d = 0,
+    this.hasPnlHistory = false,
     this.winRate = 0,
     this.totalTrades = 0,
     this.maxDrawdown = 0,
+    this.collateral = 0,
+    this.equity = 0,
+    this.openNotional = 0,
+    this.lastTradeAt,
     this.openPositions = const [],
+    this.isRegistered = false,
     this.isLoading = false,
   });
 
   String get displayLabel => label ?? _shortAddress(address);
+  bool get hasTradeStats => totalTrades > 0;
+  bool get hasOpenPositions => openPositions.isNotEmpty;
 
   static String _shortAddress(String addr) =>
       '${addr.substring(0, 4)}…${addr.substring(addr.length - 4)}';
 
   LeaderProfile copyWith({
     double? pnl7d,
+    bool? hasPnlHistory,
     double? winRate,
     int? totalTrades,
     double? maxDrawdown,
+    double? collateral,
+    double? equity,
+    double? openNotional,
+    DateTime? lastTradeAt,
     List<LeaderPosition>? openPositions,
+    bool? isRegistered,
     bool? isLoading,
   }) => LeaderProfile(
     address: address,
     label: label,
     twitter: twitter,
     pnl7d: pnl7d ?? this.pnl7d,
+    hasPnlHistory: hasPnlHistory ?? this.hasPnlHistory,
     winRate: winRate ?? this.winRate,
     totalTrades: totalTrades ?? this.totalTrades,
     maxDrawdown: maxDrawdown ?? this.maxDrawdown,
+    collateral: collateral ?? this.collateral,
+    equity: equity ?? this.equity,
+    openNotional: openNotional ?? this.openNotional,
+    lastTradeAt: lastTradeAt ?? this.lastTradeAt,
     openPositions: openPositions ?? this.openPositions,
+    isRegistered: isRegistered ?? this.isRegistered,
     isLoading: isLoading ?? this.isLoading,
   );
 }
@@ -67,13 +93,19 @@ class LeaderPosition {
     this.unrealizedPnl = 0,
   });
 
-  factory LeaderPosition.fromJson(Map<String, dynamic> j) => LeaderPosition(
-    market: j['symbol'] as String? ?? '',
-    side: (j['side'] as String? ?? 'long').toLowerCase(),
-    size: (j['base_asset_amount'] as num?)?.toDouble() ?? 0,
-    entryPrice: (j['entry_price'] as num?)?.toDouble() ?? 0,
-    unrealizedPnl: (j['unrealized_pnl'] as num?)?.toDouble() ?? 0,
-  );
+  factory LeaderPosition.fromJson(Map<String, dynamic> j) {
+    final rawSize = _toDouble(j['positionSize'] ?? j['base_asset_amount']);
+    final explicitSide = (j['side'] as String?)?.toLowerCase();
+    final side = explicitSide ?? (rawSize < 0 ? 'short' : 'long');
+
+    return LeaderPosition(
+      market: j['symbol'] as String? ?? '',
+      side: side,
+      size: rawSize.abs(),
+      entryPrice: _toDouble(j['entryPrice'] ?? j['entry_price']),
+      unrealizedPnl: _toDouble(j['unrealizedPnl'] ?? j['unrealized_pnl']),
+    );
+  }
 }
 
 class CopySettings {
@@ -154,8 +186,8 @@ class FollowedLeader {
     ),
     gainSinceFollow: (j['gainSinceFollow'] as num?)?.toDouble() ?? 0,
     isPaused: j['isPaused'] as bool? ?? false,
-    followedAt: DateTime.tryParse(j['followedAt'] as String? ?? '') ??
-        DateTime.now(),
+    followedAt:
+        DateTime.tryParse(j['followedAt'] as String? ?? '') ?? DateTime.now(),
   );
 }
 
@@ -164,6 +196,7 @@ class CopyTradingState {
   final List<FollowedLeader> following;
   final bool isPolling;
   final bool isLoadingDiscover;
+  final bool isAddingLeader;
   final String? error;
 
   const CopyTradingState({
@@ -171,6 +204,7 @@ class CopyTradingState {
     this.following = const [],
     this.isPolling = false,
     this.isLoadingDiscover = false,
+    this.isAddingLeader = false,
     this.error,
   });
 
@@ -179,6 +213,7 @@ class CopyTradingState {
     List<FollowedLeader>? following,
     bool? isPolling,
     bool? isLoadingDiscover,
+    bool? isAddingLeader,
     String? error,
     bool clearError = false,
   }) => CopyTradingState(
@@ -186,8 +221,18 @@ class CopyTradingState {
     following: following ?? this.following,
     isPolling: isPolling ?? this.isPolling,
     isLoadingDiscover: isLoadingDiscover ?? this.isLoadingDiscover,
+    isAddingLeader: isAddingLeader ?? this.isAddingLeader,
     error: clearError ? null : (error ?? this.error),
   );
+}
+
+double _toDouble(dynamic value) {
+  if (value == null) return 0;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0;
+  return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,12 +248,14 @@ class AIBotConfig {
   final double maxSizeUSDC;
   final double maxLeverage;
   final RiskMode riskMode;
+  final double stopLossPercentage;
 
   const AIBotConfig({
-    this.market = 'SOL-PERP',
+    this.market = 'blue_chips',
     this.maxSizeUSDC = 50.0,
     this.maxLeverage = 3.0,
     this.riskMode = RiskMode.balanced,
+    this.stopLossPercentage = 5.0,
   });
 
   AIBotConfig copyWith({
@@ -216,11 +263,13 @@ class AIBotConfig {
     double? maxSizeUSDC,
     double? maxLeverage,
     RiskMode? riskMode,
+    double? stopLossPercentage,
   }) => AIBotConfig(
     market: market ?? this.market,
     maxSizeUSDC: maxSizeUSDC ?? this.maxSizeUSDC,
     maxLeverage: maxLeverage ?? this.maxLeverage,
     riskMode: riskMode ?? this.riskMode,
+    stopLossPercentage: stopLossPercentage ?? this.stopLossPercentage,
   );
 }
 
@@ -299,8 +348,8 @@ class CreditTier {
   });
 
   static const List<CreditTier> tiers = [
-    CreditTier(credits: 10, solPrice: 0.005, label: 'Starter'),
-    CreditTier(credits: 50, solPrice: 0.02, label: 'Trader'),
-    CreditTier(credits: 200, solPrice: 0.07, label: 'Pro'),
+    CreditTier(credits: 10, solPrice: 0.02, label: 'Starter'),
+    CreditTier(credits: 50, solPrice: 0.08, label: 'Trader'),
+    CreditTier(credits: 200, solPrice: 0.25, label: 'Pro'),
   ];
 }

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -13,16 +14,87 @@ import '../../providers/bottom_nav_providers.dart';
 // Bottom navigation bar for the primary mobile shell
 // ---------------------------------------------------------------------------
 
-class ShellBottomNav extends ConsumerWidget {
+/// Visual order of tabs in the pill: Markets → Intelligence → Positions.
+/// Values are actual tab indices used by [bottomNavIndexProvider].
+const _kTabOrder = [0, 4, 2];
+
+class ShellBottomNav extends ConsumerStatefulWidget {
   final int currentIndex;
   const ShellBottomNav({super.key, required this.currentIndex});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ShellBottomNav> createState() => _ShellBottomNavState();
+}
+
+class _ShellBottomNavState extends ConsumerState<ShellBottomNav> {
+  /// Visual position (0-2) being previewed during a drag. Null = not dragging.
+  int? _dragVisualIndex;
+
+  /// X position where the current drag started, for delta calculation.
+  double? _dragStartX;
+
+  int _currentVisual() {
+    final i = widget.currentIndex;
+    if (i == 0 || i == 1) return 0; // Markets flow
+    if (i == 4) return 1; // Intelligence
+    if (i == 2) return 2; // Positions
+    return 0;
+  }
+
+  void _onDragStart(DragStartDetails details) {
+    _dragStartX = details.localPosition.dx;
+  }
+
+  /// Delta-based: swipe LEFT (negative delta) → next tab (higher visual index).
+  /// Swipe RIGHT (positive delta) → previous tab (lower visual index).
+  void _onDragUpdate(DragUpdateDetails details) {
+    if (_dragStartX == null || _dragVisualIndex != null) return;
+    final delta = details.localPosition.dx - _dragStartX!;
+    final threshold = 36.w;
+
+    if (delta < -threshold) {
+      // Swipe left → go to next tab (right in visual order)
+      final next = (_currentVisual() + 1).clamp(0, 2);
+      if (next != _currentVisual()) {
+        setState(() => _dragVisualIndex = next);
+        HapticFeedback.selectionClick();
+      }
+    } else if (delta > threshold) {
+      // Swipe right → go to previous tab (left in visual order)
+      final prev = (_currentVisual() - 1).clamp(0, 2);
+      if (prev != _currentVisual()) {
+        setState(() => _dragVisualIndex = prev);
+        HapticFeedback.selectionClick();
+      }
+    }
+  }
+
+  void _onDragEnd(DragEndDetails _) {
+    final visual = _dragVisualIndex;
+    setState(() {
+      _dragVisualIndex = null;
+      _dragStartX = null;
+    });
+    if (visual == null) return;
+    if (visual != _currentVisual()) {
+      HapticFeedback.mediumImpact();
+      ref.read(bottomNavIndexProvider.notifier).setIndex(_kTabOrder[visual]);
+    }
+  }
+
+  void _onDragCancel() => setState(() {
+    _dragVisualIndex = null;
+    _dragStartX = null;
+  });
+
+  @override
+  Widget build(BuildContext context) {
     final isVisible = ref.watch(bottomNavVisibilityProvider);
     final posState = ref.watch(positionsProvider);
     final openCount = posState.positions.length + posState.openOrders.length;
-    final inMarketFlow = currentIndex == 0 || currentIndex == 1;
+
+    // Effective visual index: drag preview takes priority over committed state.
+    final effectiveVisual = _dragVisualIndex ?? _currentVisual();
 
     return IgnorePointer(
       ignoring: !isVisible,
@@ -38,53 +110,87 @@ class ShellBottomNav extends ConsumerWidget {
             opacity: isVisible ? 1 : 0,
             child: Padding(
               padding: EdgeInsets.fromLTRB(48.w, 8.h, 48.w, 12.h),
-              child: _GlassPill(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ShellNavItem(
-                        icon: PhosphorIcons.storefront(),
-                        activeIcon: PhosphorIcons.storefront(
-                          PhosphorIconsStyle.duotone,
-                        ),
-                        label: 'Markets',
-                        selected: inMarketFlow,
-                        onTap: () => ref
-                            .read(bottomNavIndexProvider.notifier)
-                            .setIndex(0),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Fluid widths: active tab grows to fit its label,
+                  // inactive tabs shrink to icon-only size.
+                  // Subtract _GlassPill's effective horizontal padding:
+                  //   4.r explicit padding × 2 sides = 8.r
+                  //   Border.all() width (1.0) × 2 sides = 2.0
+                  // Flutter's Container adds border.dimensions to explicit padding.
+                  final gap = 6.w;
+                  final available = constraints.maxWidth - 8.r - 2.0;
+                  final activeWidth = available * 0.54;
+                  final inactiveWidth = (available - activeWidth - gap * 2) / 2;
+
+                  double w(int visual) =>
+                      effectiveVisual == visual ? activeWidth : inactiveWidth;
+
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragStart: _onDragStart,
+                    onHorizontalDragUpdate: _onDragUpdate,
+                    onHorizontalDragEnd: _onDragEnd,
+                    onHorizontalDragCancel: _onDragCancel,
+                    child: _GlassPill(
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            width: w(0),
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            child: ShellNavItem(
+                              icon: PhosphorIcons.storefront(),
+                              activeIcon: PhosphorIcons.storefront(
+                                PhosphorIconsStyle.duotone,
+                              ),
+                              label: 'Markets',
+                              selected: effectiveVisual == 0,
+                              onTap: () => ref
+                                  .read(bottomNavIndexProvider.notifier)
+                                  .setIndex(0),
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          AnimatedContainer(
+                            width: w(1),
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            child: ShellNavItem(
+                              icon: PhosphorIcons.sparkle(),
+                              activeIcon: PhosphorIcons.sparkle(
+                                PhosphorIconsStyle.duotone,
+                              ),
+                              label: 'Intelligence',
+                              selected: effectiveVisual == 1,
+                              onTap: () => ref
+                                  .read(bottomNavIndexProvider.notifier)
+                                  .setIndex(4),
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          AnimatedContainer(
+                            width: w(2),
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            child: ShellNavItem(
+                              icon: PhosphorIcons.bag(),
+                              activeIcon: PhosphorIcons.bag(
+                                PhosphorIconsStyle.duotone,
+                              ),
+                              label: 'Positions',
+                              selected: effectiveVisual == 2,
+                              badgeCount: openCount,
+                              onTap: () => ref
+                                  .read(bottomNavIndexProvider.notifier)
+                                  .setIndex(2),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(width: 6.w),
-                    Expanded(
-                      child: ShellNavItem(
-                        icon: PhosphorIcons.brain(),
-                        activeIcon: PhosphorIcons.brain(
-                          PhosphorIconsStyle.duotone,
-                        ),
-                        label: 'Intelligence',
-                        selected: currentIndex == 4,
-                        onTap: () => ref
-                            .read(bottomNavIndexProvider.notifier)
-                            .setIndex(4),
-                      ),
-                    ),
-                    SizedBox(width: 6.w),
-                    Expanded(
-                      child: ShellNavItem(
-                        icon: PhosphorIcons.bag(),
-                        activeIcon: PhosphorIcons.bag(
-                          PhosphorIconsStyle.duotone,
-                        ),
-                        label: 'Positions',
-                        selected: currentIndex == 2,
-                        badgeCount: openCount,
-                        onTap: () => ref
-                            .read(bottomNavIndexProvider.notifier)
-                            .setIndex(2),
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ),
@@ -176,6 +282,8 @@ class ShellNavItem extends StatelessWidget {
     final iconColor = selected
         ? AppColors.primaryLight
         : AppColors.textSecondaryDark;
+    final badgeLabel = badgeCount > 99 ? '99+' : '$badgeCount';
+    final isSingleDigitBadge = badgeLabel.length == 1;
 
     return GestureDetector(
       onTap: onTap,
@@ -211,24 +319,32 @@ class ShellNavItem extends StatelessWidget {
                     top: -4.h,
                     right: -7.w,
                     child: Container(
-                      constraints: BoxConstraints(minWidth: 15.w),
+                      constraints: BoxConstraints(
+                        minWidth: isSingleDigitBadge ? 16.r : 18.w,
+                        minHeight: 16.r,
+                      ),
                       padding: EdgeInsets.symmetric(
-                        horizontal: 4.w,
-                        vertical: 1.h,
+                        horizontal: isSingleDigitBadge ? 0 : 4.w,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(999.r),
-                      ),
-                      child: Text(
-                        badgeCount > 99 ? '99+' : '$badgeCount',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8.sp,
-                          fontWeight: FontWeight.w700,
-                          height: 1,
+                        border: Border.all(
+                          color: AppColors.backgroundDark,
+                          width: 1,
                         ),
-                        textAlign: TextAlign.center,
+                      ),
+                      child: Center(
+                        child: Text(
+                          badgeLabel,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8.sp,
+                            fontWeight: FontWeight.w700,
+                            height: 1,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                   ),
@@ -244,6 +360,7 @@ class ShellNavItem extends StatelessWidget {
                       padding: EdgeInsets.only(left: 7.w),
                       child: Text(
                         label,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: AppColors.textPrimaryDark,
                           fontSize: 13.sp,

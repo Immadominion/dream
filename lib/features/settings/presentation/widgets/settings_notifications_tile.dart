@@ -4,7 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/providers/auth/client_auth_provider.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/notifications/remote_notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 // ---------------------------------------------------------------------------
@@ -56,6 +58,17 @@ class _SettingsNotificationsTileState
       final svc = ref.read(notificationServiceProvider);
       final granted = await svc.requestPermission();
       if (mounted) setState(() => _enabled = granted);
+      if (granted) {
+        final auth = ref.read(clientAuthProvider);
+        final walletAddress = auth.walletAddress;
+        if (walletAddress != null) {
+          await ref.read(remoteNotificationServiceProvider).syncCurrentDevice(
+            walletAddress: walletAddress,
+            email: auth.userEmail,
+            force: true,
+          );
+        }
+      }
       if (mounted && !granted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

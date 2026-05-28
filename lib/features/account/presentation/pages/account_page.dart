@@ -118,7 +118,15 @@ class AccountPage extends ConsumerWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  _buildSettingsButton(context, ref),
+                  Row(
+                    children: [
+                      if (walletAddress != null) ...[
+                        _buildHistoryButton(context, walletAddress),
+                        SizedBox(width: 8.w),
+                      ],
+                      _buildSettingsButton(context, ref),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -313,25 +321,6 @@ class AccountPage extends ConsumerWidget {
                           ),
                           title: 'Equity Curve',
                           subtitle: 'Track your relative net worth performance',
-                          onTap: () {
-                            if (walletAddress != null) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      EquityPage(walletAddress: walletAddress),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                        _ProfileItemTile(
-                          icon: PhosphorIcons.clockCounterClockwise(
-                            PhosphorIconsStyle.bold,
-                          ),
-                          title: 'Transaction History',
-                          subtitle:
-                              'View detailed trade, order & funding histories',
                           isLast: true,
                           onTap: () {
                             if (walletAddress != null) {
@@ -339,7 +328,7 @@ class AccountPage extends ConsumerWidget {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) =>
-                                      HistoryPage(walletAddress: walletAddress),
+                                      EquityPage(walletAddress: walletAddress),
                                 ),
                               );
                             }
@@ -438,6 +427,33 @@ class AccountPage extends ConsumerWidget {
         ),
         child: Icon(
           PhosphorIcons.gearSix(PhosphorIconsStyle.bold),
+          color: AppColors.textPrimaryDark,
+          size: 24.sp,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryButton(BuildContext context, String walletAddress) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HistoryPage(walletAddress: walletAddress),
+          ),
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.all(8.r),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceDark,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.borderDark),
+        ),
+        child: Icon(
+          PhosphorIcons.clockCounterClockwise(PhosphorIconsStyle.bold),
           color: AppColors.textPrimaryDark,
           size: 24.sp,
         ),

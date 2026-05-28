@@ -1,13 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/models/app_notification.dart';
 import '../../../core/models/phoenix/phoenix_models.dart';
 import '../../../core/providers/auth/client_auth_provider.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/notifications/remote_notification_service.dart';
 import '../../../core/services/phoenix/phoenix_order_service.dart';
 import '../../../core/services/phoenix/phoenix_trader_service.dart';
 import '../../../core/services/phoenix/phoenix_websocket_service.dart';
+import '../../../shared/services/storage_service.dart';
 
 // ---------------------------------------------------------------------------
 // State
@@ -47,11 +51,13 @@ class PositionsState {
 // ---------------------------------------------------------------------------
 
 class PositionsNotifier extends Notifier<PositionsState> {
-  StreamSubscription<TraderStateMessage>? _wsSub;
+  static const String _positionSnapshotPrefix = 'phoenix_positions_snapshot_v1';
 
-  // Tracks which position symbols we've already sent a liq-risk warning for
-  // (cleared whenever positions change so re-warnings can fire if risk persists).
-  final Set<String> _liqWarnedSymbols = {};
+  StreamSubscription<TraderStateMessage>? _wsSub;
+  Timer? _wsRefreshDebounce;
+
+  // Tracks which positions have already emitted a liq-risk warning.
+  final Set<String> _liqWarnedPositionIds = {};
 
   @override
   PositionsState build() {
@@ -64,6 +70,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
         refresh();
       } else if (addr == null) {
         state = const PositionsState();
+        _liqWarnedPositionIds.clear();
         _wsSub?.cancel();
       }
     });
@@ -79,19 +86,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
       return;
     }
 
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final traderState = await ref
-          .read(phoenixTraderServiceProvider)
-          .fetchTraderState(walletAddress);
-      state = state.copyWith(traderState: traderState, isLoading: false);
-      _subscribeWs(walletAddress);
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load positions: $e',
-      );
-    }
+    await _syncTraderState(walletAddress, showLoading: true, resubscribe: true);
   }
 
   /// Close a position (fully or partially) by placing a reverse market order.
@@ -206,66 +201,149 @@ class PositionsNotifier extends Notifier<PositionsState> {
       // Registration can only happen via POST /v1/invite/activate*, never via WS.
       if (previous?.isRegistered == false) return;
 
-      // WebSocket delivers partial traderState — merge with current
-      final updated = PhoenixTraderState.fromApiJson(msg.raw, authority);
-      state = state.copyWith(traderState: updated, isLoading: false);
+      _scheduleWsRefresh(authority);
+    });
+  }
 
-      // ── Fill detection ──────────────────────────────────────────────────
-      // Fire a local notification whenever a position closes.
-      if (previous != null && previous.positions.isNotEmpty) {
-        _detectAndNotifyFills(previous.positions, updated.positions);
+  Future<void> _syncTraderState(
+    String authority, {
+    required bool showLoading,
+    bool resubscribe = false,
+  }) async {
+    final previousPositions =
+        state.traderState?.positions ?? await _loadPositionSnapshot(authority);
+
+    if (showLoading) {
+      state = state.copyWith(isLoading: true, error: null);
+    }
+
+    try {
+      final traderState = await ref
+          .read(phoenixTraderServiceProvider)
+          .fetchTraderState(authority);
+
+      state = state.copyWith(
+        traderState: traderState,
+        isLoading: false,
+        error: null,
+      );
+
+      if (resubscribe) {
+        _subscribeWs(authority);
       }
 
-      // ── Liquidation risk ────────────────────────────────────────────────
-      // Clear the warned set when the position list changes so re-warnings
-      // can fire if the user adds margin and then loses it again.
-      if (previous != null &&
-          previous.positions.map((p) => p.symbol).toSet() !=
-              updated.positions.map((p) => p.symbol).toSet()) {
-        _liqWarnedSymbols.clear();
+      _detectAndNotifyPositionTransitions(
+        previousPositions,
+        traderState.positions,
+      );
+
+      await _savePositionSnapshot(authority, traderState.positions);
+
+      _detectAndNotifyLiquidationRisk(traderState.positions);
+    } catch (e) {
+      if (showLoading) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Failed to load positions: $e',
+        );
       }
-      _detectAndNotifyLiquidationRisk(updated.positions);
+    }
+  }
+
+  void _scheduleWsRefresh(String authority) {
+    _wsRefreshDebounce?.cancel();
+    _wsRefreshDebounce = Timer(const Duration(milliseconds: 250), () {
+      unawaited(_syncTraderState(authority, showLoading: false));
     });
   }
 
   void _dispose() {
     _wsSub?.cancel();
+    _wsRefreshDebounce?.cancel();
   }
 
-  /// Compares previous and current positions; fires a notification for each
-  /// position that was closed between the two snapshots.
-  void _detectAndNotifyFills(
+  void _detectAndNotifyPositionTransitions(
     List<PhoenixPosition> prev,
     List<PhoenixPosition> current,
   ) {
-    final currentSymbols = {for (final p in current) p.symbol};
-    for (final oldPos in prev) {
-      if (!currentSymbols.contains(oldPos.symbol)) {
-        // Position was fully closed
-        _sendFillNotification(oldPos);
+    final previousByKey = {for (final pos in prev) _positionKey(pos): pos};
+    final currentByKey = {for (final pos in current) _positionKey(pos): pos};
+
+    for (final entry in currentByKey.entries) {
+      if (!previousByKey.containsKey(entry.key)) {
+        _sendPositionOpenedNotification(entry.value);
+      }
+    }
+
+    for (final entry in previousByKey.entries) {
+      if (!currentByKey.containsKey(entry.key)) {
+        _sendPositionClosedNotification(entry.value);
       }
     }
   }
 
-  void _sendFillNotification(PhoenixPosition pos) {
+  void _sendPositionOpenedNotification(PhoenixPosition pos) {
     final side = pos.side == 'long' ? 'Long' : 'Short';
-    final base = pos.symbol.replaceAll('-PERP', '');
-    final pnlPrefix = pos.unrealizedPnl >= 0 ? '+' : '';
-    final pnlStr = '$pnlPrefix\$${pos.unrealizedPnl.toStringAsFixed(2)}';
+    final base = _baseSymbol(pos.symbol);
+    final title = '$base $side Opened';
+    final body =
+        'Position opened · ${_formatBaseAmount(pos.sizeBase)} $base at ${_formatUsd(pos.entryPrice)}';
+
     ref
         .read(notificationServiceProvider)
-        .showFillNotification(
-          title: '✅ $base $side Closed',
-          body: 'Position closed · uPnL $pnlStr',
+        .showGenericNotification(
+          category: AppNotifCategory.trade,
+          title: title,
+          body: body,
+          payload: pos.symbol,
         );
+
+    unawaited(
+      _recordPositionEvent(
+        pos,
+        eventType: 'position_opened',
+        category: AppNotifCategory.trade,
+        title: title,
+        body: body,
+        eventId: _positionEventId('open', pos),
+      ),
+    );
+  }
+
+  void _sendPositionClosedNotification(PhoenixPosition pos) {
+    final side = pos.side == 'long' ? 'Long' : 'Short';
+    final base = _baseSymbol(pos.symbol);
+    final pnlPrefix = pos.unrealizedPnl >= 0 ? '+' : '';
+    final pnlStr = '$pnlPrefix\$${pos.unrealizedPnl.toStringAsFixed(2)}';
+    final title = '$base $side Closed';
+    final body = 'Position closed · uPnL $pnlStr';
+
+    ref
+        .read(notificationServiceProvider)
+        .showFillNotification(title: title, body: body);
+
+    unawaited(
+      _recordPositionEvent(
+        pos,
+        eventType: 'position_closed',
+        category: AppNotifCategory.trade,
+        title: title,
+        body: body,
+        eventId: _positionEventId('close', pos),
+      ),
+    );
   }
 
   /// Fire a liquidation-risk notification for each position whose mark price
   /// is within 10% of its liquidation price. Each position is warned only
   /// once per lifecycle (until the position set changes).
   void _detectAndNotifyLiquidationRisk(List<PhoenixPosition> positions) {
+    final activeIds = positions.map(_riskPositionId).toSet();
+    _liqWarnedPositionIds.removeWhere((id) => !activeIds.contains(id));
+
     for (final pos in positions) {
-      if (_liqWarnedSymbols.contains(pos.symbol)) continue;
+      final riskId = _riskPositionId(pos);
+      if (_liqWarnedPositionIds.contains(riskId)) continue;
       if (pos.liquidationPrice <= 0 || pos.markPrice <= 0) continue;
 
       final double distancePct;
@@ -280,7 +358,11 @@ class PositionsNotifier extends Notifier<PositionsState> {
       }
 
       if (distancePct < 10.0 && distancePct >= 0) {
-        _liqWarnedSymbols.add(pos.symbol);
+        _liqWarnedPositionIds.add(riskId);
+        final title =
+            '${_baseSymbol(pos.symbol)} ${pos.isLong ? 'Long' : 'Short'} Liquidation Risk';
+        final body =
+            'Only ${distancePct.toStringAsFixed(1)}% from liquidation. Add margin or close now.';
         ref
             .read(notificationServiceProvider)
             .showLiquidationWarning(
@@ -288,8 +370,130 @@ class PositionsNotifier extends Notifier<PositionsState> {
               side: pos.side,
               distancePct: distancePct,
             );
+
+        unawaited(
+          _recordPositionEvent(
+            pos,
+            eventType: 'position_liquidation_risk',
+            category: AppNotifCategory.risk,
+            title: title,
+            body: body,
+            eventId: _riskEventId(pos),
+          ),
+        );
       }
     }
+  }
+
+  Future<void> _recordPositionEvent(
+    PhoenixPosition pos, {
+    required String eventType,
+    required AppNotifCategory category,
+    required String title,
+    required String body,
+    required String eventId,
+  }) async {
+    final walletAddress = ref.read(clientAuthProvider).walletAddress;
+    if (walletAddress == null) return;
+
+    await ref
+        .read(remoteNotificationServiceProvider)
+        .recordClientEvent(
+          walletAddress: walletAddress,
+          eventId: eventId,
+          eventType: eventType,
+          category: category,
+          title: title,
+          body: body,
+          symbol: pos.symbol,
+          channels: eventType == 'position_liquidation_risk'
+              ? const ['push', 'email']
+              : const ['push'],
+          payload: {
+            'symbol': pos.symbol,
+            'side': pos.side,
+            'sizeBase': pos.sizeBase,
+            'entryPrice': pos.entryPrice,
+            'markPrice': pos.markPrice,
+            'liquidationPrice': pos.liquidationPrice,
+            'unrealizedPnl': pos.unrealizedPnl,
+            'collateral': pos.collateral,
+            'leverage': pos.leverage,
+          },
+        );
+  }
+
+  String _positionKey(PhoenixPosition pos) =>
+      '${pos.symbol}:${pos.side}:${pos.entryPrice.toStringAsFixed(6)}:${pos.sizeBase.toStringAsFixed(6)}';
+
+  String _positionEventId(String action, PhoenixPosition pos) =>
+      'phoenix:$action:${_positionKey(pos)}';
+
+  String _riskPositionId(PhoenixPosition pos) =>
+      '${pos.symbol}:${pos.side}:${pos.liquidationPrice.toStringAsFixed(6)}';
+
+  String _riskEventId(PhoenixPosition pos) =>
+      'phoenix:liq-risk:${_riskPositionId(pos)}';
+
+  String _baseSymbol(String symbol) => symbol.replaceAll('-PERP', '');
+
+  String _formatBaseAmount(double sizeBase) {
+    final fixed = sizeBase.toStringAsFixed(4);
+    return fixed
+        .replaceFirst(RegExp(r'\.0+$'), '')
+        .replaceFirst(RegExp(r'(\.\d*?)0+$'), r'$1');
+  }
+
+  String _formatUsd(double price) => '\$${price.toStringAsFixed(2)}';
+
+  String _positionSnapshotKey(String authority) =>
+      '$_positionSnapshotPrefix:$authority';
+
+  Future<List<PhoenixPosition>> _loadPositionSnapshot(String authority) async {
+    try {
+      final raw = StorageService.getString(_positionSnapshotKey(authority));
+      if (raw.isEmpty) return const [];
+
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map(PhoenixPosition.fromJson)
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _savePositionSnapshot(
+    String authority,
+    List<PhoenixPosition> positions,
+  ) async {
+    final payload = positions
+        .map(
+          (pos) => {
+            'symbol': pos.symbol,
+            'side': pos.side,
+            'sizeBase': pos.sizeBase,
+            'sizeUsd': pos.sizeUsd,
+            'entryPrice': pos.entryPrice,
+            'markPrice': pos.markPrice,
+            'liquidationPrice': pos.liquidationPrice,
+            'unrealizedPnl': pos.unrealizedPnl,
+            'collateral': pos.collateral,
+            'leverage': pos.leverage,
+            'accumulatedFunding': pos.accumulatedFunding,
+            'stopLossPrice': pos.stopLossPrice,
+            'takeProfitPrice': pos.takeProfitPrice,
+          },
+        )
+        .toList(growable: false);
+
+    await StorageService.setString(
+      _positionSnapshotKey(authority),
+      jsonEncode(payload),
+    );
   }
 }
 

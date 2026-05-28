@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:privy_flutter/privy_flutter.dart' as privy;
 
@@ -26,6 +28,8 @@ class WalletInfo {
 /// Handles wallet creation, transaction signing, and message signing
 /// NO backend dependencies - all client-side operations
 class PrivyWalletManager {
+  static const int _maxSignAttempts = 3;
+
   final PrivySdkService _privySdk;
   final LoggerService _logger;
 
@@ -72,8 +76,8 @@ class PrivyWalletManager {
       // Convert transaction bytes to base64 for Privy
       final messageBase64 = base64Encode(transactionMessage);
 
-      // Sign with Privy embedded wallet
-      final signatureResult = await wallet.embeddedWallet.provider.signMessage(
+      final signatureResult = await _signMessageWithRetry(
+        wallet,
         messageBase64,
       );
 
@@ -89,8 +93,10 @@ class PrivyWalletManager {
 
         _logger.info('Transaction signed successfully', tag: 'WalletManager');
         return signatureBase64;
-      } else if (signatureResult is privy.Failure) {
-        throw Exception('Privy signing failed: ${signatureResult.toString()}');
+      } else if (signatureResult is privy.Failure<String>) {
+        throw Exception(
+          'Privy signing failed: ${signatureResult.error.message}',
+        );
       } else {
         throw Exception('Unknown Privy response type');
       }
@@ -133,5 +139,71 @@ class PrivyWalletManager {
   Future<String?> getWalletAddress() async {
     final wallet = await getOrCreateWallet();
     return wallet?.address;
+  }
+
+  Future<privy.Result<String>> _signMessageWithRetry(
+    WalletInfo wallet,
+    String messageBase64,
+  ) async {
+    Object? lastError;
+    StackTrace? lastStackTrace;
+
+    for (var attempt = 1; attempt <= _maxSignAttempts; attempt++) {
+      try {
+        await _privySdk.waitForReady();
+        final result = await wallet.embeddedWallet.provider.signMessage(
+          messageBase64,
+        );
+
+        if (result is privy.Failure<String> &&
+            _isRetryableSigningMessage(result.error.message) &&
+            attempt < _maxSignAttempts) {
+          _logger.warning(
+            'Privy signing ready check failed; retrying ($attempt/$_maxSignAttempts)',
+            tag: 'WalletManager',
+          );
+          await Future.delayed(Duration(milliseconds: 350 * attempt));
+          continue;
+        }
+
+        return result;
+      } catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+
+        if (!_isRetryableSigningError(error) || attempt == _maxSignAttempts) {
+          rethrow;
+        }
+
+        _logger.warning(
+          'Privy signing bridge not ready; retrying ($attempt/$_maxSignAttempts)',
+          tag: 'WalletManager',
+        );
+        await Future.delayed(Duration(milliseconds: 350 * attempt));
+      }
+    }
+
+    Error.throwWithStackTrace(lastError!, lastStackTrace!);
+  }
+
+  bool _isRetryableSigningError(Object error) {
+    if (error is PlatformException) {
+      final code = error.code.toLowerCase();
+      final message = error.message?.toLowerCase() ?? '';
+      return code.contains('sign_message') &&
+          _isRetryableSigningMessage(message);
+    }
+    return _isRetryableSigningMessage(error.toString());
+  }
+
+  bool _isRetryableSigningMessage(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('timed out') ||
+        normalized.contains('timeout') ||
+        normalized.contains('ready request') ||
+        normalized.contains('webview ready') ||
+        normalized.contains('awaitready') ||
+        normalized.contains('notready') ||
+        normalized.contains('not ready');
   }
 }

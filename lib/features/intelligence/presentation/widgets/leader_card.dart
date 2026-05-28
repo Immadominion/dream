@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../models/intelligence_models.dart';
 
 class LeaderCard extends StatelessWidget {
@@ -21,15 +22,16 @@ class LeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (leader.isLoading) return _Skeleton();
 
+    final pnlAvailable = leader.hasPnlHistory;
+    final pnlColor = leader.pnl7d >= 0 ? AppColors.bullish : AppColors.bearish;
+
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: AppColors.borderDark.withValues(alpha: 0.6),
-        ),
+        border: Border.all(color: AppColors.borderDark.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,51 +52,87 @@ class LeaderCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      '${leader.address.substring(0, 4)}…${leader.address.substring(leader.address.length - 4)}',
-                      style: TextStyle(
-                        color: AppColors.textMutedDark,
-                        fontSize: 11.sp,
-                        fontFamily: 'monospace',
-                      ),
+                    SizedBox(height: 3.h),
+                    Row(
+                      children: [
+                        _LiveBadge(active: leader.isRegistered),
+                        SizedBox(width: 6.w),
+                        Flexible(
+                          child: Text(
+                            _short(leader.address),
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.textMutedDark,
+                              fontSize: 11.sp,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              _FollowButton(
-                isFollowing: isFollowing,
-                onTap: onFollow,
-              ),
+              _FollowButton(isFollowing: isFollowing, onTap: onFollow),
             ],
           ),
           SizedBox(height: 12.h),
           Row(
             children: [
-              _StatChip(
-                label: '7d P&L',
-                value: _formatPnl(leader.pnl7d),
-                valueColor: leader.pnl7d >= 0
-                    ? AppColors.bullish
-                    : AppColors.bearish,
+              Expanded(
+                child: _StatChip(
+                  label: '7d P&L',
+                  value: pnlAvailable ? formatPnl(leader.pnl7d) : '--',
+                  valueColor: pnlAvailable ? pnlColor : null,
+                ),
               ),
               SizedBox(width: 8.w),
-              _StatChip(
-                label: 'Win Rate',
-                value: '${(leader.winRate * 100).toStringAsFixed(0)}%',
+              Expanded(
+                child: _StatChip(
+                  label: 'Win Rate',
+                  value: leader.hasTradeStats
+                      ? '${(leader.winRate * 100).toStringAsFixed(0)}%'
+                      : '--',
+                ),
               ),
               SizedBox(width: 8.w),
-              _StatChip(
-                label: 'Trades',
-                value: '${leader.totalTrades}',
+              Expanded(
+                child: _StatChip(
+                  label: 'Trades',
+                  value: leader.hasTradeStats ? '${leader.totalTrades}' : '--',
+                ),
               ),
               SizedBox(width: 8.w),
-              _StatChip(
-                label: 'Open',
-                value: '${leader.openPositions.length}',
+              Expanded(
+                child: _StatChip(
+                  label: 'Open',
+                  value: leader.hasOpenPositions
+                      ? '${leader.openPositions.length}'
+                      : '0',
+                ),
               ),
             ],
           ),
+          if (leader.equity > 0 || leader.openNotional > 0) ...[
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                _InlineMetric(
+                  label: 'Equity',
+                  value: formatCompact(leader.equity),
+                ),
+                SizedBox(width: 10.w),
+                _InlineMetric(
+                  label: 'Open notional',
+                  value: leader.openNotional > 0
+                      ? formatCompact(leader.openNotional)
+                      : '--',
+                ),
+              ],
+            ),
+          ],
           if (leader.openPositions.isNotEmpty) ...[
             SizedBox(height: 10.h),
             Wrap(
@@ -111,11 +149,66 @@ class LeaderCard extends StatelessWidget {
     );
   }
 
-  String _formatPnl(double pnl) {
-    if (pnl.abs() >= 1000) {
-      return '${pnl >= 0 ? '+' : ''}\$${(pnl / 1000).toStringAsFixed(1)}k';
-    }
-    return '${pnl >= 0 ? '+' : ''}\$${pnl.toStringAsFixed(0)}';
+  String _short(String address) =>
+      '${address.substring(0, 4)}…${address.substring(address.length - 4)}';
+}
+
+class _LiveBadge extends StatelessWidget {
+  final bool active;
+  const _LiveBadge({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppColors.success : AppColors.textMutedDark;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4.r),
+      ),
+      child: Text(
+        active ? 'LIVE' : 'NO ACCOUNT',
+        style: TextStyle(
+          color: color,
+          fontSize: 8.sp,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineMetric extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InlineMetric({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Row(
+        children: [
+          Text(
+            '$label ',
+            style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.textSecondaryDark,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -131,9 +224,7 @@ class _Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.primary.withValues(alpha: 0.15),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Center(
         child: Text(
@@ -168,9 +259,7 @@ class _FollowButton extends StatelessWidget {
               : AppColors.primary,
           borderRadius: BorderRadius.circular(20.r),
           border: isFollowing
-              ? Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                )
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.4))
               : null,
         ),
         child: Text(
@@ -209,15 +298,13 @@ class _StatChip extends StatelessWidget {
               color: valueColor ?? AppColors.textPrimaryDark,
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
           SizedBox(height: 1.h),
           Text(
             label,
-            style: TextStyle(
-              color: AppColors.textMutedDark,
-              fontSize: 9.sp,
-            ),
+            style: TextStyle(color: AppColors.textMutedDark, fontSize: 9.sp),
           ),
         ],
       ),
@@ -276,9 +363,7 @@ class _Skeleton extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: AppColors.borderDark.withValues(alpha: 0.6),
-        ),
+        border: Border.all(color: AppColors.borderDark.withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [

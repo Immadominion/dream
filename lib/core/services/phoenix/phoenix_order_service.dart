@@ -80,8 +80,8 @@ class PhoenixOrderService {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.phoenixApiBaseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 20),
+        connectTimeout: AppConstants.apiTimeout,
+        receiveTimeout: AppConstants.apiTimeout,
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -95,9 +95,11 @@ class PhoenixOrderService {
           handler.next(options);
         },
         onError: (err, handler) {
+          final apiError = _apiErrorFromData(err.response?.data);
           _logger.error(
-            'Order HTTP ${err.response?.statusCode}: ${err.requestOptions.path}',
-            error: err,
+            'Order HTTP ${err.response?.statusCode}: ${err.requestOptions.path}'
+            '${apiError != null ? ' — $apiError' : ''}',
+            error: err.response?.data ?? err,
             tag: 'Order',
           );
           handler.next(err);
@@ -118,7 +120,8 @@ class PhoenixOrderService {
   // ---------------------------------------------------------------------------
 
   /// Place a market order. [quantity] is the contract size in base asset units.
-  /// [transferAmountUsdc] is the USDC collateral to transfer (in microcents, 10^6 per USD).
+  /// [transferAmountUsdc] moves already-deposited Phoenix collateral into the
+  /// isolated order account (micro-USDC, 10^6 per USDC).
   Future<OrderResult> placeMarketOrder({
     required String authority,
     required String symbol,
@@ -136,9 +139,10 @@ class PhoenixOrderService {
       );
 
       final tpSl = _buildTpSl(stopLossPrice, takeProfitPrice);
+      final apiSymbol = _toApiSymbol(symbol);
       final body = <String, dynamic>{
         'authority': authority,
-        'symbol': symbol,
+        'symbol': apiSymbol,
         'side': side,
         'quantity': quantity,
         if (transferAmountUsdc > 0) 'transferAmount': transferAmountUsdc,
@@ -166,7 +170,7 @@ class PhoenixOrderService {
       );
     } catch (e) {
       _logger.error('placeMarketOrder failed', error: e, tag: 'Order');
-      return OrderResult.failure(e.toString());
+      return OrderResult.failure(_orderErrorMessage(e));
     }
   }
 
@@ -209,7 +213,7 @@ class PhoenixOrderService {
         'authority': authority,
         'conditionalOrderIndex': conditionalOrderIndex,
         'executionDirection': executionDirection,
-        'symbol': symbol.replaceAll('-PERP', ''),
+        'symbol': _toApiSymbol(symbol),
         'traderPdaIndex': 0,
       };
 
@@ -232,7 +236,7 @@ class PhoenixOrderService {
       return OrderResult.success(txSig);
     } catch (e) {
       _logger.error('cancelConditionalOrder failed', error: e, tag: 'Order');
-      return OrderResult.failure(e.toString());
+      return OrderResult.failure(_orderErrorMessage(e));
     }
   }
 
@@ -278,10 +282,11 @@ class PhoenixOrderService {
       // Using the close side so it's reduce-only by nature.
       final closeSide = positionSide == 'long' ? 'sell' : 'buy';
       final tpSl = _buildTpSl(stopLossPrice, takeProfitPrice);
+      final apiSymbol = _toApiSymbol(symbol);
 
       final body = <String, dynamic>{
         'authority': authority,
-        'symbol': symbol,
+        'symbol': apiSymbol,
         'side': closeSide,
         'isReduceOnly': true,
         if (AppConstants.phoenixBuilderAuthority.isNotEmpty)
@@ -300,7 +305,7 @@ class PhoenixOrderService {
       return OrderResult.success(txSig);
     } catch (e) {
       _logger.error('setPositionTpSl failed', error: e, tag: 'Order');
-      return OrderResult.failure(e.toString());
+      return OrderResult.failure(_orderErrorMessage(e));
     }
   }
 
@@ -325,10 +330,11 @@ class PhoenixOrderService {
       // transferAmount is in USDC micro-units (10^6 per USDC)
       final transferMicro = (amountUsdc * 1e6).toInt();
       final closeSide = positionSide == 'long' ? 'sell' : 'buy';
+      final apiSymbol = _toApiSymbol(symbol);
 
       final body = <String, dynamic>{
         'authority': authority,
-        'symbol': symbol,
+        'symbol': apiSymbol,
         'side': closeSide,
         'isReduceOnly': true,
         'transferAmount': transferMicro,
@@ -347,7 +353,7 @@ class PhoenixOrderService {
       return OrderResult.success(txSig);
     } catch (e) {
       _logger.error('addCollateral failed', error: e, tag: 'Order');
-      return OrderResult.failure(e.toString());
+      return OrderResult.failure(_orderErrorMessage(e));
     }
   }
 
@@ -370,9 +376,10 @@ class PhoenixOrderService {
       );
 
       final tpSl = _buildTpSl(stopLossPrice, takeProfitPrice);
+      final apiSymbol = _toApiSymbol(symbol);
       final body = <String, dynamic>{
         'authority': authority,
-        'symbol': symbol,
+        'symbol': apiSymbol,
         'side': side,
         'price': price,
         'quantity': quantity,
@@ -393,7 +400,7 @@ class PhoenixOrderService {
       return OrderResult.success(txSig);
     } catch (e) {
       _logger.error('placeLimitOrder failed', error: e, tag: 'Order');
-      return OrderResult.failure(e.toString());
+      return OrderResult.failure(_orderErrorMessage(e));
     }
   }
 
@@ -411,6 +418,55 @@ class PhoenixOrderService {
       'takeProfitTriggerPrice': ?takeProfit,
       'takeProfitExecutionPrice': ?takeProfit,
     };
+  }
+
+  String _toApiSymbol(String symbol) => symbol.endsWith('-PERP')
+      ? symbol.substring(0, symbol.length - 5)
+      : symbol;
+
+  String _orderErrorMessage(Object error) {
+    final message = error.toString().replaceFirst('Exception: ', '').trim();
+    if (message.contains('TransferCollateralRegular') &&
+        message.contains('insufficient collateral for withdrawal')) {
+      return 'Not enough Phoenix collateral for this isolated order after fees and margin buffer. Reduce size or leverage, or add more collateral.';
+    }
+    if (message.contains('InstructionError') &&
+        message.contains('InsufficientFunds')) {
+      return 'Phoenix simulation says this order is too large for the collateral being allocated. Reduce size or leverage, or increase isolated collateral.';
+    }
+
+    if (error is DioException) {
+      final apiMessage = _apiErrorFromData(error.response?.data);
+      if (apiMessage != null) return apiMessage;
+
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Phoenix order builder timed out. Please try again.';
+        case DioExceptionType.connectionError:
+          return 'Could not reach Phoenix. Check your connection and try again.';
+        case DioExceptionType.badResponse:
+          return 'Phoenix rejected the order. Please check the order details.';
+        case DioExceptionType.cancel:
+          return 'Order request was cancelled.';
+        case DioExceptionType.badCertificate:
+        case DioExceptionType.unknown:
+          return 'Order request failed. Please try again.';
+      }
+    }
+
+    return message.isEmpty ? 'Order failed. Please try again.' : message;
+  }
+
+  String? _apiErrorFromData(Object? data) {
+    final apiMessage = data is Map<String, dynamic>
+        ? data['error'] ?? data['message']
+        : data;
+    if (apiMessage is String && apiMessage.trim().isNotEmpty) {
+      return apiMessage.trim();
+    }
+    return null;
   }
 
   Future<String> _signAndSubmit(

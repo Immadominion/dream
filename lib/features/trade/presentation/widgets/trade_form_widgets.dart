@@ -170,10 +170,12 @@ class TradePriceInput extends ConsumerStatefulWidget {
 
 class _TradePriceInputState extends ConsumerState<TradePriceInput> {
   late final TextEditingController _ctrl;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _ctrl = TextEditingController(
       text: widget.tradeState.price > 0
           ? widget.tradeState.price.toString()
@@ -184,6 +186,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
   @override
   void didUpdateWidget(covariant TradePriceInput oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_focusNode.hasFocus) return;
     final next = widget.tradeState.price > 0
         ? widget.tradeState.price.toString()
         : '';
@@ -197,6 +200,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _ctrl.dispose();
     super.dispose();
   }
@@ -223,6 +227,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
           Expanded(
             child: TextField(
               controller: _ctrl,
+              focusNode: _focusNode,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),

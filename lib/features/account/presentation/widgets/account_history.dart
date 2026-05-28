@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import 'account_funding_collateral_tabs.dart';
-import 'account_history_providers.dart';
 import 'account_trade_order_tabs.dart';
+import 'account_funding_collateral_tabs.dart';
 
 // ---------------------------------------------------------------------------
 // History section — tabbed: Trades | Orders | Funding | Collateral
@@ -39,93 +38,43 @@ class _AccountHistorySectionState extends ConsumerState<AccountHistorySection>
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'History',
-              style: TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
-              ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: AppColors.primary,
+            indicatorSize: TabBarIndicatorSize.label,
+            indicatorWeight: 2.4,
+            labelColor: AppColors.textPrimaryDark,
+            unselectedLabelColor: AppColors.textMutedDark,
+            labelStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
+            unselectedLabelStyle: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w500,
             ),
-            GestureDetector(
-              onTap: () {
-                ref.invalidate(
-                  accountTradeHistoryProvider(widget.walletAddress),
-                );
-                ref.invalidate(
-                  accountOrderHistoryProvider(widget.walletAddress),
-                );
-                ref.invalidate(
-                  accountFundingHistoryProvider(widget.walletAddress),
-                );
-                ref.invalidate(
-                  accountCollateralHistoryProvider(widget.walletAddress),
-                );
-              },
-              child: Icon(
-                Icons.refresh,
-                color: AppColors.textMutedDark,
-                size: 18.sp,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(color: AppColors.borderDark),
+            dividerColor: Colors.transparent,
+            labelPadding: EdgeInsets.only(right: 18.w),
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: const [
+              Tab(text: 'Trades'),
+              Tab(text: 'Orders'),
+              Tab(text: 'Funding'),
+              Tab(text: 'Collateral'),
+            ],
           ),
-          child: Column(
+        ),
+        SizedBox(height: 10.h),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
             children: [
-              // Tab bar
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.primary,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelColor: AppColors.textPrimaryDark,
-                unselectedLabelColor: AppColors.textMutedDark,
-                labelStyle: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-                unselectedLabelStyle: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w400,
-                ),
-                dividerColor: AppColors.borderDark,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: const [
-                  Tab(text: 'Trades'),
-                  Tab(text: 'Orders'),
-                  Tab(text: 'Funding'),
-                  Tab(text: 'Collateral'),
-                ],
-              ),
-              // Tab content — fixed height to avoid nested scroll conflict
-              SizedBox(
-                height: 280.h,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    AccountTradeHistoryTab(walletAddress: widget.walletAddress),
-                    AccountOrderHistoryTab(walletAddress: widget.walletAddress),
-                    AccountFundingHistoryTab(
-                      walletAddress: widget.walletAddress,
-                    ),
-                    AccountCollateralHistoryTab(
-                      walletAddress: widget.walletAddress,
-                    ),
-                  ],
-                ),
-              ),
+              AccountTradeHistoryTab(walletAddress: widget.walletAddress),
+              AccountOrderHistoryTab(walletAddress: widget.walletAddress),
+              AccountFundingHistoryTab(walletAddress: widget.walletAddress),
+              AccountCollateralHistoryTab(walletAddress: widget.walletAddress),
             ],
           ),
         ),

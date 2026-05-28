@@ -7,6 +7,7 @@ import '../../../core/providers/settings/ui_preferences_provider.dart';
 import '../../../core/services/phoenix/phoenix_order_service.dart';
 import '../../../core/services/phoenix/phoenix_websocket_service.dart';
 import '../../../core/services/ui_preferences_service.dart';
+import '../../markets/providers/markets_provider.dart';
 import 'trade_state.dart';
 
 // Re-export so existing consumers keep working without import changes.
@@ -45,8 +46,27 @@ class TradeNotifier extends Notifier<TradeState> {
       marketSnapshot: null,
       submitError: null,
       lastTxSignature: null,
+      lastSubmittedTrade: null,
     );
     _subscribeToMarket(symbol);
+  }
+
+  void applyTradeIntent({
+    required String symbol,
+    OrderSide? side,
+    double? leverage,
+  }) {
+    if (symbol != state.symbol) {
+      selectSymbol(symbol);
+    }
+
+    if (side != null && side != state.side) {
+      setSide(side);
+    }
+
+    if (leverage != null && leverage > 0 && leverage != state.leverage) {
+      setLeverage(leverage.clamp(1.0, 20.0));
+    }
   }
 
   void setSide(OrderSide side) {
@@ -64,10 +84,19 @@ class TradeNotifier extends Notifier<TradeState> {
         type == OrderType.limit && state.price == 0 && state.markPrice > 0
         ? state.markPrice
         : null;
+    final nextSlippageBps = type == OrderType.market ? state.slippageBps : 0;
+    final qty = _calcQuantity(
+      state.sizeUsdc,
+      state.leverage,
+      state.markPrice,
+      _currentTakerFeeBps(),
+      nextSlippageBps,
+    );
     state = state.copyWith(
       orderType: type,
       submitError: null,
       price: autoPrice ?? state.price,
+      quantity: qty,
       // Post-only is only valid for limit orders; reset when switching to market
       postOnly: type == OrderType.market ? false : state.postOnly,
     );
@@ -75,7 +104,13 @@ class TradeNotifier extends Notifier<TradeState> {
 
   /// Set the USDC collateral size and recalculate base quantity.
   void setSizeUsdc(double usdc) {
-    final qty = _calcQuantity(usdc, state.leverage, state.markPrice);
+    final qty = _calcQuantity(
+      usdc,
+      state.leverage,
+      state.markPrice,
+      _currentTakerFeeBps(),
+      _currentSlippageBps(),
+    );
     final liqPrice = _calcLiqPrice(state.markPrice, state.leverage, state.side);
     state = state.copyWith(
       sizeUsdc: usdc,
@@ -87,7 +122,13 @@ class TradeNotifier extends Notifier<TradeState> {
 
   /// Set leverage multiplier and recalculate base quantity.
   void setLeverage(double leverage) {
-    final qty = _calcQuantity(state.sizeUsdc, leverage, state.markPrice);
+    final qty = _calcQuantity(
+      state.sizeUsdc,
+      leverage,
+      state.markPrice,
+      _currentTakerFeeBps(),
+      _currentSlippageBps(),
+    );
     final liqPrice = _calcLiqPrice(state.markPrice, leverage, state.side);
     state = state.copyWith(
       leverage: leverage,
@@ -101,7 +142,16 @@ class TradeNotifier extends Notifier<TradeState> {
   void setCollateral(double usdc) =>
       state = state.copyWith(collateralUsdc: usdc);
 
-  void setSlippageBps(int bps) => state = state.copyWith(slippageBps: bps);
+  void setSlippageBps(int bps) {
+    final qty = _calcQuantity(
+      state.sizeUsdc,
+      state.leverage,
+      state.markPrice,
+      _currentTakerFeeBps(),
+      state.orderType == OrderType.market ? bps : 0,
+    );
+    state = state.copyWith(slippageBps: bps, quantity: qty);
+  }
 
   void clearResult() => state = state.copyWith(clearResult: true);
 
@@ -143,11 +193,34 @@ class TradeNotifier extends Notifier<TradeState> {
   /// rejected if it would immediately cross the book (maker-only fill).
   void togglePostOnly(bool v) => state = state.copyWith(postOnly: v);
 
-  /// Notional = sizeUsdc * leverage; quantity = notional / markPrice
-  double _calcQuantity(double sizeUsdc, double leverage, double markPrice) {
+  double _calcQuantity(
+    double sizeUsdc,
+    double leverage,
+    double markPrice,
+    double takerFeeBps,
+    int slippageBps,
+  ) {
     if (markPrice <= 0 || sizeUsdc <= 0) return 0;
-    return (sizeUsdc * leverage) / markPrice;
+    return tradeBaseQuantity(
+      collateralUsdc: sizeUsdc,
+      leverage: leverage,
+      markPrice: markPrice,
+      takerFeeRateBps: takerFeeBps,
+      slippageBps: slippageBps,
+    );
   }
+
+  double _currentTakerFeeBps() {
+    final market = ref
+        .read(marketsProvider)
+        .markets
+        .where((m) => m.symbol == state.symbol)
+        .firstOrNull;
+    return market?.takerFeeRateBps ?? 5.0;
+  }
+
+  int _currentSlippageBps() =>
+      state.orderType == OrderType.market ? state.slippageBps : 0;
 
   /// Estimate liquidation price using isolated-margin formula.
   /// For Long:  liqPrice = entryPrice × (1 - 1/leverage + maintenanceMargin)
@@ -180,8 +253,16 @@ class TradeNotifier extends Notifier<TradeState> {
 
     // Recalculate quantity with live price just before submission
     final livePrice = state.markPrice;
+    final takerFeeBps = _currentTakerFeeBps();
+    final slippageBps = _currentSlippageBps();
     final finalQty = livePrice > 0
-        ? _calcQuantity(state.sizeUsdc, state.leverage, livePrice)
+      ? _calcQuantity(
+        state.sizeUsdc,
+        state.leverage,
+        livePrice,
+        takerFeeBps,
+        slippageBps,
+        )
         : state.quantity;
 
     if (finalQty <= 0) {
@@ -195,7 +276,15 @@ class TradeNotifier extends Notifier<TradeState> {
     state = state.copyWith(isSubmitting: true, submitError: null);
 
     final orderService = ref.read(phoenixOrderServiceProvider);
-    // transferAmount is collateral in USDC micro-units (10^6 per USDC)
+    final entryPrice = state.orderType == OrderType.market ? livePrice : state.price;
+    final notionalUsdc = tradeNotionalUsdc(
+      collateralUsdc: state.sizeUsdc,
+      leverage: state.leverage,
+      takerFeeRateBps: takerFeeBps,
+      slippageBps: slippageBps,
+    );
+    // transferAmount moves already-deposited Phoenix collateral from the
+    // cross/parent account into the isolated order account.
     final collateralMicro = (state.sizeUsdc * 1e6).toInt();
     final sl = state.tpSlEnabled ? state.stopLossPrice : null;
     final tp = state.tpSlEnabled ? state.takeProfitPrice : null;
@@ -227,9 +316,24 @@ class TradeNotifier extends Notifier<TradeState> {
     }
 
     if (result.success) {
+      final snapshot = TradeSubmittedTrade(
+        symbol: state.symbol,
+        side: state.side,
+        orderType: state.orderType,
+        leverage: state.leverage,
+        quantity: finalQty,
+        collateralUsdc: state.sizeUsdc,
+        notionalUsdc: notionalUsdc,
+        entryPrice: entryPrice,
+        estimatedLiqPrice:
+            result.estimatedLiquidationPrice ?? state.estimatedLiqPrice,
+        txSignature: result.txSignature ?? '',
+        submittedAt: DateTime.now(),
+      );
       state = state.copyWith(
         isSubmitting: false,
         lastTxSignature: result.txSignature,
+        lastSubmittedTrade: snapshot,
         estimatedLiqPrice: result.estimatedLiquidationPrice,
         submitError: null,
       );
@@ -258,7 +362,13 @@ class TradeNotifier extends Notifier<TradeState> {
           final newPrice = m.snapshot.markPrice;
           // Recalculate quantity if user has already set a USDC size
           final newQty = state.sizeUsdc > 0 && newPrice > 0
-              ? _calcQuantity(state.sizeUsdc, state.leverage, newPrice)
+          ? _calcQuantity(
+            state.sizeUsdc,
+            state.leverage,
+            newPrice,
+            _currentTakerFeeBps(),
+            _currentSlippageBps(),
+          )
               : state.quantity;
           final newLiqPrice = state.sizeUsdc > 0
               ? _calcLiqPrice(newPrice, state.leverage, state.side)

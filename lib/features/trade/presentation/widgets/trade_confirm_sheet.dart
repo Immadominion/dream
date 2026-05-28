@@ -31,9 +31,25 @@ class TradeConfirmSheet extends ConsumerWidget {
     final entryPrice = tradeState.orderType == OrderType.market
         ? markPrice
         : tradeState.price;
-    final notional = tradeState.sizeUsdc * tradeState.leverage;
-    final qty = entryPrice > 0 ? notional / entryPrice : tradeState.quantity;
     final takerFeeBps = market?.takerFeeRateBps ?? 5.0;
+    final slippageBps = tradeState.orderType == OrderType.market
+        ? tradeState.slippageBps
+        : 0;
+    final notional = tradeNotionalUsdc(
+      collateralUsdc: tradeState.sizeUsdc,
+      leverage: tradeState.leverage,
+      takerFeeRateBps: takerFeeBps,
+      slippageBps: slippageBps,
+    );
+    final qty = entryPrice > 0
+        ? tradeBaseQuantity(
+            collateralUsdc: tradeState.sizeUsdc,
+            leverage: tradeState.leverage,
+            markPrice: entryPrice,
+            takerFeeRateBps: takerFeeBps,
+            slippageBps: slippageBps,
+          )
+        : tradeState.quantity;
     final estFee = notional * takerFeeBps / 10000;
     final liqPrice = tradeState.estimatedLiqPrice;
 
@@ -41,96 +57,98 @@ class TradeConfirmSheet extends ConsumerWidget {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 36.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 36.w,
-                height: 4.h,
-                margin: EdgeInsets.only(bottom: 18.h),
-                decoration: BoxDecoration(
-                  color: AppColors.borderDark,
-                  borderRadius: BorderRadius.circular(2.r),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 36.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 36.w,
+                  height: 4.h,
+                  margin: EdgeInsets.only(bottom: 18.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.borderDark,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
                 ),
               ),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                  decoration: BoxDecoration(
-                    color: sideColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(4.r),
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 3.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: sideColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: Text(
+                      '$sideLabel ${tradeState.leverage.toInt()}×',
+                      style: TextStyle(
+                        color: sideColor,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    '$sideLabel ${tradeState.leverage.toInt()}×',
+                  SizedBox(width: 8.w),
+                  Text(
+                    tradeState.symbol,
                     style: TextStyle(
-                      color: sideColor,
-                      fontSize: 13.sp,
+                      color: AppColors.textPrimaryDark,
+                      fontSize: 17.sp,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  tradeState.symbol,
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 17.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardDark,
-                    borderRadius: BorderRadius.circular(4.r),
-                    border: Border.all(color: AppColors.borderDark),
-                  ),
-                  child: Text(
-                    tradeState.orderType == OrderType.market
-                        ? 'Market'
-                        : 'Limit',
-                    style: TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 11.sp,
+                  const Spacer(),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.w,
+                      vertical: 2.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardDark,
+                      borderRadius: BorderRadius.circular(4.r),
+                      border: Border.all(color: AppColors.borderDark),
+                    ),
+                    child: Text(
+                      tradeState.orderType == OrderType.market
+                          ? 'Market'
+                          : 'Limit',
+                      style: TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 11.sp,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 18.h),
-            Container(
-              padding: EdgeInsets.all(14.w),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: AppColors.borderDark),
+                ],
               ),
-              child: Column(
+              SizedBox(height: 18.h),
+              Column(
                 children: [
                   _ConfirmRow(
                     label: 'Size',
                     value: '${qty.toStringAsFixed(4)} $baseSymbol',
                     sub: '\$${notional.toStringAsFixed(2)} notional',
                   ),
-                  const _ConfirmDivider(),
+                  SizedBox(height: 15.h),
                   _ConfirmRow(
                     label: tradeState.orderType == OrderType.market
                         ? 'Est. Entry'
                         : 'Limit Price',
                     value: entryPrice > 0 ? formatPrice(entryPrice) : '--',
                   ),
-                  const _ConfirmDivider(),
+                  SizedBox(height: 15.h),
                   _ConfirmRow(
                     label: 'Collateral',
                     value: '\$${tradeState.sizeUsdc.toStringAsFixed(2)} USDC',
+                    sub: 'Includes isolated margin safety buffer',
                   ),
-                  const _ConfirmDivider(),
+                  SizedBox(height: 15.h),
                   _ConfirmRow(
                     label: 'Est. Fee',
                     value:
@@ -138,7 +156,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                     valueColor: AppColors.textSecondaryDark,
                   ),
                   if (liqPrice != null && liqPrice > 0) ...[
-                    const _ConfirmDivider(),
+                    SizedBox(height: 15.h),
                     _ConfirmRow(
                       label: 'Est. Liq. Price',
                       value: formatPrice(liqPrice),
@@ -147,7 +165,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                   ],
                   if (tradeState.tpSlEnabled &&
                       tradeState.takeProfitPrice != null) ...[
-                    const _ConfirmDivider(),
+                    SizedBox(height: 15.h),
                     _ConfirmRow(
                       label: 'Take Profit',
                       value: formatPrice(tradeState.takeProfitPrice!),
@@ -156,7 +174,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                   ],
                   if (tradeState.tpSlEnabled &&
                       tradeState.stopLossPrice != null) ...[
-                    const _ConfirmDivider(),
+                    SizedBox(height: 15.h),
                     _ConfirmRow(
                       label: 'Stop Loss',
                       value: formatPrice(tradeState.stopLossPrice!),
@@ -165,55 +183,55 @@ class TradeConfirmSheet extends ConsumerWidget {
                   ],
                 ],
               ),
-            ),
-            SizedBox(height: 20.h),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.borderDark),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
+              SizedBox(height: 24.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.borderDark),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 13.h),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: TextStyle(
-                        color: AppColors.textSecondaryDark,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: sideColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                    ),
-                    child: Text(
-                      'Confirm $sideLabel',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: sideColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22.r),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 13.h),
+                      ),
+                      child: Text(
+                        'Confirm $sideLabel',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -223,14 +241,6 @@ class TradeConfirmSheet extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 // Private helpers used only within this file
 // ---------------------------------------------------------------------------
-
-class _ConfirmDivider extends StatelessWidget {
-  const _ConfirmDivider();
-
-  @override
-  Widget build(BuildContext context) =>
-      Divider(height: 16.h, color: AppColors.borderDark, thickness: 0.5);
-}
 
 class _ConfirmRow extends StatelessWidget {
   final String label;
@@ -248,13 +258,20 @@ class _ConfirmRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
         ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(top: 9.h),
+            child: const _DottedConnector(),
+          ),
+        ),
+        SizedBox(width: 8.w),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -280,4 +297,47 @@ class _ConfirmRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DottedConnector extends StatelessWidget {
+  const _DottedConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 1,
+      child: CustomPaint(
+        painter: _DottedConnectorPainter(
+          color: AppColors.borderDark.withValues(alpha: 0.9),
+        ),
+      ),
+    );
+  }
+}
+
+class _DottedConnectorPainter extends CustomPainter {
+  final Color color;
+
+  const _DottedConnectorPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round;
+    var x = 0.0;
+    while (x < size.width) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset((x + 2).clamp(0, size.width), 0),
+        paint,
+      );
+      x += 6;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedConnectorPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

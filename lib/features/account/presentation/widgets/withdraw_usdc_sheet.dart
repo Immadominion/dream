@@ -131,32 +131,37 @@ class _WithdrawUsdcSheetState extends ConsumerState<WithdrawUsdcSheet> {
     final balance = usdcAsync.value ?? 0.0;
 
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20.w,
-          right: 20.w,
-          top: 12.h,
-          bottom: 24.h + MediaQuery.of(context).viewInsets.bottom,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.only(
+            left: 20.w,
+            right: 20.w,
+            top: 12.h,
+            bottom: 24.h + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: _txSignature != null
+              ? WithdrawSuccessView(
+                  onOpenExplorer: _openExplorer,
+                  onDone: () => Navigator.pop(context),
+                )
+              : WithdrawUsdcFormBody(
+                  formKey: _formKey,
+                  destController: _destController,
+                  amountController: _amountController,
+                  balance: balance,
+                  loadingBalance: usdcAsync.isLoading,
+                  submitting: _submitting,
+                  submitError: _submitError,
+                  onPaste: _pasteDestination,
+                  onSetMax: () => _setMax(balance),
+                  onSubmit: () => _submit(balance),
+                  validateDest: _validateDest,
+                  validateAmount: (v) => _validateAmount(v, balance),
+                ),
         ),
-        child: _txSignature != null
-            ? WithdrawSuccessView(
-                onOpenExplorer: _openExplorer,
-                onDone: () => Navigator.pop(context),
-              )
-            : WithdrawUsdcFormBody(
-                formKey: _formKey,
-                destController: _destController,
-                amountController: _amountController,
-                balance: balance,
-                loadingBalance: usdcAsync.isLoading,
-                submitting: _submitting,
-                submitError: _submitError,
-                onPaste: _pasteDestination,
-                onSetMax: () => _setMax(balance),
-                onSubmit: () => _submit(balance),
-                validateDest: _validateDest,
-                validateAmount: (v) => _validateAmount(v, balance),
-              ),
       ),
     );
   }

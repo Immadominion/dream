@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../navigation/providers/bottom_nav_providers.dart';
 import '../../providers/positions_provider.dart';
 import '../widgets/order_tile.dart';
 import '../widgets/position_card.dart';
+import '../../../../shared/widgets/app_error_view.dart';
 
 class PositionsPage extends ConsumerWidget {
   const PositionsPage({super.key});
@@ -174,12 +176,14 @@ class _EmptyView extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.bar_chart,
-            color: AppColors.textSecondaryDark,
-            size: 48.sp,
+          Lottie.asset(
+            'assets/images/empty.json',
+            width: 132.r,
+            height: 132.r,
+            fit: BoxFit.contain,
+            repeat: true,
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 2.h),
           Text(
             'No open positions',
             style: TextStyle(
@@ -224,31 +228,6 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.wifi_off,
-              color: AppColors.textSecondaryDark,
-              size: 40.sp,
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              error,
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 14.sp,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 16.h),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
-      ),
-    );
+    return AppErrorView(error: error, onRetry: onRetry);
   }
 }

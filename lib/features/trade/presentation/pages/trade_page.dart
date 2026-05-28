@@ -19,6 +19,16 @@ import '../widgets/trade_tp_sl_section.dart';
 
 const double _kTabletBreakpoint = 768.0;
 
+double _keyboardInsetOf(BuildContext context) {
+  final mediaInset = MediaQuery.viewInsetsOf(context).bottom;
+  if (mediaInset > 0) return mediaInset;
+
+  final view = View.of(context);
+  final devicePixelRatio = view.devicePixelRatio;
+  if (devicePixelRatio <= 0) return 0;
+  return view.viewInsets.bottom / devicePixelRatio;
+}
+
 // ---------------------------------------------------------------------------
 // Bybit-style perp trade page.
 //   Phone — form on the left, compact ladder on the right.
@@ -91,15 +101,36 @@ class _PhoneLayout extends ConsumerStatefulWidget {
   ConsumerState<_PhoneLayout> createState() => _PhoneLayoutState();
 }
 
-class _PhoneLayoutState extends ConsumerState<_PhoneLayout> {
+class _PhoneLayoutState extends ConsumerState<_PhoneLayout>
+    with WidgetsBindingObserver {
   // Initialized from persisted pref in initState; falls back to true (show chart).
   bool _chartVisible = true;
+  double _keyboardInset = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Read persisted preference synchronously (SharedPreferences already loaded)
     _chartVisible = ref.read(uiPreferencesProvider).tradeChartVisible;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardInset());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _keyboardInset = _keyboardInsetOf(context);
+  }
+
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardInset());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   void _onChartToggle(bool v) {
@@ -107,8 +138,19 @@ class _PhoneLayoutState extends ConsumerState<_PhoneLayout> {
     ref.read(uiPreferencesProvider.notifier).setTradeChartVisible(v);
   }
 
+  void _syncKeyboardInset() {
+    if (!mounted) return;
+    final nextInset = _keyboardInsetOf(context);
+    if ((nextInset - _keyboardInset).abs() < 0.5) return;
+    setState(() => _keyboardInset = nextInset);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = _keyboardInset > 0
+        ? _keyboardInset
+        : MediaQuery.viewInsetsOf(context).bottom;
+
     return Column(
       children: [
         TradeMarketHeader(
@@ -135,11 +177,15 @@ class _PhoneLayoutState extends ConsumerState<_PhoneLayout> {
                 child: _OrderFormScroll(
                   tradeState: widget.tradeState,
                   isAuthed: widget.isAuthed,
+                  keyboardInset: keyboardInset,
                 ),
               ),
               SizedBox(
                 width: 155.w,
-                child: TradeCompactOrderbook(symbol: widget.tradeState.symbol),
+                child: _CompactOrderbookScroll(
+                  symbol: widget.tradeState.symbol,
+                  keyboardInset: keyboardInset,
+                ),
               ),
             ],
           ),
@@ -218,22 +264,33 @@ class _TabletLayout extends StatelessWidget {
 class _OrderFormScroll extends StatelessWidget {
   final TradeState tradeState;
   final bool isAuthed;
+  final double? keyboardInset;
 
-  const _OrderFormScroll({required this.tradeState, required this.isAuthed});
+  const _OrderFormScroll({
+    required this.tradeState,
+    required this.isAuthed,
+    this.keyboardInset,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveKeyboardInset = keyboardInset ?? _keyboardInsetOf(context);
+
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.fromLTRB(
         14.w,
         12.h,
         12.w,
-        MediaQuery.paddingOf(context).bottom + 24.h,
+        effectiveKeyboardInset + MediaQuery.paddingOf(context).bottom + 24.h,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TradeActivePositionStrip(symbol: tradeState.symbol),
+          TradeActivePositionStrip(
+            symbol: tradeState.symbol,
+            lastSubmittedTrade: tradeState.lastSubmittedTrade,
+          ),
           // Order type inline with side toggle — same row, Bybit-style
           Row(
             children: [
@@ -266,13 +323,36 @@ class _OrderFormScroll extends StatelessWidget {
             SizedBox(height: 12.h),
             TradeErrorBanner(error: tradeState.submitError!),
           ],
-          if (tradeState.lastTxSignature != null) ...[
-            SizedBox(height: 12.h),
-            TradeSuccessBanner(txSig: tradeState.lastTxSignature!),
+          if (tradeState.lastSubmittedTrade != null) ...[
+            SizedBox(height: 10.h),
+            TradeSubmissionStatusText(trade: tradeState.lastSubmittedTrade!),
           ],
           SizedBox(height: 12.h),
         ],
       ),
+    );
+  }
+}
+
+class _CompactOrderbookScroll extends StatelessWidget {
+  final String symbol;
+  final double keyboardInset;
+
+  const _CompactOrderbookScroll({
+    required this.symbol,
+    required this.keyboardInset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      primary: false,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: EdgeInsets.only(
+        top: 12.h,
+        bottom: keyboardInset + MediaQuery.paddingOf(context).bottom + 24.h,
+      ),
+      child: TradeCompactOrderbook(symbol: symbol),
     );
   }
 }

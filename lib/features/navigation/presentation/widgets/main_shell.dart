@@ -11,6 +11,7 @@ import '../../../../core/models/app_notification.dart';
 import '../../../../core/providers/solana/wallet_name_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/notifications/remote_notification_service.dart';
 import '../../../../core/providers/notifications/notifications_provider.dart';
 import '../../../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../../../shared/widgets/dream_display.dart';
@@ -22,9 +23,12 @@ import '../../../trade/presentation/pages/trade_page.dart';
 import '../../../trade/providers/trade_provider.dart';
 import '../../../positions/presentation/pages/positions_page.dart';
 import '../../../account/presentation/pages/account_page.dart';
+import '../../../account/presentation/pages/history_page.dart';
 import '../../providers/bottom_nav_providers.dart';
 import 'bottom_nav.dart';
+import 'notification_runtime_listener.dart';
 import 'shell_banners.dart';
+import 'wallet_deposit_listener.dart';
 
 /// Main application shell — 4-tab trading terminal.
 class MainShell extends ConsumerStatefulWidget {
@@ -39,6 +43,13 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   StreamSubscription<String>? _notifTapSub;
   StreamSubscription<AppNotification>? _notifFeedSub;
+  StreamSubscription<NotificationTapPayload>? _remoteNotifTapSub;
+
+  void _openTradeFromSymbol(String? symbol) {
+    if (symbol == null || symbol.isEmpty) return;
+    ref.read(tradeProvider.notifier).selectSymbol(symbol);
+    ref.read(bottomNavIndexProvider.notifier).setIndex(1);
+  }
 
   bool _handleShellScrollNotification(ScrollNotification notification) {
     if (notification.depth != 0) return false;
@@ -81,22 +92,22 @@ class _MainShellState extends ConsumerState<MainShell> {
     super.initState();
     // Listen for notification taps and deep-link to the Trade tab.
     final notifService = ref.read(notificationServiceProvider);
-    _notifTapSub = notifService.alertTapSymbol.listen((symbol) {
-      ref.read(tradeProvider.notifier).selectSymbol(symbol);
-      ref.read(bottomNavIndexProvider.notifier).setIndex(1);
+    _notifTapSub = notifService.alertTapSymbol.listen(_openTradeFromSymbol);
+    final remoteNotifService = ref.read(remoteNotificationServiceProvider);
+    _remoteNotifTapSub = remoteNotifService.tapPayloads.listen((payload) {
+      _openTradeFromSymbol(payload.symbol);
     });
     // Forward all shown notifications into the in-app feed store.
     _notifFeedSub = notifService.notificationFeed.listen((appNotif) {
       ref.read(notificationsProvider.notifier).add(appNotif);
     });
-    // Send welcome notifications on first ever sign-in.
+    // Handle the case where the user is already authenticated on load.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.listen<AuthStateData>(clientAuthProvider, (prev, next) {
-        if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
-          ref.read(notificationsProvider.notifier).onFirstSignIn();
-        }
-      });
-      // Handle the case where the user is already authenticated on load.
+      final pendingTap = remoteNotifService.consumePendingTap();
+      if (pendingTap != null) {
+        _openTradeFromSymbol(pendingTap.symbol);
+      }
+
       final auth = ref.read(clientAuthProvider);
       if (auth.isAuthenticated) {
         ref.read(notificationsProvider.notifier).onFirstSignIn();
@@ -108,6 +119,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   void dispose() {
     _notifTapSub?.cancel();
     _notifFeedSub?.cancel();
+    _remoteNotifTapSub?.cancel();
     super.dispose();
   }
 
@@ -116,21 +128,12 @@ class _MainShellState extends ConsumerState<MainShell> {
     final currentIndex = ref.watch(bottomNavIndexProvider);
     _loadedTabs.add(currentIndex);
 
-    void handleHorizontalSwipe(DragEndDetails details) {
-      final velocity = details.primaryVelocity ?? 0;
-      // Right swipe: Markets -> Positions
-      if (velocity > 320 && currentIndex == 0) {
-        ref.read(bottomNavIndexProvider.notifier).setIndex(4);
-      } else if (velocity > 320 && currentIndex == 4) {
-        ref.read(bottomNavIndexProvider.notifier).setIndex(2);
+    // Listen for first-sign-in transitions to send welcome notifications.
+    ref.listen<AuthStateData>(clientAuthProvider, (prev, next) {
+      if (next.isAuthenticated && (prev == null || !prev.isAuthenticated)) {
+        ref.read(notificationsProvider.notifier).onFirstSignIn();
       }
-      // Left swipe: Positions -> Intelligence -> Markets
-      if (velocity < -320 && currentIndex == 2) {
-        ref.read(bottomNavIndexProvider.notifier).setIndex(4);
-      } else if (velocity < -320 && currentIndex == 4) {
-        ref.read(bottomNavIndexProvider.notifier).setIndex(0);
-      }
-    }
+    });
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -138,6 +141,8 @@ class _MainShellState extends ConsumerState<MainShell> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
+          const NotificationRuntimeListener(),
+          const WalletDepositListener(),
           Column(
             children: [
               const WsStatusBanner(),
@@ -147,29 +152,25 @@ class _MainShellState extends ConsumerState<MainShell> {
               Expanded(
                 child: NotificationListener<ScrollNotification>(
                   onNotification: _handleShellScrollNotification,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onHorizontalDragEnd: handleHorizontalSwipe,
-                    child: IndexedStack(
-                      index: currentIndex,
-                      children: [
-                        _loadedTabs.contains(0)
-                            ? const MarketsPage()
-                            : const SizedBox.shrink(),
-                        _loadedTabs.contains(1)
-                            ? const TradePage()
-                            : const SizedBox.shrink(),
-                        _loadedTabs.contains(2)
-                            ? const PositionsPage()
-                            : const SizedBox.shrink(),
-                        _loadedTabs.contains(3)
-                            ? const AccountPage()
-                            : const SizedBox.shrink(),
-                        _loadedTabs.contains(4)
-                            ? const IntelligenceTabPage()
-                            : const SizedBox.shrink(),
-                      ],
-                    ),
+                  child: IndexedStack(
+                    index: currentIndex,
+                    children: [
+                      _loadedTabs.contains(0)
+                          ? const MarketsPage()
+                          : const SizedBox.shrink(),
+                      _loadedTabs.contains(1)
+                          ? const TradePage()
+                          : const SizedBox.shrink(),
+                      _loadedTabs.contains(2)
+                          ? const PositionsPage()
+                          : const SizedBox.shrink(),
+                      _loadedTabs.contains(3)
+                          ? const AccountPage()
+                          : const SizedBox.shrink(),
+                      _loadedTabs.contains(4)
+                          ? const IntelligenceTabPage()
+                          : const SizedBox.shrink(),
+                    ],
                   ),
                 ),
               ),
@@ -329,10 +330,11 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                     ),
                   ),
                 ),
+                _HistoryIcon(walletAddress: walletAddress),
                 _BellIcon(),
               ],
             ),
-            if (widget.currentIndex != 3) ...[
+            if (isMarkets) ...[
               SizedBox(height: 12.h),
               Row(
                 children: [
@@ -403,26 +405,22 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                   SizedBox(width: 8.w),
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: isMarkets
-                        ? () {
-                            ref
-                                .read(marketWatchlistOnlyProvider.notifier)
-                                .toggle();
-                          }
-                        : null,
+                    onTap: () {
+                      ref.read(marketWatchlistOnlyProvider.notifier).toggle();
+                    },
                     child: Icon(
                       watchlistOnly
                           ? Icons.star_rounded
                           : Icons.star_outline_rounded,
                       size: 20.sp,
                       color: watchlistOnly
-                          ? const Color(0xFFF5C518)
+                          ? AppColors.warningLight
                           : AppColors.textSecondaryDark,
                     ),
                   ),
                 ],
               ),
-            ], // end if (currentIndex != 3)
+            ],
           ],
         ),
       ),
@@ -440,6 +438,8 @@ class _BellIcon extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unread = ref.watch(unreadCountProvider);
+    final badgeLabel = unread > 99 ? '99+' : '$unread';
+    final isSingleDigitBadge = badgeLabel.length == 1;
 
     return GestureDetector(
       onTap: () {
@@ -463,16 +463,24 @@ class _BellIcon extends ConsumerWidget {
                 top: -3.h,
                 right: -5.w,
                 child: Container(
-                  constraints: BoxConstraints(minWidth: 14.w),
-                  height: 14.h,
-                  padding: EdgeInsets.symmetric(horizontal: 3.w),
+                  constraints: BoxConstraints(
+                    minWidth: isSingleDigitBadge ? 16.r : 18.w,
+                    minHeight: 16.r,
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSingleDigitBadge ? 0 : 4.w,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.error,
-                    borderRadius: BorderRadius.circular(7.r),
+                    borderRadius: BorderRadius.circular(999.r),
+                    border: Border.all(
+                      color: AppColors.backgroundDark,
+                      width: 1,
+                    ),
                   ),
                   child: Center(
                     child: Text(
-                      unread > 99 ? '99+' : '$unread',
+                      badgeLabel,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 9.sp,
@@ -484,6 +492,38 @@ class _BellIcon extends ConsumerWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryIcon extends StatelessWidget {
+  final String? walletAddress;
+
+  const _HistoryIcon({required this.walletAddress});
+
+  @override
+  Widget build(BuildContext context) {
+    if (walletAddress == null) {
+      return const SizedBox.shrink();
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => HistoryPage(walletAddress: walletAddress!),
+          ),
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.only(left: 8.w),
+        child: Icon(
+          PhosphorIcons.clockCounterClockwise(PhosphorIconsStyle.bold),
+          color: AppColors.textSecondaryDark,
+          size: 22.sp,
         ),
       ),
     );

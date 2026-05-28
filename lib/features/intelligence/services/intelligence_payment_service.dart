@@ -13,21 +13,22 @@ import '../../../core/services/wallet/privy_wallet_manager.dart';
 import '../../../core/services/wallet/mwa_wallet_service.dart';
 import '../models/intelligence_models.dart';
 
-final intelligencePaymentServiceProvider =
-    Provider<IntelligencePaymentService>((ref) {
-  final logger = ref.watch(loggerServiceProvider);
-  final privyWallet = ref.watch(privyWalletManagerProvider);
-  final mwaService = ref.watch(mwaWalletServiceProvider);
-  final phoenixAuth = ref.watch(phoenixAuthServiceProvider);
-  final auth = ref.watch(clientAuthProvider);
-  return IntelligencePaymentService(
-    logger: logger,
-    privyWallet: privyWallet,
-    mwaService: mwaService,
-    phoenixAuthService: phoenixAuth,
-    walletAddress: auth.walletAddress ?? '',
-  );
-});
+final intelligencePaymentServiceProvider = Provider<IntelligencePaymentService>(
+  (ref) {
+    final logger = ref.watch(loggerServiceProvider);
+    final privyWallet = ref.watch(privyWalletManagerProvider);
+    final mwaService = ref.watch(mwaWalletServiceProvider);
+    final phoenixAuth = ref.watch(phoenixAuthServiceProvider);
+    final auth = ref.watch(clientAuthProvider);
+    return IntelligencePaymentService(
+      logger: logger,
+      privyWallet: privyWallet,
+      mwaService: mwaService,
+      phoenixAuthService: phoenixAuth,
+      walletAddress: auth.walletAddress ?? '',
+    );
+  },
+);
 
 /// Handles on-chain SOL micropayments to the Dream treasury wallet.
 ///
@@ -129,8 +130,7 @@ class IntelligencePaymentService {
         _mwaService.connectedPublicKey == _walletAddress;
 
     if (isMwa) {
-      final result =
-          await _mwaService.signMessage(base64Encode(messageBytes));
+      final result = await _mwaService.signMessage(base64Encode(messageBytes));
       if (!result.success || result.signature == null) {
         throw Exception('MWA signing failed: ${result.error}');
       }
@@ -221,9 +221,9 @@ class IntelligencePaymentService {
     for (var i = 0; i < maxAttempts; i++) {
       await Future<void>.delayed(const Duration(seconds: 1));
       try {
-        final statuses = await _solana.rpcClient.getSignatureStatuses(
-          [txSignature],
-        );
+        final statuses = await _solana.rpcClient.getSignatureStatuses([
+          txSignature,
+        ]);
         final status = statuses.value.first;
         if (status?.confirmationStatus != null) return;
       } catch (_) {

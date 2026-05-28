@@ -12,8 +12,8 @@ import '../services/leader_discovery_service.dart';
 
 final copyTradingProvider =
     NotifierProvider<CopyTradingNotifier, CopyTradingState>(
-  CopyTradingNotifier.new,
-);
+      CopyTradingNotifier.new,
+    );
 
 class CopyTradingNotifier extends Notifier<CopyTradingState> {
   Timer? _pollTimer;
@@ -48,19 +48,48 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
   // ── Following ─────────────────────────────────────────────────────────────
 
   Future<void> followLeader(LeaderProfile leader, CopySettings settings) async {
-    final alreadyFollowing =
-        state.following.any((f) => f.leader.address == leader.address);
+    final alreadyFollowing = state.following.any(
+      (f) => f.leader.address == leader.address,
+    );
     if (alreadyFollowing) return;
 
     final followed = FollowedLeader(
       leader: leader,
       settings: settings,
       followedAt: DateTime.now(),
+      lastKnownPositions: leader.openPositions,
     );
     state = state.copyWith(following: [...state.following, followed]);
     await _persistFollowed();
 
     if (!state.isPolling) _startPolling();
+  }
+
+  Future<LeaderProfile?> findLeader(String authority) async {
+    if (state.isAddingLeader) return null;
+    state = state.copyWith(isAddingLeader: true, clearError: true);
+    try {
+      final service = ref.read(leaderDiscoveryServiceProvider);
+      final leader = await service.fetchLeaderProfile(authority);
+      if (!leader.isRegistered) {
+        state = state.copyWith(
+          isAddingLeader: false,
+          error: 'No Phoenix trader account found for that address.',
+        );
+        return null;
+      }
+      state = state.copyWith(isAddingLeader: false);
+      return leader;
+    } catch (e) {
+      state = state.copyWith(isAddingLeader: false, error: e.toString());
+      return null;
+    }
+  }
+
+  Future<void> followAddress(String authority, CopySettings settings) async {
+    final leader = await findLeader(authority);
+    if (leader == null) return;
+    await followLeader(leader, settings);
   }
 
   Future<void> unfollowLeader(String leaderAddress) async {
@@ -131,8 +160,9 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
         continue;
       }
       try {
-        final newPositions =
-            await discovery.fetchPositions(followed.leader.address);
+        final newPositions = await discovery.fetchPositions(
+          followed.leader.address,
+        );
 
         final diff = _detectPositionChanges(
           previous: followed.lastKnownPositions,
@@ -179,31 +209,37 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
     for (final curr in current) {
       final prev = prevMap[curr.market];
       if (prev == null) {
-        changes.add(_PositionChange(
-          market: curr.market,
-          side: curr.side,
-          type: _ChangeType.opened,
-          position: curr,
-        ));
+        changes.add(
+          _PositionChange(
+            market: curr.market,
+            side: curr.side,
+            type: _ChangeType.opened,
+            position: curr,
+          ),
+        );
       } else if ((curr.size - prev.size).abs() / prev.size > 0.1) {
-        changes.add(_PositionChange(
-          market: curr.market,
-          side: curr.side,
-          type: _ChangeType.increased,
-          position: curr,
-        ));
+        changes.add(
+          _PositionChange(
+            market: curr.market,
+            side: curr.side,
+            type: _ChangeType.increased,
+            position: curr,
+          ),
+        );
       }
     }
 
     // Closed positions
     for (final prev in previous) {
       if (!currMap.containsKey(prev.market)) {
-        changes.add(_PositionChange(
-          market: prev.market,
-          side: prev.side,
-          type: _ChangeType.closed,
-          position: prev,
-        ));
+        changes.add(
+          _PositionChange(
+            market: prev.market,
+            side: prev.side,
+            type: _ChangeType.closed,
+            position: prev,
+          ),
+        );
       }
     }
     return changes;
@@ -229,13 +265,14 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       // Open / increase
       final openSide = change.side == 'long' ? 'buy' : 'sell';
       // Size in USDC notional / entry price = base units
-      final quantity = settings.copyUSDC /
+      final quantity =
+          settings.copyUSDC /
           (change.position.entryPrice > 0 ? change.position.entryPrice : 1);
       final stopLoss = change.position.entryPrice > 0
           ? change.position.entryPrice *
-              (change.side == 'long'
-                  ? 1 - settings.stopLossRatio
-                  : 1 + settings.stopLossRatio)
+                (change.side == 'long'
+                    ? 1 - settings.stopLossRatio
+                    : 1 + settings.stopLossRatio)
           : null;
       final transferMicro = (settings.copyUSDC * 1e6).toInt();
 
@@ -279,7 +316,8 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_followedKey);
       if (raw == null || raw.isEmpty) return;
-      final list = (jsonDecode(raw) as List<dynamic>).cast<Map<String, dynamic>>();
+      final list = (jsonDecode(raw) as List<dynamic>)
+          .cast<Map<String, dynamic>>();
       final followed = list.map((j) {
         final profile = LeaderProfile(
           address: j['address'] as String,
@@ -290,12 +328,35 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       }).toList();
       state = state.copyWith(following: followed);
       if (followed.isNotEmpty) _startPolling();
+      Future.microtask(_refreshFollowingProfiles);
     } catch (e) {
-      ref.read(loggerServiceProvider).error(
-        'Failed to load followed leaders: $e',
-        tag: '[CopyTrade]',
-      );
+      ref
+          .read(loggerServiceProvider)
+          .error('Failed to load followed leaders: $e', tag: '[CopyTrade]');
     }
+  }
+
+  Future<void> _refreshFollowingProfiles() async {
+    if (state.following.isEmpty) return;
+    final service = ref.read(leaderDiscoveryServiceProvider);
+    final refreshed = <FollowedLeader>[];
+    for (final followed in state.following) {
+      try {
+        final profile = await service.fetchLeaderProfile(
+          followed.leader.address,
+          label: followed.leader.label,
+        );
+        refreshed.add(
+          followed.copyWith(
+            leader: profile,
+            lastKnownPositions: profile.openPositions,
+          ),
+        );
+      } catch (_) {
+        refreshed.add(followed);
+      }
+    }
+    state = state.copyWith(following: refreshed);
   }
 }
 

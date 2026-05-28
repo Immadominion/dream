@@ -9,8 +9,15 @@ import 'trade_page.dart';
 // This hides shell top/bottom bars and lets the trade header own back nav.
 class MarketTradePage extends ConsumerStatefulWidget {
   final String symbol;
+  final OrderSide? initialSide;
+  final double? initialLeverage;
 
-  const MarketTradePage({super.key, required this.symbol});
+  const MarketTradePage({
+    super.key,
+    required this.symbol,
+    this.initialSide,
+    this.initialLeverage,
+  });
 
   @override
   ConsumerState<MarketTradePage> createState() => _MarketTradePageState();
@@ -21,7 +28,11 @@ class _MarketTradePageState extends ConsumerState<MarketTradePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(tradeProvider.notifier).selectSymbol(widget.symbol);
+      ref.read(tradeProvider.notifier).applyTradeIntent(
+        symbol: widget.symbol,
+        side: widget.initialSide,
+        leverage: widget.initialLeverage,
+      );
     });
   }
 

@@ -13,6 +13,7 @@ import '../../providers/market_watchlist_filter_provider.dart';
 import '../../providers/watchlist_provider.dart';
 import '../widgets/market_tile.dart';
 import '../widgets/markets_header.dart';
+import '../../../../shared/widgets/app_error_view.dart';
 
 class MarketsPage extends ConsumerStatefulWidget {
   const MarketsPage({super.key});
@@ -178,34 +179,9 @@ class _MarketsBody extends ConsumerWidget {
     }
 
     if (state.error != null && state.markets.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.wifi_off,
-                color: AppColors.textSecondaryDark,
-                size: 40.sp,
-              ),
-              SizedBox(height: 12.h),
-              Text(
-                state.error!,
-                style: TextStyle(
-                  color: AppColors.textSecondaryDark,
-                  fontSize: 14.sp,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16.h),
-              TextButton(
-                onPressed: () => ref.read(marketsProvider.notifier).refresh(),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+      return AppErrorView(
+        error: state.error!,
+        onRetry: () => ref.read(marketsProvider.notifier).refresh(),
       );
     }
 

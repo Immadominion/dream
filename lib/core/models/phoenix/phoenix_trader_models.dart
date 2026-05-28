@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:equatable/equatable.dart';
 
 /// An open perpetual position
@@ -308,7 +309,9 @@ class PhoenixTraderState extends Equatable {
             .toList() ??
         [];
 
-    final limitOrdersMap = json['limitOrders'] as Map<String, dynamic>? ?? {};
+    final limitOrdersMap = Map<String, dynamic>.from(
+      (json['limitOrders'] as Map?) ?? const {},
+    );
     final ordersList = <PhoenixOpenOrder>[];
     for (final entry in limitOrdersMap.entries) {
       final symbol = entry.key;
@@ -370,5 +373,22 @@ double _toDouble(dynamic value) {
   if (value is int) return value.toDouble();
   if (value is String) return double.tryParse(value) ?? 0.0;
   if (value is num) return value.toDouble();
+  if (value is Map<String, dynamic>) {
+    final ui = value['ui'] ?? value['uiAmount'] ?? value['ui_amount'];
+    if (ui != null) {
+      return _toDouble(ui);
+    }
+
+    final rawValue = value['value'] ?? value['amount'];
+    final decimals = value['decimals'];
+    if (rawValue != null && decimals != null) {
+      final raw = _toDouble(rawValue);
+      final scale = _toDouble(decimals);
+      if (scale > 0) {
+        return raw / math.pow(10, scale.toInt());
+      }
+      return raw;
+    }
+  }
   return 0.0;
 }

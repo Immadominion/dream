@@ -3,8 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/constants/app_constants.dart';
+import 'core/services/notifications/remote_notification_service.dart';
 import 'core/services/logger_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
@@ -24,9 +29,11 @@ void main() async {
   // Initialize storage service
   await StorageService.initialize();
 
+  final logger = LoggerService();
+  await _initializeCloudServices(logger);
+
   // Initialize local notifications (before ProviderScope so the service
   // is ready when providers first resolve)
-  final logger = LoggerService();
   final notifications = NotificationService(logger: logger);
   await notifications.initialize();
 
@@ -48,6 +55,41 @@ void main() async {
       child: const DreamApp(),
     ),
   );
+}
+
+Future<void> _initializeCloudServices(LoggerService logger) async {
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    logger.info('Firebase initialized', tag: 'Notifications');
+  } catch (error, stackTrace) {
+    logger.error(
+      'Firebase initialization failed',
+      error: error,
+      stackTrace: stackTrace,
+      tag: 'Notifications',
+    );
+  }
+
+  if (!AppConstants.hasSupabaseConfig) {
+    logger.warning('Supabase config missing; backend sync disabled', tag: 'Supabase');
+    return;
+  }
+
+  try {
+    await Supabase.initialize(
+      url: AppConstants.supabaseUrl,
+      anonKey: AppConstants.supabaseAnonKey,
+    );
+    logger.info('Supabase initialized', tag: 'Supabase');
+  } catch (error, stackTrace) {
+    logger.error(
+      'Supabase initialization failed',
+      error: error,
+      stackTrace: stackTrace,
+      tag: 'Supabase',
+    );
+  }
 }
 
 class DreamApp extends ConsumerWidget {

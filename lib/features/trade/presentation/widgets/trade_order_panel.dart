@@ -11,6 +11,7 @@ import '../../../markets/providers/markets_provider.dart';
 import '../../../positions/providers/positions_provider.dart';
 import '../../providers/trade_provider.dart';
 import '../../../../core/providers/wallet/wallet_balance_provider.dart';
+import '../pages/trade_order_success_screen.dart';
 import 'trade_confirm_sheet.dart';
 
 // ---------------------------------------------------------------------------
@@ -29,9 +30,25 @@ class TradeOrderSummary extends ConsumerWidget {
         .firstOrNull;
     final price = marketsState.priceFor(tradeState.symbol);
     final baseSymbol = tradeState.symbol.split('-').first;
-    final notional = tradeState.sizeUsdc * tradeState.leverage;
-    final qty = price > 0 ? notional / price : tradeState.quantity;
     final takerFeeBps = market?.takerFeeRateBps ?? 5.0;
+    final slippageBps = tradeState.orderType == OrderType.market
+        ? tradeState.slippageBps
+        : 0;
+    final notional = tradeNotionalUsdc(
+      collateralUsdc: tradeState.sizeUsdc,
+      leverage: tradeState.leverage,
+      takerFeeRateBps: takerFeeBps,
+      slippageBps: slippageBps,
+    );
+    final qty = price > 0
+        ? tradeBaseQuantity(
+            collateralUsdc: tradeState.sizeUsdc,
+            leverage: tradeState.leverage,
+            markPrice: price,
+            takerFeeRateBps: takerFeeBps,
+            slippageBps: slippageBps,
+          )
+        : tradeState.quantity;
     final estFee = notional * takerFeeBps / 10000;
 
     return Container(
@@ -140,6 +157,118 @@ class TradeSubmitButton extends ConsumerWidget {
     required this.isAuthed,
   });
 
+  Future<bool> _ensurePhoenixReady(BuildContext context, WidgetRef ref) async {
+    ref.read(tradeProvider.notifier).clearResult();
+    ref.read(tradeProvider.notifier).setSubmitError(null);
+
+    final ready = await ref
+        .read(phoenixAuthProvider.notifier)
+        .ensureAuthenticated();
+    final refreshed = ref.read(phoenixAuthProvider);
+    if (ready && refreshed.isAuthenticated) {
+      return true;
+    }
+
+    final message =
+        refreshed.error ??
+        (refreshed.needsReauth
+            ? 'Wallet reconnect is still required before trading.'
+            : 'Could not prepare your wallet for trading. Please try again.');
+    ref.read(tradeProvider.notifier).setSubmitError(message);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+    return false;
+  }
+
+  Future<void> _submitOrder(BuildContext context, WidgetRef ref) async {
+    final walletAddress = ref.watch(clientAuthProvider).walletAddress;
+    final phoenixAuth = ref.read(phoenixAuthProvider);
+
+    if (walletAddress == null) {
+      ref.read(tradeProvider.notifier).setSubmitError('Sign in to trade');
+      return;
+    }
+
+    if (!phoenixAuth.isAuthenticated) {
+      final ready = await _ensurePhoenixReady(context, ref);
+      if (!ready || !context.mounted) return;
+    }
+
+    if (!tradeState.canSubmit) return;
+
+    final phoenixAvail =
+        ref.read(positionsProvider).traderState?.availableMargin ?? 0.0;
+
+    double? walletUsdc;
+    try {
+      walletUsdc = await ref.refresh(
+        walletUsdcBalanceProvider(walletAddress).future,
+      );
+    } catch (_) {
+      walletUsdc = null;
+    }
+
+    if (tradeState.sizeUsdc > phoenixAvail) {
+      final walletHint = walletUsdc != null && walletUsdc > 0
+          ? ' Wallet USDC: ${formatUsdc(walletUsdc)}.'
+          : '';
+      ref
+          .read(tradeProvider.notifier)
+          .setSubmitError(
+            'Deposit USDC to Phoenix collateral first. Available collateral: ${formatUsdc(phoenixAvail)}.$walletHint',
+          );
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    ref.read(tradeProvider.notifier).clearResult();
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surfaceDark,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (_) => TradeConfirmSheet(tradeState: tradeState),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final success = await ref.read(tradeProvider.notifier).submitOrder();
+    if (success && context.mounted) {
+      HapticFeedback.mediumImpact();
+      ref.read(tradeProvider.notifier).setSizeUsdc(0);
+      await ref.read(positionsProvider.notifier).refresh();
+
+      if (!context.mounted) return;
+
+      final submittedTrade = ref.read(tradeProvider).lastSubmittedTrade;
+      if (submittedTrade == null) return;
+
+      final livePosition = ref
+          .read(positionsProvider)
+          .positions
+          .where((position) => position.symbol == submittedTrade.symbol)
+          .firstOrNull;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => TradeOrderSuccessScreen(
+            trade: submittedTrade,
+            position: livePosition,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLong = tradeState.side == OrderSide.buy;
@@ -159,6 +288,9 @@ class TradeSubmitButton extends ConsumerWidget {
         phoenixAuth.status == PhoenixAuthStatus.loading ||
         phoenixAuth.status == PhoenixAuthStatus.initial;
     final bool phoenixReady = phoenixAuth.isAuthenticated;
+    final bool canAttemptAuth = hasWallet && !phoenixLoading && !phoenixReady;
+    final bool canSubmitOrder =
+        tradeState.canSubmit && hasWallet && phoenixReady && !phoenixLoading;
 
     final String buttonLabel;
     if (!hasWallet) {
@@ -166,63 +298,20 @@ class TradeSubmitButton extends ConsumerWidget {
     } else if (phoenixLoading) {
       buttonLabel = 'Authenticating…';
     } else if (!phoenixReady) {
-      buttonLabel = 'Reconnect Wallet';
+      buttonLabel = phoenixAuth.needsReauth
+          ? 'Reconnect Wallet'
+          : 'Prepare Wallet to Trade';
     } else {
       buttonLabel = label;
     }
-
-    final usdcAsync = walletAddress != null
-        ? ref.watch(walletUsdcBalanceProvider(walletAddress))
-        : const AsyncValue<double>.data(0.0);
-    final walletUsdc = usdcAsync.value ?? 0.0;
-    final phoenixAvail =
-        ref.watch(positionsProvider).traderState?.availableMargin ?? 0.0;
-    final totalAvail = walletUsdc + phoenixAvail;
 
     return SizedBox(
       width: double.infinity,
       height: 52.h,
       child: ElevatedButton(
-        onPressed:
-            (!tradeState.canSubmit ||
-                !phoenixReady ||
-                !hasWallet ||
-                phoenixLoading)
+        onPressed: phoenixLoading || (!canAttemptAuth && !canSubmitOrder)
             ? null
-            : () async {
-                if (tradeState.sizeUsdc > totalAvail) {
-                  ref
-                      .read(tradeProvider.notifier)
-                      .setSubmitError(
-                        'Insufficient USDC. Available: \$${totalAvail.toStringAsFixed(2)}',
-                      );
-                  return;
-                }
-                ref.read(tradeProvider.notifier).clearResult();
-
-                final confirmed = await showModalBottomSheet<bool>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: AppColors.surfaceDark,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(16.r),
-                    ),
-                  ),
-                  builder: (_) => TradeConfirmSheet(tradeState: tradeState),
-                );
-
-                if (confirmed != true || !context.mounted) return;
-
-                final success = await ref
-                    .read(tradeProvider.notifier)
-                    .submitOrder();
-                if (success && context.mounted) {
-                  HapticFeedback.mediumImpact();
-                  ref.read(tradeProvider.notifier).setSizeUsdc(0);
-                  ref.read(positionsProvider.notifier).refresh();
-                }
-              },
+            : () => _submitOrder(context, ref),
         style: ElevatedButton.styleFrom(
           backgroundColor: buttonColor,
           disabledBackgroundColor: buttonColor.withValues(alpha: 0.3),

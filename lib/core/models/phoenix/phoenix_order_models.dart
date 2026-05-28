@@ -108,6 +108,8 @@ class PhoenixEnhancedOrderResponse {
           .toList(),
       estimatedLiquidationPrice: json['estimatedLiquidationPrice'] != null
           ? _toDouble(json['estimatedLiquidationPrice'])
+          : json['estimatedLiquidationPriceUsd'] != null
+          ? _toDouble(json['estimatedLiquidationPriceUsd'])
           : null,
       estimatedFillPrice: json['estimatedFillPrice'] != null
           ? _toDouble(json['estimatedFillPrice'])

@@ -7,12 +7,12 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth/client_auth_provider.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/phoenix/phoenix_order_service.dart';
+import '../../markets/providers/markets_provider.dart';
 import '../models/intelligence_models.dart';
 import '../services/ai_proxy_service.dart';
 import '../services/intelligence_payment_service.dart';
 
-final aiTradingProvider =
-    NotifierProvider<AITradingNotifier, AITradingState>(
+final aiTradingProvider = NotifierProvider<AITradingNotifier, AITradingState>(
   AITradingNotifier.new,
 );
 
@@ -57,14 +57,14 @@ class AITradingNotifier extends Notifier<AITradingState> {
       final newCredits = await aiService.topUpCredits(
         walletAddress: wallet,
         txSignature: txSig,
+        credits: tier.credits,
       );
 
       state = state.copyWith(aiCredits: newCredits, isBuying: false);
 
-      ref.read(loggerServiceProvider).info(
-        'Credits purchased: $newCredits (tx: $txSig)',
-        tag: '[AI]',
-      );
+      ref
+          .read(loggerServiceProvider)
+          .info('Credits purchased: $newCredits (tx: $txSig)', tag: '[AI]');
     } catch (e) {
       state = state.copyWith(isBuying: false, error: e.toString());
     }
@@ -106,11 +106,13 @@ class AITradingNotifier extends Notifier<AITradingState> {
 
     // Check credits first
     if (state.aiCredits <= 0) {
-      _appendLog(BotLogEntry(
-        timestamp: DateTime.now(),
-        action: BotAction.hold,
-        reason: 'No AI credits remaining — purchase more to continue',
-      ));
+      _appendLog(
+        BotLogEntry(
+          timestamp: DateTime.now(),
+          action: BotAction.hold,
+          reason: 'No signal credits remaining - purchase more to continue',
+        ),
+      );
       stopBot();
       return;
     }
@@ -126,7 +128,10 @@ class AITradingNotifier extends Notifier<AITradingState> {
       }
       _priceBuffer
         ..addAll(candles)
-        ..removeRange(0, (_priceBuffer.length - 60).clamp(0, _priceBuffer.length));
+        ..removeRange(
+          0,
+          (_priceBuffer.length - 60).clamp(0, _priceBuffer.length),
+        );
 
       // 2. Get current position (if any)
       final currentPosition = await _getCurrentPosition(
@@ -134,8 +139,9 @@ class AITradingNotifier extends Notifier<AITradingState> {
         state.config.market,
       );
 
-      // 3. Get current funding rate
-      final fundingRate = await _getFundingRate(state.config.market);
+      final fundingRate = ref
+          .read(marketsProvider)
+          .fundingFor(state.config.market);
 
       // 4. Call AI
       final result = await aiService.runAICycle(
@@ -157,19 +163,25 @@ class AITradingNotifier extends Notifier<AITradingState> {
       }
 
       // 7. Append log entry
-      _appendLog(BotLogEntry(
-        timestamp: DateTime.now(),
-        action: result.action,
-        reason: '${result.reason} (${result.signal}, ${(result.confidence * 100).toStringAsFixed(0)}% conf)',
-        txSignature: txSig,
-      ));
+      _appendLog(
+        BotLogEntry(
+          timestamp: DateTime.now(),
+          action: result.action,
+          reason:
+              '${result.reason} (${result.signal}, ${(result.confidence * 100).toStringAsFixed(0)}% conf)',
+          txSignature: txSig,
+        ),
+      );
     } catch (e) {
       logger.error('Bot cycle error: $e', tag: '[AI]');
-      _appendLog(BotLogEntry(
-        timestamp: DateTime.now(),
-        action: BotAction.hold,
-        reason: 'Error: ${e.toString().length > 80 ? e.toString().substring(0, 80) : e}',
-      ));
+      _appendLog(
+        BotLogEntry(
+          timestamp: DateTime.now(),
+          action: BotAction.hold,
+          reason:
+              'Error: ${e.toString().length > 80 ? e.toString().substring(0, 80) : e}',
+        ),
+      );
     }
   }
 
@@ -220,11 +232,7 @@ class AITradingNotifier extends Notifier<AITradingState> {
       );
       final resp = await dio.get(
         '/candles',
-        queryParameters: {
-          'symbol': symbol,
-          'resolution': '1',
-          'limit': 60,
-        },
+        queryParameters: {'symbol': symbol, 'timeframe': '1m', 'limit': 60},
       );
       final data = resp.data;
       List<dynamic> candles;
@@ -256,8 +264,11 @@ class AITradingNotifier extends Notifier<AITradingState> {
       final resp = await dio.get('/trader/$wallet/state');
       final data = resp.data as Map<String, dynamic>?;
       if (data == null) return null;
+      final traders = data['traders'] as List<dynamic>? ?? [];
+      if (traders.isEmpty) return null;
+      final trader = traders.first as Map<String, dynamic>;
       final positions =
-          (data['positions'] ?? data['trader_positions']) as List<dynamic>?;
+          (trader['positions'] ?? trader['trader_positions']) as List<dynamic>?;
       if (positions == null) return null;
       for (final p in positions) {
         final pos = p as Map<String, dynamic>;
@@ -271,23 +282,6 @@ class AITradingNotifier extends Notifier<AITradingState> {
       return null;
     } catch (_) {
       return null;
-    }
-  }
-
-  Future<double> _getFundingRate(String market) async {
-    try {
-      final symbol = market.replaceAll('-PERP', '').toLowerCase();
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: AppConstants.phoenixApiBaseUrl,
-          receiveTimeout: const Duration(seconds: 10),
-        ),
-      );
-      final resp = await dio.get('/exchange/funding-rate/$symbol');
-      final data = resp.data as Map<String, dynamic>?;
-      return (data?['funding_rate'] as num?)?.toDouble() ?? 0;
-    } catch (_) {
-      return 0;
     }
   }
 

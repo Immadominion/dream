@@ -122,11 +122,21 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
   /// Call this before making authenticated Phoenix API requests.
   /// Returns `true` if session is ready; `false` if re-auth is required.
   Future<bool> ensureAuthenticated() async {
-    if (state.isAuthenticated) return true;
-
     final appAuth = ref.read(clientAuthProvider);
     if (!appAuth.isAuthenticated || appAuth.walletAddress == null) {
       return false;
+    }
+
+    if (state.isAuthenticated) {
+      final stored = await _authService.getStoredSession();
+      if (stored != null) {
+        state = state.copyWith(
+          status: PhoenixAuthStatus.authenticated,
+          session: stored,
+          clearError: true,
+        );
+        return true;
+      }
     }
 
     await _initPhoenixSession(appAuth.walletAddress!);
@@ -187,6 +197,7 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
     bool forceRefresh = false,
   }) async {
     state = state.copyWith(status: PhoenixAuthStatus.loading, clearError: true);
+    var usesMwa = false;
 
     try {
       // If not forcing a fresh auth, try stored/refreshed session first
@@ -206,7 +217,7 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
       }
 
       // Need to sign with the wallet — determine type
-      final usesMwa = _detectWalletType(walletAddress);
+      usesMwa = _detectWalletType(walletAddress);
 
       _logger.info(
         'Authenticating with Phoenix [mwa=$usesMwa]',
@@ -227,12 +238,12 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
         'Phoenix auth exception: ${e.message}',
         tag: 'PhoenixAuthProvider',
       );
-      // If MWA signing failed it may mean wallet is disconnected
-      final isMwaError =
-          e.message.toLowerCase().contains('mwa') ||
-          e.message.toLowerCase().contains('wallet');
+      // MWA failures require reconnecting the external wallet. Privy failures
+      // should stay as retryable auth errors instead of showing a dead-end
+      // reconnect-wallet prompt for embedded wallets.
+      final needsExternalWalletReconnect = usesMwa;
       state = state.copyWith(
-        status: isMwaError
+        status: needsExternalWalletReconnect
             ? PhoenixAuthStatus.reauthRequired
             : PhoenixAuthStatus.error,
         error: e.message,
@@ -268,16 +279,13 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
     // 2. Stored wallet type from last successful Phoenix auth
     final stored = _authService.persistedWalletType;
     if (stored == 'mwa') {
-      // Verify MWA service still has a connection; if not, signal re-auth
       if (_mwaService.connectedPublicKey == null) {
         _logger.warning(
-          'MWA wallet type stored but MWA is not connected — '
-          'will attempt Privy fallback or require re-auth',
+          'MWA wallet type stored but MWA is not connected',
           tag: 'PhoenixAuthProvider',
         );
-        // Fall through to Privy: user must reconnect MWA if signing fails
       }
-      return _mwaService.connectedPublicKey != null;
+      return true;
     }
 
     // 3. Default to Privy embedded wallet

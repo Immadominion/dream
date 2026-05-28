@@ -31,6 +31,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="dreamapp" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="dream.app" android:pathPrefix="/trade" />
+                <data android:scheme="https" android:host="www.dream.app" android:pathPrefix="/trade" />
+                <data android:scheme="https" android:host="dream.app" android:pathPrefix="/market" />
+                <data android:scheme="https" android:host="www.dream.app" android:pathPrefix="/market" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

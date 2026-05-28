@@ -35,6 +35,8 @@ class PhoenixAuthService {
   final MwaWalletService _mwaService;
   final LoggerService _logger;
   late final Dio _dio;
+  Future<PhoenixSession?>? _refreshInFlight;
+  String? _refreshInFlightToken;
 
   PhoenixAuthService({
     required PrivyWalletManager privyWallet,
@@ -101,7 +103,7 @@ class PhoenixAuthService {
 
       // Try refreshing silently
       if (session.canRefresh) {
-        return await _silentRefresh(session.refreshToken!);
+        return await _refreshOnce(session.refreshToken!);
       }
 
       _logger.info(
@@ -283,6 +285,23 @@ class PhoenixAuthService {
   }
 
   /// Refresh tokens without requiring the user to re-sign.
+  Future<PhoenixSession?> _refreshOnce(String refreshToken) {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null && _refreshInFlightToken == refreshToken) {
+      return inFlight;
+    }
+
+    _refreshInFlightToken = refreshToken;
+    final refreshFuture = _silentRefresh(refreshToken).whenComplete(() {
+      if (_refreshInFlightToken == refreshToken) {
+        _refreshInFlight = null;
+        _refreshInFlightToken = null;
+      }
+    });
+    _refreshInFlight = refreshFuture;
+    return refreshFuture;
+  }
+
   Future<PhoenixSession?> _silentRefresh(String refreshToken) async {
     try {
       _logger.info('Silently refreshing Phoenix tokens', tag: 'PhoenixAuth');
@@ -301,7 +320,15 @@ class PhoenixAuthService {
       return session;
     } catch (e) {
       _logger.error('Token refresh failed', error: e, tag: 'PhoenixAuth');
-      await clearStoredSession();
+
+      if (StorageService.getString(_kRefreshToken) == refreshToken) {
+        await clearStoredSession();
+      } else {
+        _logger.warning(
+          'Ignoring stale Phoenix refresh failure; a newer token is stored',
+          tag: 'PhoenixAuth',
+        );
+      }
       return null;
     }
   }

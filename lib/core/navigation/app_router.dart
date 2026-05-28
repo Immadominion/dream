@@ -10,6 +10,7 @@ import '../../features/account/presentation/pages/activate_page.dart';
 import '../../features/navigation/presentation/widgets/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/trade/presentation/pages/market_trade_page.dart';
+import '../../features/trade/providers/trade_state.dart';
 import '../providers/auth/client_auth_provider.dart';
 import '../../shared/services/storage_service.dart';
 
@@ -57,8 +58,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/market/:symbol',
         name: 'market-detail',
-        builder: (context, state) =>
-            MarketTradePage(symbol: state.pathParameters['symbol'] ?? ''),
+        builder: (context, state) => _buildMarketTradePage(state),
+      ),
+
+      // Shareable canonical trade route for app links and social shares.
+      GoRoute(
+        path: '/trade/:symbol',
+        name: 'trade-share',
+        builder: (context, state) => _buildMarketTradePage(state),
       ),
 
       // Activation gate — shown when Phoenix account not yet registered
@@ -77,6 +84,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+MarketTradePage _buildMarketTradePage(GoRouterState state) {
+  final rawSide = state.uri.queryParameters['side']?.toLowerCase();
+  final initialSide = switch (rawSide) {
+    'buy' || 'long' => OrderSide.buy,
+    'sell' || 'short' => OrderSide.sell,
+    _ => null,
+  };
+
+  final rawLeverage = state.uri.queryParameters['leverage'];
+  final initialLeverage = rawLeverage != null
+      ? double.tryParse(rawLeverage)?.clamp(1.0, 20.0)
+      : null;
+
+  return MarketTradePage(
+    symbol: state.pathParameters['symbol'] ?? '',
+    initialSide: initialSide,
+    initialLeverage: initialLeverage,
+  );
+}
 
 // Minimal Splash Page that routes based on first-launch and auth status
 class _SplashPage extends ConsumerStatefulWidget {

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../../../shared/models/user.dart';
 import '../../../shared/services/storage_service.dart';
 import '../logger_service.dart';
@@ -9,6 +11,14 @@ import '../logger_service.dart';
 /// Keeps session data synchronized between Hive and SharedPreferences
 class AuthSessionManager {
   final LoggerService _logger;
+
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock,
+      synchronizable: false,
+    ),
+  );
 
   static const String _sessionKey = 'privy_session_json';
   static const String _userTokenKey = StorageService.userTokenKey;
@@ -21,12 +31,21 @@ class AuthSessionManager {
     try {
       // Save full session as JSON
       final sessionJson = jsonEncode(session.toJson());
+      await _secureStorage.write(key: _sessionKey, value: sessionJson);
       await StorageService.setString(_sessionKey, sessionJson);
 
       // Save critical fields separately for quick access
+      await _secureStorage.write(
+        key: _userTokenKey,
+        value: session.accessToken,
+      );
       await StorageService.saveUserToken(session.accessToken);
 
       if (session.user.walletAddress != null) {
+        await _secureStorage.write(
+          key: _walletAddressKey,
+          value: session.user.walletAddress!,
+        );
         await StorageService.saveWalletAddress(session.user.walletAddress!);
       }
 
@@ -41,7 +60,7 @@ class AuthSessionManager {
   /// Returns null if no session exists or session is invalid
   Future<AuthSession?> loadSession() async {
     try {
-      final sessionJson = StorageService.getString(_sessionKey);
+      final sessionJson = await _readSessionJson();
 
       if (sessionJson.isEmpty) {
         _logger.info('No session found in storage', tag: 'SessionManager');
@@ -96,6 +115,10 @@ class AuthSessionManager {
   /// Clear session from storage
   Future<void> clearSession() async {
     try {
+      await _secureStorage.delete(key: _sessionKey);
+      await _secureStorage.delete(key: _userTokenKey);
+      await _secureStorage.delete(key: _walletAddressKey);
+
       await StorageService.setString(_sessionKey, '');
       await StorageService.setString(_userTokenKey, '');
       await StorageService.setString(_walletAddressKey, '');
@@ -108,13 +131,17 @@ class AuthSessionManager {
 
   /// Get stored wallet address quickly
   Future<String?> getWalletAddress() async {
-    final address = StorageService.getString(_walletAddressKey);
+    final address =
+        await _secureStorage.read(key: _walletAddressKey) ??
+        StorageService.getString(_walletAddressKey);
     return address.isEmpty ? null : address;
   }
 
   /// Get stored access token quickly
   Future<String?> getAccessToken() async {
-    final token = StorageService.userToken;
+    final token =
+        await _secureStorage.read(key: _userTokenKey) ??
+        StorageService.userToken;
     return token.isEmpty ? null : token;
   }
 
@@ -153,5 +180,18 @@ class AuthSessionManager {
     if (remaining == null) return false;
 
     return remaining < 5;
+  }
+
+  Future<String> _readSessionJson() async {
+    final secureValue = await _secureStorage.read(key: _sessionKey);
+    if (secureValue != null && secureValue.isNotEmpty) {
+      return secureValue;
+    }
+
+    final legacyValue = StorageService.getString(_sessionKey);
+    if (legacyValue.isNotEmpty) {
+      await _secureStorage.write(key: _sessionKey, value: legacyValue);
+    }
+    return legacyValue;
   }
 }

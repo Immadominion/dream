@@ -66,9 +66,10 @@ class AiProxyService {
 
   Future<int> fetchCredits(String walletAddress) async {
     try {
+      final authHeaders = await _buildAuthHeaders(walletAddress);
       final resp = await _dio.get(
         '/v1/credits/balance',
-        queryParameters: {'wallet': walletAddress},
+        options: Options(headers: authHeaders),
       );
       return (resp.data?['credits'] as num?)?.toInt() ?? 0;
     } catch (e) {
@@ -82,11 +83,14 @@ class AiProxyService {
   Future<int> topUpCredits({
     required String walletAddress,
     required String txSignature,
+    required int credits,
   }) async {
     try {
+      final authHeaders = await _buildAuthHeaders(walletAddress);
       final resp = await _dio.post(
         '/v1/credits/topup',
-        data: {'wallet': walletAddress, 'txSig': txSignature},
+        options: Options(headers: authHeaders),
+        data: {'txSignature': txSignature, 'credits': credits},
       );
       return (resp.data?['credits'] as num?)?.toInt() ?? 0;
     } catch (e) {
@@ -117,13 +121,18 @@ class AiProxyService {
       final kronosResp = await _dio.post(
         '/v1/ai/kronos',
         options: Options(headers: authHeaders),
-        data: {'candles': closePrices, 'market': market},
+        data: {'closePrices': closePrices, 'market': market},
       );
       kronosSignal = kronosResp.data?['signal'] as String? ?? 'neutral';
-      confidence =
-          (kronosResp.data?['confidence'] as num?)?.toDouble() ?? 0.5;
+      confidence = (kronosResp.data?['confidence'] as num?)?.toDouble() ?? 0.5;
     } catch (e) {
       _logger.error('Kronos call failed: $e', tag: '[AI]');
+      return (
+        action: BotAction.hold,
+        reason: 'Signal model unavailable - holding',
+        signal: kronosSignal,
+        confidence: confidence,
+      );
     }
 
     // Step 2: Claude Haiku — reasoning + decision
@@ -133,7 +142,7 @@ class AiProxyService {
         options: Options(headers: authHeaders),
         data: {
           'market': market,
-          'kronosSignal': kronosSignal,
+          'signal': kronosSignal,
           'confidence': confidence,
           'currentPosition': currentPosition ?? 'none',
           'fundingRate': fundingRate,
@@ -142,7 +151,11 @@ class AiProxyService {
           'riskMode': config.riskMode.name,
         },
       );
-      final raw = claudeResp.data?['response'] as String? ?? 'HOLD\nneutral';
+      final data = claudeResp.data;
+      if (data is Map<String, dynamic>) {
+        return _parseActionResponse(data, kronosSignal, confidence);
+      }
+      final raw = data?['response'] as String? ?? 'HOLD\nneutral';
       return _parseClaudeResponse(raw, kronosSignal, confidence);
     } catch (e) {
       _logger.error('Claude call failed: $e', tag: '[AI]');
@@ -159,9 +172,7 @@ class AiProxyService {
 
   /// Build wallet-signed auth headers.
   /// The signature proves "I am this wallet" without any API key.
-  Future<Map<String, String>> _buildAuthHeaders(
-    String walletAddress,
-  ) async {
+  Future<Map<String, String>> _buildAuthHeaders(String walletAddress) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     final message = 'dream-ai:$walletAddress:$timestamp';
 
@@ -197,11 +208,28 @@ class AiProxyService {
   }
 
   ({BotAction action, String reason, String signal, double confidence})
-  _parseClaudeResponse(
-    String raw,
+  _parseActionResponse(
+    Map<String, dynamic> data,
     String kronosSignal,
     double confidence,
   ) {
+    final rawAction = (data['action'] as String? ?? 'hold').toLowerCase();
+    final action = switch (rawAction) {
+      'buy' => BotAction.buy,
+      'sell' => BotAction.sell,
+      _ => BotAction.hold,
+    };
+
+    return (
+      action: action,
+      reason: data['reason'] as String? ?? 'No reason provided.',
+      signal: kronosSignal,
+      confidence: confidence,
+    );
+  }
+
+  ({BotAction action, String reason, String signal, double confidence})
+  _parseClaudeResponse(String raw, String kronosSignal, double confidence) {
     final lines = raw.toUpperCase().split('\n');
     BotAction action = BotAction.hold;
     String reason = 'No reason provided.';
@@ -234,8 +262,7 @@ class AiProxyService {
   static const _hfKeyStorageKey = 'dream_intelligence_hf_key';
   static const _claudeKeyStorageKey = 'dream_intelligence_claude_key';
 
-  Future<String?> getUserHFKey() =>
-      _secureStorage.read(key: _hfKeyStorageKey);
+  Future<String?> getUserHFKey() => _secureStorage.read(key: _hfKeyStorageKey);
   Future<void> setUserHFKey(String key) =>
       _secureStorage.write(key: _hfKeyStorageKey, value: key);
 

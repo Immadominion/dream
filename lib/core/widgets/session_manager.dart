@@ -1,11 +1,16 @@
 import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../constants/app_constants.dart';
 import '../navigation/app_router.dart';
+import '../navigation/trade_share_link.dart';
 import '../providers/auth/client_auth_provider.dart';
 import '../services/logger_service.dart';
 import '../services/phoenix/phoenix_trader_service.dart';
+import '../../features/navigation/providers/bottom_nav_providers.dart';
 import '../../shared/models/user.dart';
 
 /// Session manager widget that handles periodic session refresh and token expiration
@@ -22,14 +27,18 @@ class _SessionManagerState extends ConsumerState<SessionManager>
     with WidgetsBindingObserver {
   Timer? _sessionTimer;
   Timer? _refreshTimer;
+  StreamSubscription<Uri>? _appLinkSub;
   final _logger = LoggerService();
+  final _appLinks = AppLinks();
   bool _isCheckingRegistration = false;
+  TradeShareLink? _pendingTradeLink;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _startSessionManagement();
+    _listenForAppLinks();
   }
 
   @override
@@ -37,7 +46,72 @@ class _SessionManagerState extends ConsumerState<SessionManager>
     WidgetsBinding.instance.removeObserver(this);
     _sessionTimer?.cancel();
     _refreshTimer?.cancel();
+    _appLinkSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _listenForAppLinks() async {
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        _queueTradeLink(initialUri);
+      }
+    } catch (e) {
+      _logger.warning('[SessionManager] Initial app link check failed: $e');
+    }
+
+    _appLinkSub = _appLinks.uriLinkStream.listen(
+      _queueTradeLink,
+      onError: (Object error) {
+        _logger.warning('[SessionManager] App link stream error: $error');
+      },
+    );
+  }
+
+  void _queueTradeLink(Uri uri) {
+    final tradeLink = TradeShareLink.parse(uri);
+    if (tradeLink == null) return;
+
+    _pendingTradeLink = tradeLink;
+    _logger.info(
+      '[SessionManager] Queued trade link ${tradeLink.routeLocation}',
+      tag: 'DeepLink',
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future<void>.delayed(
+        const Duration(milliseconds: 700),
+        _openPendingTradeLinkIfReady,
+      );
+    });
+  }
+
+  Future<void> _openPendingTradeLinkIfReady() async {
+    if (!mounted || _pendingTradeLink == null) return;
+
+    final authState = ref.read(clientAuthProvider);
+    if (!authState.isAuthenticated) return;
+
+    final router = ref.read(appRouterProvider);
+    final currentPath = router.routeInformationProvider.value.uri.path;
+
+    if (currentPath == AppRoutes.splash) {
+      Future<void>.delayed(
+        const Duration(milliseconds: 300),
+        _openPendingTradeLinkIfReady,
+      );
+      return;
+    }
+
+    if (currentPath == '/activate') return;
+
+    final nextRoute = _pendingTradeLink!.routeLocation;
+    _pendingTradeLink = null;
+    _logger.info(
+      '[SessionManager] Opening trade link $nextRoute',
+      tag: 'DeepLink',
+    );
+    router.go(nextRoute);
   }
 
   @override
@@ -116,9 +190,16 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       }
 
       if (path == '/activate') {
-        _logger.info('[SessionManager] Trader activated, routing to home');
-        router.go(AppRoutes.home);
+        if (_pendingTradeLink != null) {
+          await _openPendingTradeLinkIfReady();
+        } else {
+          _logger.info('[SessionManager] Trader activated, routing to home');
+          router.go(AppRoutes.home);
+        }
+        return;
       }
+
+      await _openPendingTradeLinkIfReady();
     } catch (e) {
       _logger.warning('[SessionManager] Activation gate check failed: $e');
     } finally {
@@ -141,9 +222,18 @@ class _SessionManagerState extends ConsumerState<SessionManager>
         );
         // ClientAuthProvider will handle loading from storage in its _initialize method
       } else if (session.isExpired) {
-        // Session expired, need to re-authenticate
-        _logger.warning('[SessionManager] Session expired, logging out…');
-        await authNotifier.signOut();
+        _logger.warning(
+          '[SessionManager] Session expired, rebuilding from Privy…',
+        );
+        await authNotifier.refreshSession();
+        final refreshedState = ref.read(clientAuthProvider);
+        if (refreshedState.session == null ||
+            refreshedState.session!.isExpired) {
+          _logger.warning(
+            '[SessionManager] Session rebuild failed, logging out…',
+          );
+          await authNotifier.signOut();
+        }
       } else {
         _logger.info(
           '[SessionManager] Session valid until ${session.expiresAt}',
@@ -164,13 +254,16 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       if (next.state == AuthState.unauthenticated &&
           previous?.state != AuthState.unauthenticated) {
         final router = ref.read(appRouterProvider);
+        ref.read(bottomNavIndexProvider.notifier).reset();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           router.go('/enhanced-login');
         });
       }
 
       // Enforce activation gate whenever auth becomes active.
-      if (next.state == AuthState.authenticated) {
+      if (next.state == AuthState.authenticated &&
+          previous?.state != AuthState.authenticated) {
+        ref.read(bottomNavIndexProvider.notifier).reset();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _enforceActivationGate();
         });

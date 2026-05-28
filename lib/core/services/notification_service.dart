@@ -56,6 +56,11 @@ class NotificationService {
   static const _riskChannelDesc =
       'Critical warnings when a position is close to liquidation.';
 
+  static const _statusChannelId = 'dream_status';
+  static const _statusChannelName = 'Account Activity';
+  static const _statusChannelDesc =
+      'Notifies when wallet or collateral balances change.';
+
   // Notification IDs — use time-based to avoid collision when showing many
   static int _nextId() =>
       DateTime.now().millisecondsSinceEpoch ~/ 1000 & 0x7FFFFFFF;
@@ -265,7 +270,182 @@ class NotificationService {
     }
   }
 
+  Future<void> showWalletDepositNotification({
+    required double amountUsdc,
+  }) async {
+    if (!_initialized) return;
+    try {
+      final amount = amountUsdc.toStringAsFixed(2);
+      final title = 'USDC received';
+      final body =
+          '$amount USDC arrived in your Dream wallet. Deposit it to Phoenix collateral to trade.';
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _statusChannelId,
+          _statusChannelName,
+          channelDescription: _statusChannelDesc,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@drawable/ic_notification',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: true,
+        ),
+      );
+      await _plugin.show(_nextId(), title, body, details);
+      _inAppController.add(
+        AppNotification(
+          id: 'wallet_deposit_${DateTime.now().millisecondsSinceEpoch}',
+          category: AppNotifCategory.system,
+          title: title,
+          body: body,
+          timestamp: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      _logger.error(
+        'showWalletDepositNotification failed',
+        error: e,
+        tag: 'Notifications',
+      );
+    }
+  }
+
+  Future<void> showPhoenixCollateralDepositNotification({
+    required double amountUsdc,
+  }) async {
+    if (!_initialized) return;
+    try {
+      final amount = amountUsdc.toStringAsFixed(2);
+      final title = 'Phoenix collateral funded';
+      final body = '$amount USDC is now being deposited to Phoenix collateral.';
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _statusChannelId,
+          _statusChannelName,
+          channelDescription: _statusChannelDesc,
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+          icon: '@drawable/ic_notification',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: false,
+        ),
+      );
+      await _plugin.show(_nextId(), title, body, details);
+      _inAppController.add(
+        AppNotification(
+          id: 'collateral_deposit_${DateTime.now().millisecondsSinceEpoch}',
+          category: AppNotifCategory.system,
+          title: title,
+          body: body,
+          timestamp: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      _logger.error(
+        'showPhoenixCollateralDepositNotification failed',
+        error: e,
+        tag: 'Notifications',
+      );
+    }
+  }
+
+  Future<void> showGenericNotification({
+    required AppNotifCategory category,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (!_initialized) return;
+    try {
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelIdFor(category),
+          _channelNameFor(category),
+          channelDescription: _channelDescriptionFor(category),
+          importance: _androidImportanceFor(category),
+          priority: _androidPriorityFor(category),
+          icon: '@drawable/ic_notification',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: category != AppNotifCategory.marketing,
+          presentSound: category != AppNotifCategory.system,
+        ),
+      );
+
+      await _plugin.show(_nextId(), title, body, details, payload: payload);
+      _inAppController.add(
+        AppNotification(
+          id: 'generic_${DateTime.now().millisecondsSinceEpoch}',
+          category: category,
+          title: title,
+          body: body,
+          timestamp: DateTime.now(),
+          payload: payload,
+        ),
+      );
+    } catch (e) {
+      _logger.error(
+        'showGenericNotification failed',
+        error: e,
+        tag: 'Notifications',
+      );
+    }
+  }
+
   // ── Utility ─────────────────────────────────────────────────────────────
+
+  String _channelIdFor(AppNotifCategory category) => switch (category) {
+    AppNotifCategory.trade => _fillChannelId,
+    AppNotifCategory.alert => _alertChannelId,
+    AppNotifCategory.risk => _riskChannelId,
+    AppNotifCategory.system ||
+    AppNotifCategory.marketing ||
+    AppNotifCategory.intelligence => _statusChannelId,
+  };
+
+  String _channelNameFor(AppNotifCategory category) => switch (category) {
+    AppNotifCategory.trade => _fillChannelName,
+    AppNotifCategory.alert => _alertChannelName,
+    AppNotifCategory.risk => _riskChannelName,
+    AppNotifCategory.system ||
+    AppNotifCategory.marketing ||
+    AppNotifCategory.intelligence => _statusChannelName,
+  };
+
+  String _channelDescriptionFor(AppNotifCategory category) =>
+      switch (category) {
+        AppNotifCategory.trade => _fillChannelDesc,
+        AppNotifCategory.alert => _alertChannelDesc,
+        AppNotifCategory.risk => _riskChannelDesc,
+        AppNotifCategory.system ||
+        AppNotifCategory.marketing ||
+        AppNotifCategory.intelligence => _statusChannelDesc,
+      };
+
+  Importance _androidImportanceFor(AppNotifCategory category) =>
+      switch (category) {
+        AppNotifCategory.trade || AppNotifCategory.alert => Importance.high,
+        AppNotifCategory.risk => Importance.max,
+        AppNotifCategory.system ||
+        AppNotifCategory.marketing ||
+        AppNotifCategory.intelligence => Importance.defaultImportance,
+      };
+
+  Priority _androidPriorityFor(AppNotifCategory category) =>
+      switch (category) {
+        AppNotifCategory.trade || AppNotifCategory.alert => Priority.high,
+        AppNotifCategory.risk => Priority.max,
+        AppNotifCategory.system ||
+        AppNotifCategory.marketing ||
+        AppNotifCategory.intelligence => Priority.defaultPriority,
+      };
 
   Future<bool> get areNotificationsEnabled async {
     if (Platform.isAndroid) {
