@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:rive/rive.dart';
 
 import '../../../../core/providers/theme/theme_provider.dart';
@@ -32,10 +33,14 @@ class _ThemeToggleTileState extends ConsumerState<ThemeToggleTile> {
   // ── Tap handler ───────────────────────────────────────────────────────────
 
   void _onTap() {
+    // Grab the navigator before toggling — context can shift after theme flip
+    final nav = Navigator.of(context);
     ref.read(themeModeProvider.notifier).toggle();
-    // Mirror new state into Rive after toggle
+    // Mirror new state into Rive
     final isDark = ref.read(themeModeProvider) == ThemeMode.dark;
     _isDarkInput?.value = isDark;
+    // Close the bottom sheet so the new theme renders immediately
+    nav.pop();
   }
 
   @override
@@ -61,34 +66,10 @@ class _ThemeToggleTileState extends ConsumerState<ThemeToggleTile> {
         ),
         child: Row(
           children: [
-            // Rive animation as the toggle icon
-            SizedBox(
-              width: 36.w,
-              height: 36.w,
-              child: RiveWidgetBuilder(
-                fileLoader: FileLoader.fromAsset(
-                  'assets/animations/theme-switch.riv',
-                  riveFactory: Factory.rive,
-                ),
-                stateMachineSelector: const StateMachineNamed(
-                  'State Machine 1',
-                ),
-                onLoaded: _onRiveLoaded,
-                builder: (context, riveState) {
-                  if (riveState is RiveLoaded) {
-                    return RiveWidget(
-                      controller: riveState.controller,
-                      fit: Fit.contain,
-                    );
-                  }
-                  // Show a small icon while loading
-                  return Icon(
-                    Icons.dark_mode_rounded,
-                    color: c.muted,
-                    size: 22.sp,
-                  );
-                },
-              ),
+            PhosphorIcon(
+              PhosphorIconsBold.paintRoller,
+              color: c.muted,
+              size: 22.sp,
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -111,8 +92,40 @@ class _ThemeToggleTileState extends ConsumerState<ThemeToggleTile> {
                 ],
               ),
             ),
-            // Subtle chevron hint
-            Icon(Icons.chevron_right_rounded, color: c.muted, size: 18.sp),
+
+            // Rive animation as the toggle icon
+            SizedBox(
+              width: 60.w,
+              height: 32.w,
+
+              child: RiveWidgetBuilder(
+                fileLoader: FileLoader.fromAsset(
+                  'assets/animations/theme-switch.riv',
+                  riveFactory: Factory.rive,
+                ),
+                stateMachineSelector: const StateMachineNamed(
+                  'State Machine 1',
+                ),
+                onLoaded: _onRiveLoaded,
+                builder: (context, riveState) {
+                  if (riveState is RiveLoaded) {
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(50.r),
+                      child: RiveWidget(
+                        controller: riveState.controller,
+                        fit: Fit.fitWidth,
+                      ),
+                    );
+                  }
+                  // Show a small icon while loading
+                  return Icon(
+                    Icons.dark_mode_rounded,
+                    color: c.muted,
+                    size: 22.sp,
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
