@@ -137,7 +137,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     });
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: context.dreamColors.background,
       extendBody: true,
       resizeToAvoidBottomInset: true,
       body: Stack(

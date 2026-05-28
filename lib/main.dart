@@ -95,46 +95,56 @@ class DreamApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
 
     return ScreenUtilInit(
       designSize: const Size(375, 812), // iPhone 13 Pro design size
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isDark
-                ? Brightness.light
-                : Brightness.dark,
-            statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-          ),
-          child: SessionManager(
-            child: MaterialApp.router(
-              title: 'Dream',
-              debugShowCheckedModeBanner: false,
+        return SessionManager(
+          child: MaterialApp.router(
+            title: 'Dream',
+            debugShowCheckedModeBanner: false,
 
-              // Theme Configuration — driven by themeModeProvider
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: themeMode,
+            // Theme Configuration — driven by themeModeProvider
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeMode,
 
-              // Router Configuration
-              routerConfig: router,
+            // Smooth cross-fade between themes (no jarring flash)
+            themeAnimationDuration: const Duration(milliseconds: 280),
+            themeAnimationCurve: Curves.easeInOut,
 
-              // Builder for responsive design
-              builder: (context, child) {
-                return MediaQuery(
+            // Router Configuration
+            routerConfig: router,
+
+            // Builder: system UI overlay + responsive text scale
+            builder: (context, child) {
+              // Read brightness from the already-resolved theme so the
+              // status-bar icons update in the same frame as the theme flip.
+              final isDark =
+                  Theme.of(context).brightness == Brightness.dark;
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  statusBarColor: Colors.transparent,
+                  statusBarIconBrightness:
+                      isDark ? Brightness.light : Brightness.dark,
+                  statusBarBrightness:
+                      isDark ? Brightness.dark : Brightness.light,
+                  systemNavigationBarColor: Colors.transparent,
+                  systemNavigationBarIconBrightness:
+                      isDark ? Brightness.light : Brightness.dark,
+                ),
+                child: MediaQuery(
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(
                       MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
                     ),
                   ),
                   child: child!,
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         );
       },
