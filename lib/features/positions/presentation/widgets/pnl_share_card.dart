@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/models/phoenix/phoenix_models.dart';
@@ -19,12 +20,14 @@ class PnlShareButton extends StatefulWidget {
   final PhoenixPosition position;
   final double livePnl;
   final double markPrice;
+  final bool iconOnly;
 
   const PnlShareButton({
     super.key,
     required this.position,
     required this.livePnl,
     required this.markPrice,
+    this.iconOnly = false,
   });
 
   @override
@@ -99,43 +102,67 @@ class _PnlShareButtonState extends State<PnlShareButton> {
         ),
 
         // Visible share button
-        SizedBox(
-          height: 34.h,
-          child: OutlinedButton.icon(
-            onPressed: _sharing ? null : _share,
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: AppColors.textMutedDark.withValues(alpha: 0.4),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(6.r),
-              ),
-              padding: EdgeInsets.zero,
-            ),
-            icon: _sharing
-                ? SizedBox(
-                    width: 12.w,
-                    height: 12.w,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      color: AppColors.textSecondaryDark,
+        widget.iconOnly
+            ? SizedBox(
+                width: 32.r,
+                height: 32.r,
+                child: IconButton(
+                  onPressed: _sharing ? null : _share,
+                  icon: _sharing
+                      ? SizedBox(
+                          width: 14.r,
+                          height: 14.r,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: AppColors.textSecondaryDark,
+                          ),
+                        )
+                      : Icon(
+                          PhosphorIcons.shareFat(),
+                          size: 16.sp,
+                          color: AppColors.textSecondaryDark,
+                        ),
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Share PnL',
+                ),
+              )
+            : SizedBox(
+                height: 34.h,
+                child: OutlinedButton.icon(
+                  onPressed: _sharing ? null : _share,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: AppColors.textMutedDark.withValues(alpha: 0.4),
                     ),
-                  )
-                : Icon(
-                    Icons.share_outlined,
-                    size: 13.sp,
-                    color: AppColors.textSecondaryDark,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
                   ),
-            label: Text(
-              'Share',
-              style: TextStyle(
-                color: AppColors.textSecondaryDark,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
+                  icon: _sharing
+                      ? SizedBox(
+                          width: 12.w,
+                          height: 12.w,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: AppColors.textSecondaryDark,
+                          ),
+                        )
+                      : Icon(
+                          Icons.share_outlined,
+                          size: 13.sp,
+                          color: AppColors.textSecondaryDark,
+                        ),
+                  label: Text(
+                    'Share',
+                    style: TextStyle(
+                      color: AppColors.textSecondaryDark,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -167,6 +194,7 @@ class _PnlCard extends StatelessWidget {
     final isProfit = livePnl >= 0;
     final sideColor = isLong ? AppColors.bullish : AppColors.bearish;
     final pnlColor = isProfit ? AppColors.bullish : AppColors.bearish;
+    final glowColor = pnlColor;
 
     // Use MediaQuery-independent fixed sizes for screenshot card
     const cardW = 320.0;
@@ -177,136 +205,210 @@ class _PnlCard extends StatelessWidget {
         color: Colors.transparent,
         child: Container(
           width: cardW,
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF0D0D12),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: pnlColor.withValues(alpha: 0.3),
               width: 1.5,
             ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [const Color(0xFF13131C), const Color(0xFF0D0D12)],
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: app brand + symbol
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'DREAM',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    position.symbol,
-                    style: const TextStyle(
-                      color: Color(0xFFE2E8F0),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Direction + leverage badge
-              Row(
-                children: [
-                  _Badge(label: position.side.toUpperCase(), color: sideColor),
-                  const SizedBox(width: 8),
-                  _Badge(
-                    label:
-                        '${position.leverage.toStringAsFixed(position.leverage % 1 == 0 ? 0 : 1)}×',
-                    color: AppColors.primary,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // PnL
-              Text(
-                _fmtPnl(livePnl),
-                style: TextStyle(
-                  color: pnlColor,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: pnlColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      _fmtPct(_pnlPct),
-                      style: TextStyle(
-                        color: pnlColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Entry / Mark price row
-              Row(
-                children: [
-                  _PriceCol(
-                    label: 'Entry',
-                    value: formatPrice(position.entryPrice),
-                  ),
-                  const SizedBox(width: 24),
-                  _PriceCol(label: 'Mark', value: formatPrice(markPrice)),
-                  const SizedBox(width: 24),
-                  _PriceCol(
-                    label: 'Size',
-                    value:
-                        '${position.sizeBase.toStringAsFixed(4)} ${position.symbol.split('-').first}',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Footer
-              Text(
-                'phoenix.trade/perps',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  fontSize: 10,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: glowColor.withValues(alpha: 0.28),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                // 1. Base Gradient Background
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.surfaceDark,
+                          AppColors.cardDark,
+                          glowColor.withValues(alpha: 0.22),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // 2. Radial Glow Bubble
+                Positioned(
+                  top: -40,
+                  right: -20,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          glowColor.withValues(alpha: 0.24),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // 3. Receipt Texture Image
+                Positioned.fill(
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      glowColor.withValues(alpha: 0.22),
+                      BlendMode.softLight,
+                    ),
+                    child: Image.asset(
+                      'assets/images/receipt-texture.png',
+                      fit: BoxFit.cover,
+                      opacity: const AlwaysStoppedAnimation(0.18),
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+                // 4. Actual Card Content
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header: app brand + symbol
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.textPrimaryDark.withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.textPrimaryDark.withValues(
+                                  alpha: 0.08,
+                                ),
+                              ),
+                            ),
+                            child: const Text(
+                              'DREAM',
+                              style: TextStyle(
+                                color: AppColors.textPrimaryDark,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            position.symbol,
+                            style: const TextStyle(
+                              color: AppColors.textPrimaryDark,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Direction + leverage badge
+                      Row(
+                        children: [
+                          _Badge(
+                            label: position.side.toUpperCase(),
+                            color: sideColor,
+                          ),
+                          const SizedBox(width: 8),
+                          _Badge(
+                            label:
+                                '${position.leverage.toStringAsFixed(position.leverage % 1 == 0 ? 0 : 1)}×',
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // PnL
+                      Text(
+                        _fmtPnl(livePnl),
+                        style: TextStyle(
+                          color: pnlColor,
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: pnlColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _fmtPct(_pnlPct),
+                              style: TextStyle(
+                                color: pnlColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Entry / Mark price row
+                      Row(
+                        children: [
+                          _PriceCol(
+                            label: 'Entry',
+                            value: formatPrice(position.entryPrice),
+                          ),
+                          const SizedBox(width: 24),
+                          _PriceCol(
+                            label: 'Mark',
+                            value: formatPrice(markPrice),
+                          ),
+                          const SizedBox(width: 24),
+                          _PriceCol(
+                            label: 'Size',
+                            value:
+                                '${position.sizeBase.toStringAsFixed(4)} ${position.symbol.split('-').first}',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Footer
+                      Text(
+                        'phoenix.trade/perps',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -323,11 +425,11 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.8),
       ),
       child: Text(
         label,
@@ -335,7 +437,7 @@ class _Badge extends StatelessWidget {
           color: color,
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
+          letterSpacing: 0.3,
         ),
       ),
     );
