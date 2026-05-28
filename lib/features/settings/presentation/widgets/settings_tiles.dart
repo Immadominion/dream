@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Base tile widget (private — used by tiles in this file)
@@ -23,22 +24,23 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     return Container(
       margin: EdgeInsets.only(bottom: 1.h),
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        border: Border.all(color: AppColors.borderDark, width: 0.5),
+        color: c.surfaceVariant,
+        border: Border.all(color: c.stroke, width: 0.5),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondaryDark, size: 16.sp),
+          Icon(icon, color: c.muted, size: 16.sp),
           SizedBox(width: 12.w),
           Text(
             title,
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: c.onSurface,
               fontSize: 13.sp,
               fontWeight: FontWeight.w500,
             ),
@@ -66,6 +68,7 @@ class SettingsWalletTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     return _SettingsTile(
       icon: PhosphorIcons.wallet(),
       title: 'Wallet',
@@ -75,7 +78,7 @@ class SettingsWalletTile extends StatelessWidget {
           Text(
             _truncated,
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: c.muted,
               fontSize: 12.sp,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
@@ -90,14 +93,14 @@ class SettingsWalletTile extends StatelessWidget {
                     'Address copied',
                     style: TextStyle(fontSize: 13.sp),
                   ),
-                  backgroundColor: AppColors.cardDark,
+                  backgroundColor: c.surfaceVariant,
                   duration: const Duration(seconds: 2),
                 ),
               );
             },
             child: Icon(
               PhosphorIcons.copy(),
-              color: AppColors.textMutedDark,
+              color: c.mutedSecondary,
               size: 15.sp,
             ),
           ),
@@ -124,12 +127,13 @@ class SettingsInfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     return _SettingsTile(
       icon: icon,
       title: title,
       trailing: Text(
         subtitle,
-        style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 11.sp),
+        style: TextStyle(color: c.muted, fontSize: 11.sp),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -147,8 +151,8 @@ class SettingsFlightBuilderTile extends StatelessWidget {
   static const _flightUrl = 'https://flight.phoenix.trade';
 
   String? get _authority {
-    final c = AppConstants.phoenixBuilderAuthority;
-    return c.isEmpty ? null : c;
+    final cfg = AppConstants.phoenixBuilderAuthority;
+    return cfg.isEmpty ? null : cfg;
   }
 
   String _truncate(String s) {
@@ -158,6 +162,7 @@ class SettingsFlightBuilderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     final authority = _authority;
     final configured = authority != null;
     final pda = AppConstants.phoenixBuilderPdaIndex;
@@ -172,22 +177,16 @@ class SettingsFlightBuilderTile extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 1.h),
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
+          color: c.surfaceVariant,
           border: Border.all(
-            color: configured
-                ? AppColors.bullish.withOpacity(0.35)
-                : AppColors.borderDark,
+            color: configured ? AppColors.bullish.withOpacity(0.35) : c.stroke,
             width: 0.5,
           ),
           borderRadius: BorderRadius.circular(8.r),
         ),
         child: Row(
           children: [
-            Icon(
-              PhosphorIcons.chartBar(),
-              color: AppColors.textSecondaryDark,
-              size: 16.sp,
-            ),
+            Icon(PhosphorIcons.chartBar(), color: c.muted, size: 16.sp),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
@@ -196,7 +195,7 @@ class SettingsFlightBuilderTile extends StatelessWidget {
                   Text(
                     'Flight Builder Fee',
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: c.onSurface,
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                     ),
@@ -207,9 +206,7 @@ class SettingsFlightBuilderTile extends StatelessWidget {
                         ? '${_truncate(authority)} · PDA $pda · Sub $sub'
                         : 'Not configured — tap to register',
                     style: TextStyle(
-                      color: configured
-                          ? AppColors.textSecondaryDark
-                          : AppColors.bearish,
+                      color: configured ? c.muted : AppColors.bearish,
                       fontSize: 11.sp,
                     ),
                   ),
@@ -240,7 +237,7 @@ class SettingsFlightBuilderTile extends StatelessWidget {
                 SizedBox(width: 6.w),
                 Icon(
                   PhosphorIcons.arrowSquareOut(),
-                  color: AppColors.textMutedDark,
+                  color: c.mutedSecondary,
                   size: 13.sp,
                 ),
               ],

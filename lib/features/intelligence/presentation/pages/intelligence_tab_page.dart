@@ -8,6 +8,7 @@ import '../../providers/ai_trading_provider.dart';
 import '../../providers/copy_trading_provider.dart';
 import 'ai_trading_page.dart';
 import 'copy_trade_page.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 /// Intelligence tab: copy-trading controls and signal automation.
 class IntelligenceTabPage extends ConsumerStatefulWidget {
@@ -38,7 +39,7 @@ class _IntelligenceTabPageState extends ConsumerState<IntelligenceTabPage> {
         : null;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -84,9 +85,9 @@ class _ModeSwitch extends StatelessWidget {
       height: 42.h,
       padding: EdgeInsets.all(4.r),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: Row(
         children: [
@@ -146,8 +147,8 @@ class _ModeButton extends StatelessWidget {
               Icon(
                 icon,
                 color: selected
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textSecondaryDark,
+                    ? context.dreamColors.onSurface
+                    : context.dreamColors.muted,
                 size: 15.r,
               ),
               SizedBox(width: 6.w),
@@ -155,8 +156,8 @@ class _ModeButton extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: selected
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textSecondaryDark,
+                      ? context.dreamColors.onSurface
+                      : context.dreamColors.muted,
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w800,
                 ),
@@ -180,7 +181,7 @@ class _CopyDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isActive
         ? AppColors.success
-        : AppColors.textMutedDark.withValues(alpha: 0.45);
+        : context.dreamColors.mutedSecondary.withValues(alpha: 0.45);
     return Container(
       width: 6.r,
       height: 6.r,
@@ -203,7 +204,7 @@ class _SignalDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isActive
         ? AppColors.success
-        : AppColors.textMutedDark.withValues(alpha: 0.45);
+        : context.dreamColors.mutedSecondary.withValues(alpha: 0.45);
     return Container(
       width: 6.r,
       height: 6.r,

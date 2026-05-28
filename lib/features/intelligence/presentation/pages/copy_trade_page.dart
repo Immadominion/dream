@@ -8,6 +8,7 @@ import '../../../../core/utils/format_utils.dart';
 import '../../models/intelligence_models.dart';
 import '../../providers/copy_trading_provider.dart';
 import '../widgets/copy_settings_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class CopyTradePage extends ConsumerStatefulWidget {
   const CopyTradePage({super.key});
@@ -39,7 +40,7 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Paste a Phoenix trader wallet address first.'),
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: context.dreamColors.surface,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -74,7 +75,7 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      backgroundColor: AppColors.cardDark,
+      backgroundColor: context.dreamColors.surfaceVariant,
       onRefresh: () => ref.read(copyTradingProvider.notifier).loadDiscover(),
       child: ListView(
         padding: EdgeInsets.fromLTRB(
@@ -171,7 +172,7 @@ class _AddressComposer extends StatelessWidget {
         Text(
           'Follow by wallet address',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 22.sp,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.8,
@@ -182,7 +183,7 @@ class _AddressComposer extends StatelessWidget {
         Text(
           'Paste a Phoenix trader authority and set your copy-risk profile in the bottom sheet.',
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 12.sp,
             height: 1.45,
           ),
@@ -195,19 +196,19 @@ class _AddressComposer extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
                 decoration: InputDecoration(
                   hintText: 'Trader wallet address',
                   hintStyle: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 12.sp,
                   ),
                   enabledBorder: UnderlineInputBorder(
                     borderSide: BorderSide(
-                      color: AppColors.borderDark.withValues(alpha: 0.8),
+                      color: context.dreamColors.stroke.withValues(alpha: 0.8),
                     ),
                   ),
                   focusedBorder: const UnderlineInputBorder(
@@ -274,7 +275,7 @@ class _SectionLabel extends StatelessWidget {
         Text(
           title.toUpperCase(),
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 11.sp,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.0,
@@ -284,14 +285,14 @@ class _SectionLabel extends StatelessWidget {
         Expanded(
           child: Container(
             height: 1,
-            color: AppColors.borderDark.withValues(alpha: 0.4),
+            color: context.dreamColors.stroke.withValues(alpha: 0.4),
           ),
         ),
         SizedBox(width: 10.w),
         Text(
           trailing.toUpperCase(),
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 9.sp,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
@@ -339,7 +340,7 @@ class _FollowedRow extends ConsumerWidget {
                             leader.displayLabel,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.1,
@@ -363,7 +364,7 @@ class _FollowedRow extends ConsumerWidget {
                     Text(
                       _short(leader.address),
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 11.sp,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
@@ -405,7 +406,7 @@ class _FollowedRow extends ConsumerWidget {
             SizedBox(height: 16.h),
             Container(
               height: 1,
-              color: AppColors.borderDark.withValues(alpha: 0.28),
+              color: context.dreamColors.stroke.withValues(alpha: 0.28),
             ),
           ],
         ],
@@ -469,7 +470,7 @@ class _DirectoryRow extends StatelessWidget {
                             leader.displayLabel,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w700,
                             ),
@@ -493,7 +494,7 @@ class _DirectoryRow extends StatelessWidget {
                     Text(
                       marketSummary,
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 11.sp,
                       ),
                     ),
@@ -535,7 +536,7 @@ class _DirectoryRow extends StatelessWidget {
                     isFollowing ? 'Following' : 'Follow',
                     style: TextStyle(
                       color: isFollowing
-                          ? AppColors.textMutedDark
+                          ? context.dreamColors.mutedSecondary
                           : AppColors.primary,
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w800,
@@ -549,7 +550,7 @@ class _DirectoryRow extends StatelessWidget {
             SizedBox(height: 14.h),
             Container(
               height: 1,
-              color: AppColors.borderDark.withValues(alpha: 0.24),
+              color: context.dreamColors.stroke.withValues(alpha: 0.24),
             ),
           ],
         ],
@@ -576,12 +577,12 @@ class _InlineMeta extends StatelessWidget {
       children: [
         Text(
           '$label ',
-          style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+          style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 10.sp),
         ),
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? AppColors.textSecondaryDark,
+            color: valueColor ?? context.dreamColors.muted,
             fontSize: 10.sp,
             fontWeight: FontWeight.w700,
             fontFeatures: const [FontFeature.tabularFigures()],
@@ -630,7 +631,7 @@ class _DirectorySkeleton extends StatelessWidget {
           height: 30.r,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.surfaceDark,
+            color: context.dreamColors.surface,
           ),
         ),
         SizedBox(width: 12.w),
@@ -641,10 +642,10 @@ class _DirectorySkeleton extends StatelessWidget {
               Container(
                 width: 120.w,
                 height: 10.h,
-                color: AppColors.surfaceDark,
+                color: context.dreamColors.surface,
               ),
               SizedBox(height: 6.h),
-              Container(width: 90.w, height: 9.h, color: AppColors.surfaceDark),
+              Container(width: 90.w, height: 9.h, color: context.dreamColors.surface),
             ],
           ),
         ),
@@ -696,13 +697,13 @@ class _EmptyFollowing extends StatelessWidget {
         Icon(
           PhosphorIcons.usersThree(PhosphorIconsStyle.duotone),
           size: 34.r,
-          color: AppColors.textMutedDark.withValues(alpha: 0.45),
+          color: context.dreamColors.mutedSecondary.withValues(alpha: 0.45),
         ),
         SizedBox(height: 12.h),
         Text(
           'No leaders followed yet',
           style: TextStyle(
-            color: AppColors.textSecondaryDark,
+            color: context.dreamColors.muted,
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -712,7 +713,7 @@ class _EmptyFollowing extends StatelessWidget {
           'Verify a trader address above to start mirroring\nnew position changes automatically.',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 12.sp,
             height: 1.5,
           ),
@@ -730,7 +731,7 @@ class _DirectoryNote extends StatelessWidget {
     return Text(
       'No verified trader directory available yet. Curated leaders will appear here after Phoenix account checks complete.',
       style: TextStyle(
-        color: AppColors.textMutedDark,
+        color: context.dreamColors.mutedSecondary,
         fontSize: 12.sp,
         height: 1.5,
       ),
@@ -770,13 +771,13 @@ class _ActionMenu extends ConsumerWidget {
     return PopupMenuButton<_Action>(
       icon: Icon(
         PhosphorIcons.dotsThreeVertical(PhosphorIconsStyle.bold),
-        color: AppColors.textSecondaryDark,
+        color: context.dreamColors.muted,
         size: 17.r,
       ),
-      color: AppColors.cardDark,
+      color: context.dreamColors.surfaceVariant,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.r),
-        side: BorderSide(color: AppColors.borderDark),
+        side: BorderSide(color: context.dreamColors.stroke),
       ),
       onSelected: (action) async {
         switch (action) {
@@ -823,7 +824,7 @@ class _MenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.textPrimaryDark;
+    final c = color ?? context.dreamColors.onSurface;
     return Row(
       children: [
         Icon(icon, color: c, size: 15.r),

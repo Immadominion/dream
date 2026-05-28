@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/services/phoenix/phoenix_trader_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // PnL data provider
@@ -64,7 +65,7 @@ class _AccountPnlChartSectionState
             Text(
               'Equity Curve',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -86,9 +87,9 @@ class _AccountPnlChartSectionState
           height: 160.h,
           padding: EdgeInsets.fromLTRB(8.w, 12.h, 16.w, 8.h),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
+            color: context.dreamColors.surfaceVariant,
             borderRadius: BorderRadius.circular(10.r),
-            border: Border.all(color: AppColors.borderDark),
+            border: Border.all(color: context.dreamColors.stroke),
           ),
           child: pnlAsync.when(
             loading: () => const Center(
@@ -101,7 +102,7 @@ class _AccountPnlChartSectionState
               child: Text(
                 'Failed to load PnL data',
                 style: TextStyle(
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   fontSize: 12.sp,
                 ),
               ),
@@ -112,7 +113,7 @@ class _AccountPnlChartSectionState
                   child: Text(
                     'No PnL data yet',
                     style: TextStyle(
-                      color: AppColors.textMutedDark,
+                      color: context.dreamColors.mutedSecondary,
                       fontSize: 12.sp,
                     ),
                   ),
@@ -154,13 +155,13 @@ class _ResolutionChip extends StatelessWidget {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(4.r),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.borderDark,
+            color: selected ? AppColors.primary : context.dreamColors.stroke,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? AppColors.primary : AppColors.textSecondaryDark,
+            color: selected ? AppColors.primary : context.dreamColors.muted,
             fontSize: 10.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -197,7 +198,7 @@ class _PnlLineChart extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           getDrawingHorizontalLine: (_) =>
-              FlLine(color: AppColors.borderDark, strokeWidth: 0.5),
+              FlLine(color: context.dreamColors.stroke, strokeWidth: 0.5),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -208,7 +209,7 @@ class _PnlLineChart extends StatelessWidget {
               getTitlesWidget: (value, _) => Text(
                 _formatAxis(value),
                 style: TextStyle(
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   fontSize: 9.sp,
                 ),
               ),
@@ -246,7 +247,7 @@ class _PnlLineChart extends StatelessWidget {
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => AppColors.surfaceDark,
+            getTooltipColor: (_) => context.dreamColors.surface,
             getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
               final sign = s.y >= 0 ? '+' : '';
               return LineTooltipItem(

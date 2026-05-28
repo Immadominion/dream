@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../navigation/providers/bottom_nav_providers.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 const accountHistoryScrollPhysics = AlwaysScrollableScrollPhysics(
   parent: BouncingScrollPhysics(),
@@ -56,7 +57,7 @@ class AccountHistoryEmptyState extends ConsumerWidget {
         Text(
           title,
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -65,7 +66,7 @@ class AccountHistoryEmptyState extends ConsumerWidget {
         SizedBox(height: 6.h),
         Text(
           description,
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 13.sp),
           textAlign: TextAlign.center,
         ),
         SizedBox(height: 20.h),
@@ -105,14 +106,14 @@ class AccountHistoryErrorState extends StatelessWidget {
       children: [
         Icon(
           PhosphorIcons.warningCircle(PhosphorIconsStyle.bold),
-          color: AppColors.textSecondaryDark,
+          color: context.dreamColors.muted,
           size: 34.sp,
         ),
         SizedBox(height: 12.h),
         Text(
           title,
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -121,7 +122,7 @@ class AccountHistoryErrorState extends StatelessWidget {
         SizedBox(height: 6.h),
         Text(
           description,
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 13.sp),
           textAlign: TextAlign.center,
         ),
       ],

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/app_notification.dart';
 import '../../../../core/providers/notifications/notifications_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
@@ -16,23 +17,23 @@ class NotificationsPage extends ConsumerWidget {
     final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.backgroundDark,
+        backgroundColor: context.dreamColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: Icon(
             PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             size: 20.sp,
           ),
         ),
         title: Text(
           'Notifications',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 17.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -41,13 +42,13 @@ class NotificationsPage extends ConsumerWidget {
           PopupMenuButton<_MenuAction>(
             icon: Icon(
               PhosphorIcons.dotsThreeVertical(PhosphorIconsStyle.bold),
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               size: 20.sp,
             ),
-            color: AppColors.cardDark,
+            color: context.dreamColors.surfaceVariant,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10.r),
-              side: BorderSide(color: AppColors.borderDark),
+              side: BorderSide(color: context.dreamColors.stroke),
             ),
             onSelected: (action) {
               switch (action) {
@@ -71,7 +72,7 @@ class NotificationsPage extends ConsumerWidget {
                     Text(
                       'Mark all as read',
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 13.sp,
                       ),
                     ),
@@ -193,7 +194,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          color: AppColors.textMutedDark,
+          color: context.dreamColors.mutedSecondary,
           fontSize: 10.sp,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
@@ -223,7 +224,7 @@ class _TimelineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = notification;
-    final (icon, accent) = _categoryStyle(n.category);
+    final (icon, accent) = _categoryStyle(n.category, context);
 
     return Dismissible(
       key: ValueKey(n.id),
@@ -256,7 +257,7 @@ class _TimelineRow extends StatelessWidget {
                       height: 8.r,
                       margin: EdgeInsets.only(top: 5.h),
                       decoration: BoxDecoration(
-                        color: n.isRead ? AppColors.borderDark : accent,
+                        color: n.isRead ? context.dreamColors.stroke : accent,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -265,7 +266,9 @@ class _TimelineRow extends StatelessWidget {
                       Expanded(
                         child: Container(
                           width: 1,
-                          color: AppColors.borderDark.withValues(alpha: 0.5),
+                          color: context.dreamColors.stroke.withValues(
+                            alpha: 0.5,
+                          ),
                           margin: EdgeInsets.symmetric(horizontal: 3.5.w),
                         ),
                       ),
@@ -288,7 +291,7 @@ class _TimelineRow extends StatelessWidget {
                             child: Text(
                               n.title,
                               style: TextStyle(
-                                color: AppColors.textPrimaryDark,
+                                color: context.dreamColors.onSurface,
                                 fontSize: 13.sp,
                                 fontWeight: n.isRead
                                     ? FontWeight.w500
@@ -302,7 +305,7 @@ class _TimelineRow extends StatelessWidget {
                           Text(
                             _formatTime(n.timestamp),
                             style: TextStyle(
-                              color: AppColors.textMutedDark,
+                              color: context.dreamColors.mutedSecondary,
                               fontSize: 10.sp,
                             ),
                           ),
@@ -323,7 +326,7 @@ class _TimelineRow extends StatelessWidget {
                       Text(
                         n.body,
                         style: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                           fontSize: 12.sp,
                           height: 1.4,
                         ),
@@ -341,7 +344,10 @@ class _TimelineRow extends StatelessWidget {
     );
   }
 
-  static (IconData, Color) _categoryStyle(AppNotifCategory cat) {
+  static (IconData, Color) _categoryStyle(
+    AppNotifCategory cat,
+    BuildContext context,
+  ) {
     switch (cat) {
       case AppNotifCategory.trade:
         return (
@@ -358,7 +364,7 @@ class _TimelineRow extends StatelessWidget {
       case AppNotifCategory.system:
         return (
           PhosphorIcons.appWindow(PhosphorIconsStyle.bold),
-          AppColors.textMutedDark,
+          context.dreamColors.mutedSecondary,
         );
       case AppNotifCategory.marketing:
         return (
@@ -395,14 +401,14 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(
             PhosphorIcons.bellSlash(PhosphorIconsStyle.duotone),
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             size: 44.sp,
           ),
           SizedBox(height: 12.h),
           Text(
             'No notifications yet',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 15.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -410,7 +416,10 @@ class _EmptyState extends StatelessWidget {
           SizedBox(height: 4.h),
           Text(
             'Trade alerts and updates will appear here.',
-            style: TextStyle(color: AppColors.textMutedDark, fontSize: 12.sp),
+            style: TextStyle(
+              color: context.dreamColors.mutedSecondary,
+              fontSize: 12.sp,
+            ),
           ),
         ],
       ),

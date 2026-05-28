@@ -7,6 +7,7 @@ import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/price_alerts_provider.dart';
 import 'price_alert_widgets.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom sheet — add alerts, view / delete active alerts
@@ -98,7 +99,7 @@ class _PriceAlertSheetState extends ConsumerState<PriceAlertSheet> {
                   width: 36.w,
                   height: 4.h,
                   decoration: BoxDecoration(
-                    color: AppColors.borderDark,
+                    color: context.dreamColors.stroke,
                     borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
@@ -115,7 +116,7 @@ class _PriceAlertSheetState extends ConsumerState<PriceAlertSheet> {
                   Text(
                     'Price Alerts · ${widget.symbol}',
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w700,
                     ),
@@ -166,34 +167,34 @@ class _PriceAlertSheetState extends ConsumerState<PriceAlertSheet> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                       ],
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 15.sp,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Target price (USD)',
                         hintStyle: TextStyle(
-                          color: AppColors.textMutedDark,
+                          color: context.dreamColors.mutedSecondary,
                           fontSize: 14.sp,
                         ),
                         errorText: _inputError,
                         prefixText: '\$',
                         prefixStyle: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                           fontSize: 15.sp,
                         ),
                         filled: true,
-                        fillColor: AppColors.cardDark,
+                        fillColor: context.dreamColors.surfaceVariant,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12.w,
                           vertical: 12.h,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.r),
-                          borderSide: BorderSide(color: AppColors.borderDark),
+                          borderSide: BorderSide(color: context.dreamColors.stroke),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.r),
-                          borderSide: BorderSide(color: AppColors.borderDark),
+                          borderSide: BorderSide(color: context.dreamColors.stroke),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.r),
@@ -231,7 +232,7 @@ class _PriceAlertSheetState extends ConsumerState<PriceAlertSheet> {
                 Text(
                   'Active & Recent',
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,

@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../models/intelligence_models.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 /// A single signal-cycle log entry row.
 class BotLogTile extends StatelessWidget {
@@ -12,14 +13,14 @@ class BotLogTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, iconColor, actionLabel) = _actionMeta(entry.action);
+    final (icon, iconColor, actionLabel) = _actionMeta(entry.action, context);
     final timeStr = _formatTime(entry.timestamp);
 
     return Container(
       margin: EdgeInsets.only(bottom: 8.h),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: iconColor.withValues(alpha: 0.15)),
       ),
@@ -56,7 +57,7 @@ class BotLogTile extends StatelessWidget {
                     Text(
                       timeStr,
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 10.sp,
                       ),
                     ),
@@ -66,7 +67,7 @@ class BotLogTile extends StatelessWidget {
                 Text(
                   entry.reason,
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 11.sp,
                     height: 1.4,
                   ),
@@ -102,7 +103,10 @@ class BotLogTile extends StatelessWidget {
     );
   }
 
-  (IconData, Color, String) _actionMeta(BotAction action) {
+  (IconData, Color, String) _actionMeta(
+    BotAction action,
+    BuildContext context,
+  ) {
     switch (action) {
       case BotAction.buy:
         return (
@@ -119,7 +123,7 @@ class BotLogTile extends StatelessWidget {
       case BotAction.hold:
         return (
           PhosphorIcons.pause(PhosphorIconsStyle.bold),
-          AppColors.textMutedDark,
+          context.dreamColors.mutedSecondary,
           'HOLD',
         );
     }

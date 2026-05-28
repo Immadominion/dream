@@ -14,6 +14,7 @@ import '../../../../core/navigation/trade_share_link.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../providers/trade_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class TradeReceiptSheet extends StatefulWidget {
   final TradeSubmittedTrade trade;
@@ -29,7 +30,7 @@ class TradeReceiptSheet extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -150,7 +151,7 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -160,7 +161,7 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
               'Trade Receipt',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -170,7 +171,7 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
               _data.sheetSubtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 12.sp,
               ),
             ),
@@ -213,8 +214,8 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
                     icon: Icon(PhosphorIcons.copy(), size: 18.sp),
                     label: const Text('Copy Link'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimaryDark,
-                      side: BorderSide(color: AppColors.borderDark),
+                      foregroundColor: context.dreamColors.onSurface,
+                      side: BorderSide(color: context.dreamColors.stroke),
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r),
@@ -231,7 +232,7 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
                 icon: Icon(PhosphorIcons.arrowSquareOut(), size: 18.sp),
                 label: const Text('View on Solscan'),
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.textSecondaryDark,
+                  foregroundColor: context.dreamColors.muted,
                   padding: EdgeInsets.symmetric(vertical: 8.h),
                 ),
               ),
@@ -274,8 +275,8 @@ class _TradeReceiptCard extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      AppColors.surfaceDark,
-                      AppColors.cardDark,
+                      context.dreamColors.surface,
+                      context.dreamColors.surfaceVariant,
                       data.glowColor.withValues(alpha: 0.22),
                     ],
                   ),
@@ -326,12 +327,12 @@ class _TradeReceiptCard extends StatelessWidget {
                             vertical: 4.h,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.textPrimaryDark.withValues(
+                            color: context.dreamColors.onSurface.withValues(
                               alpha: 0.08,
                             ),
                             borderRadius: BorderRadius.circular(999.r),
                             border: Border.all(
-                              color: AppColors.textPrimaryDark.withValues(
+                              color: context.dreamColors.onSurface.withValues(
                                 alpha: 0.08,
                               ),
                             ),
@@ -339,7 +340,7 @@ class _TradeReceiptCard extends StatelessWidget {
                           child: Text(
                             data.cardLabel,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 10.sp,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.6,
@@ -375,7 +376,7 @@ class _TradeReceiptCard extends StatelessWidget {
                     Text(
                       data.displaySymbol,
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 28.sp,
                         fontWeight: FontWeight.w800,
                         height: 1,
@@ -385,7 +386,7 @@ class _TradeReceiptCard extends StatelessWidget {
                     Text(
                       data.headline,
                       style: TextStyle(
-                        color: data.headlineColor,
+                        color: data.headlineColor(context),
                         fontSize: 32.sp,
                         fontWeight: FontWeight.w800,
                         height: 1,
@@ -395,7 +396,7 @@ class _TradeReceiptCard extends StatelessWidget {
                     Text(
                       data.subheadline,
                       style: TextStyle(
-                        color: AppColors.textSecondaryDark,
+                        color: context.dreamColors.muted,
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w500,
                       ),
@@ -454,7 +455,7 @@ class _TradeReceiptCard extends StatelessWidget {
                         Text(
                           data.deepLinkLabel,
                           style: TextStyle(
-                            color: AppColors.textSecondaryDark,
+                            color: context.dreamColors.muted,
                             fontSize: 10.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -504,7 +505,7 @@ class _ReceiptMetric extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -557,9 +558,9 @@ class _TradeReceiptData {
   bool get hasLivePnl =>
       hasLivePosition && position!.unrealizedPnl.abs() > 0.009;
   bool get isProfit => (position?.unrealizedPnl ?? 0) >= 0;
-  Color get headlineColor => hasLivePnl
+  Color headlineColor(BuildContext context) => hasLivePnl
       ? (isProfit ? AppColors.bullish : AppColors.bearish)
-      : AppColors.textPrimaryDark;
+      : context.dreamColors.onSurface;
   Color get glowColor => hasLivePnl
       ? (isProfit ? AppColors.success : AppColors.error)
       : AppColors.primary;

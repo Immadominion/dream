@@ -87,7 +87,7 @@ class AccountAnalyticsCard extends ConsumerWidget {
               Expanded(
                 child: _StatTile(
                   label: 'Equity',
-                  value: equity > 0 ? '\$${formatCompact(equity)}' : '--',
+                  value: equity > 0 ? formatCompact(equity) : '--',
                 ),
               ),
             ],
@@ -150,7 +150,7 @@ class AccountAnalyticsCard extends ConsumerWidget {
                       Expanded(
                         child: _StatTile(
                           label: 'Total Volume',
-                          value: '\$${formatCompact(totalVolume)}',
+                          value: formatCompact(totalVolume),
                         ),
                       ),
                       SizedBox(width: 8.w),
@@ -185,7 +185,7 @@ class AccountAnalyticsCard extends ConsumerWidget {
                   SizedBox(height: 8.h),
                   _StatTile(
                     label: 'Largest Trade',
-                    value: '\$${formatCompact(biggestNotional)}',
+                    value: formatCompact(biggestNotional),
                     wide: true,
                   ),
                 ],

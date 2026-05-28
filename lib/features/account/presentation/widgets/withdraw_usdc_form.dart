@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Pure UI form body for the Withdraw USDC sheet.
@@ -54,7 +55,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
               height: 4.h,
               margin: EdgeInsets.only(bottom: 16.h),
               decoration: BoxDecoration(
-                color: AppColors.borderDark,
+                color: context.dreamColors.stroke,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -63,7 +64,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
             'Withdraw USDC',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 18.sp,
               fontWeight: FontWeight.w700,
             ),
@@ -72,10 +73,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
           Text(
             'Send USDC to any Solana wallet',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.textSecondaryDark,
-              fontSize: 12.sp,
-            ),
+            style: TextStyle(color: context.dreamColors.muted, fontSize: 12.sp),
           ),
           SizedBox(height: 20.h),
 
@@ -83,16 +81,16 @@ class WithdrawUsdcFormBody extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
             decoration: BoxDecoration(
-              color: AppColors.backgroundDark,
+              color: context.dreamColors.background,
               borderRadius: BorderRadius.circular(10.r),
-              border: Border.all(color: AppColors.borderDark),
+              border: Border.all(color: context.dreamColors.stroke),
             ),
             child: Row(
               children: [
                 Text(
                   'Available',
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -102,7 +100,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
                       ? '...'
                       : '\$${balance.toStringAsFixed(2)} USDC',
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
                   ),
@@ -116,7 +114,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
           Text(
             'Destination address',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 11.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -126,11 +124,12 @@ class WithdrawUsdcFormBody extends StatelessWidget {
             controller: destController,
             enabled: !submitting,
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 13.sp,
               fontFamily: 'monospace',
             ),
             decoration: _inputDecoration(
+              context,
               hint: 'Solana wallet address',
               suffix: TextButton(
                 onPressed: submitting ? null : onPaste,
@@ -158,7 +157,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
           Text(
             'Amount (USDC)',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 11.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -172,11 +171,12 @@ class WithdrawUsdcFormBody extends StatelessWidget {
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,6}')),
             ],
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 15.sp,
               fontWeight: FontWeight.w700,
             ),
             decoration: _inputDecoration(
+              context,
               hint: '0.00',
               suffix: TextButton(
                 onPressed: (submitting || balance <= 0) ? null : onSetMax,
@@ -222,7 +222,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
                     child: Text(
                       submitError!,
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 11.sp,
                       ),
                     ),
@@ -243,7 +243,7 @@ class WithdrawUsdcFormBody extends StatelessWidget {
               'If the recipient has never received USDC, an extra ~0.002 SOL '
               'will be used to create their token account.',
               style: TextStyle(
-                color: AppColors.textMutedDark,
+                color: context.dreamColors.mutedSecondary,
                 fontSize: 11.sp,
                 height: 1.4,
               ),
@@ -285,20 +285,24 @@ class WithdrawUsdcFormBody extends StatelessWidget {
     );
   }
 
-  InputDecoration _inputDecoration({required String hint, Widget? suffix}) {
+  InputDecoration _inputDecoration(
+    BuildContext context, {
+    required String hint,
+    Widget? suffix,
+  }) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10.r),
-      borderSide: BorderSide(color: AppColors.borderDark),
+      borderSide: BorderSide(color: context.dreamColors.stroke),
     );
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(
-        color: AppColors.textMutedDark,
+        color: context.dreamColors.mutedSecondary,
         fontSize: 13.sp,
         fontFamily: hint == '0.00' ? null : 'monospace',
       ),
       filled: true,
-      fillColor: AppColors.backgroundDark,
+      fillColor: context.dreamColors.background,
       contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
       border: border,
       enabledBorder: border,

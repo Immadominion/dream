@@ -96,6 +96,9 @@ dependencies:
   # QR codes (for receiving USDC into wallet)
   qr_flutter: ^4.1.0
 
+  # Rive animations
+  rive: ^0.14.7
+
   # Notifications
   flutter_local_notifications: ^19.5.0
   timezone: ^0.10.0
@@ -132,6 +135,7 @@ flutter:
     - assets/icons/
     - assets/html/
     - assets/data/
+    - assets/animations/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

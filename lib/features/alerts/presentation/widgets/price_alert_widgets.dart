@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/price_alerts_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Direction toggle chip
@@ -31,10 +32,10 @@ class PriceAlertDirectionChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected
                 ? AppColors.primary.withOpacity(0.15)
-                : AppColors.cardDark,
+                : context.dreamColors.surfaceVariant,
             borderRadius: BorderRadius.circular(6.r),
             border: Border.all(
-              color: selected ? AppColors.primary : AppColors.borderDark,
+              color: selected ? AppColors.primary : context.dreamColors.stroke,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -44,7 +45,7 @@ class PriceAlertDirectionChip extends StatelessWidget {
               style: TextStyle(
                 color: selected
                     ? AppColors.primary
-                    : AppColors.textSecondaryDark,
+                    : context.dreamColors.muted,
                 fontSize: 11.sp,
                 fontWeight: FontWeight.w600,
               ),
@@ -75,19 +76,19 @@ class PriceAlertRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isTriggered
             ? AppColors.bullish.withOpacity(0.08)
-            : AppColors.cardDark,
+            : context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(
           color: isTriggered
               ? AppColors.bullish.withOpacity(0.3)
-              : AppColors.borderDark,
+              : context.dreamColors.stroke,
         ),
       ),
       child: Row(
         children: [
           Icon(
             isTriggered ? Icons.check_circle_outline : Icons.pending_outlined,
-            color: isTriggered ? AppColors.bullish : AppColors.textMutedDark,
+            color: isTriggered ? AppColors.bullish : context.dreamColors.mutedSecondary,
             size: 14.sp,
           ),
           SizedBox(width: 8.w),
@@ -96,7 +97,7 @@ class PriceAlertRow extends StatelessWidget {
             style: TextStyle(
               color: isTriggered
                   ? AppColors.bullish
-                  : AppColors.textPrimaryDark,
+                  : context.dreamColors.onSurface,
               fontSize: 13.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -112,7 +113,7 @@ class PriceAlertRow extends StatelessWidget {
             onTap: onDelete,
             child: Icon(
               Icons.close,
-              color: AppColors.textMutedDark,
+              color: context.dreamColors.mutedSecondary,
               size: 16.sp,
             ),
           ),
@@ -151,7 +152,7 @@ class PriceAlertPermissionBanner extends StatelessWidget {
             child: Text(
               'Enable notifications to receive price alerts.',
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 11.sp,
               ),
             ),

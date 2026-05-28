@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../widgets/account_leaderboard_card.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class LeaderboardPage extends ConsumerWidget {
   final String walletAddress;
@@ -13,7 +13,7 @@ class LeaderboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -29,13 +29,13 @@ class LeaderboardPage extends ConsumerWidget {
                     child: Container(
                       padding: EdgeInsets.all(8.r),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceDark,
+                        color: context.dreamColors.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.borderDark),
+                        border: Border.all(color: context.dreamColors.stroke),
                       ),
                       child: Icon(
                         PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         size: 24.sp,
                       ),
                     ),
@@ -44,7 +44,7 @@ class LeaderboardPage extends ConsumerWidget {
                   Text(
                     'Trader Leaderboard',
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 24.sp,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -62,9 +62,9 @@ class LeaderboardPage extends ConsumerWidget {
                     width: double.infinity,
                     padding: EdgeInsets.all(20.w),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
+                      color: context.dreamColors.surface,
                       borderRadius: BorderRadius.circular(26.r),
-                      border: Border.all(color: AppColors.borderDark),
+                      border: Border.all(color: context.dreamColors.stroke),
                     ),
                     child: AccountLeaderboardCard(walletAddress: walletAddress),
                   ),

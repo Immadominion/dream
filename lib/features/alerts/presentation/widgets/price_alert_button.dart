@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/price_alerts_provider.dart';
 import 'price_alert_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Compact bell-icon button shown in trade page / markets header
@@ -27,7 +28,7 @@ class PriceAlertButton extends ConsumerWidget {
         children: [
           Icon(
             hasAlerts ? Icons.notifications_active : Icons.notifications_none,
-            color: hasAlerts ? AppColors.primary : AppColors.textSecondaryDark,
+            color: hasAlerts ? AppColors.primary : context.dreamColors.muted,
             size: 20.sp,
           ),
           if (hasAlerts)
@@ -59,7 +60,7 @@ class PriceAlertButton extends ConsumerWidget {
 void _showAlertSheet(BuildContext context, String symbol) {
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: context.dreamColors.surface,
     isScrollControlled: true,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),

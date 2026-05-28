@@ -8,6 +8,7 @@ import '../../../../core/utils/format_utils.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../providers/trade_provider.dart';
 import 'orderbook_widget.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Compact Bybit-style orderbook ladder for the Trade page right column.
@@ -45,7 +46,7 @@ class _TradeCompactOrderbookState extends ConsumerState<TradeCompactOrderbook> {
       return Center(
         child: Text(
           '…',
-          style: TextStyle(color: AppColors.textMutedDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 12.sp),
         ),
       );
     }
@@ -117,7 +118,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppColors.textMutedDark;
+    final muted = context.dreamColors.mutedSecondary;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 6.w),
       child: Row(
@@ -205,7 +206,7 @@ class _LadderRow extends StatelessWidget {
                   Text(
                     _fmtSize(level.size),
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 11.sp,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
@@ -247,7 +248,7 @@ class _MidPriceRow extends StatelessWidget {
                 Text(
                   '≈${_fmtPrice(price)} USD',
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 9.sp,
                   ),
                 ),
@@ -257,7 +258,7 @@ class _MidPriceRow extends StatelessWidget {
           Icon(
             Icons.arrow_forward,
             size: 14.sp,
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
           ),
         ],
       ),
@@ -368,14 +369,14 @@ class _TickAndLayoutRow extends StatelessWidget {
                 value: tick,
                 isDense: true,
                 isExpanded: true,
-                dropdownColor: AppColors.surfaceDark,
+                dropdownColor: context.dreamColors.surface,
                 icon: Icon(
                   Icons.arrow_drop_down,
                   size: 16.sp,
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                 ),
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 11.sp,
                 ),
                 items: _kTickSizes
@@ -392,7 +393,7 @@ class _TickAndLayoutRow extends StatelessWidget {
           Icon(
             Icons.view_agenda_outlined,
             size: 16.sp,
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
           ),
         ],
       ),

@@ -6,9 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/wallet/wallet_balance_provider.dart';
 import '../../../../core/services/solana/usdc_transfer_service.dart';
-import '../../../../core/theme/app_colors.dart';
 import 'withdraw_usdc_form.dart';
 import 'withdraw_usdc_success.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // Bottom sheet to send USDC from the user's connected wallet to any Solana
 // address. Builds + signs + broadcasts an SPL transferChecked transaction
@@ -24,7 +24,7 @@ class WithdrawUsdcSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),

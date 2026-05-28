@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // Sorting modes for the markets list
 enum MarketSortMode { change, volume, oi, funding }
@@ -90,9 +91,9 @@ class MarketsSortChip extends StatelessWidget {
     final downLit = dir == SortDirection.desc;
 
     final labelColor = isActive
-        ? AppColors.textPrimaryDark
-        : AppColors.textSecondaryDark;
-    final dimArrow = AppColors.textMutedDark.withValues(alpha: 0.35);
+        ? context.dreamColors.onSurface
+        : context.dreamColors.muted;
+    final dimArrow = context.dreamColors.mutedSecondary.withValues(alpha: 0.35);
 
     return GestureDetector(
       onTap: onTap,

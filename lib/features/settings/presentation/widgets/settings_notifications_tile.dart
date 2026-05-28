@@ -8,6 +8,7 @@ import '../../../../core/providers/auth/client_auth_provider.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/notifications/remote_notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Notifications settings tile — requests permission, monitors status
@@ -62,14 +63,17 @@ class _SettingsNotificationsTileState
         final auth = ref.read(clientAuthProvider);
         final walletAddress = auth.walletAddress;
         if (walletAddress != null) {
-          await ref.read(remoteNotificationServiceProvider).syncCurrentDevice(
-            walletAddress: walletAddress,
-            email: auth.userEmail,
-            force: true,
-          );
+          await ref
+              .read(remoteNotificationServiceProvider)
+              .syncCurrentDevice(
+                walletAddress: walletAddress,
+                email: auth.userEmail,
+                force: true,
+              );
         }
       }
       if (mounted && !granted) {
+        final c = context.dreamColors;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -83,7 +87,7 @@ class _SettingsNotificationsTileState
                 mode: LaunchMode.externalApplication,
               ),
             ),
-            backgroundColor: AppColors.cardDark,
+            backgroundColor: c.surfaceVariant,
             duration: const Duration(seconds: 5),
           ),
         );
@@ -103,20 +107,17 @@ class _SettingsNotificationsTileState
         ? 'Enabled'
         : 'Disabled';
 
+    final c = context.dreamColors;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        border: Border.all(color: AppColors.borderDark, width: 0.5),
+        color: c.surfaceVariant,
+        border: Border.all(color: c.stroke, width: 0.5),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
         children: [
-          Icon(
-            PhosphorIcons.bell(),
-            color: AppColors.textSecondaryDark,
-            size: 16.sp,
-          ),
+          Icon(PhosphorIcons.bell(), color: c.muted, size: 16.sp),
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
@@ -125,7 +126,7 @@ class _SettingsNotificationsTileState
                 Text(
                   'Notifications',
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: c.onSurface,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w500,
                   ),
@@ -133,10 +134,7 @@ class _SettingsNotificationsTileState
                 SizedBox(height: 2.h),
                 Text(
                   'Order fills, TP/SL triggers, price alerts',
-                  style: TextStyle(
-                    color: AppColors.textMutedDark,
-                    fontSize: 10.sp,
-                  ),
+                  style: TextStyle(color: c.mutedSecondary, fontSize: 10.sp),
                 ),
               ],
             ),

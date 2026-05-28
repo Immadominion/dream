@@ -14,6 +14,7 @@ import '../../providers/watchlist_provider.dart';
 import '../widgets/market_tile.dart';
 import '../widgets/markets_header.dart';
 import '../../../../shared/widgets/app_error_view.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class MarketsPage extends ConsumerStatefulWidget {
   const MarketsPage({super.key});
@@ -141,7 +142,7 @@ class _MarketsPageState extends ConsumerState<MarketsPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -200,7 +201,7 @@ class _MarketsBody extends ConsumerWidget {
           child: Text(
             message,
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 14.sp,
             ),
             textAlign: TextAlign.center,
@@ -211,7 +212,7 @@ class _MarketsBody extends ConsumerWidget {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       onRefresh: () => ref.read(marketsProvider.notifier).refresh(),
       child: _CurveListView(markets: filteredMarkets),
     );
@@ -349,7 +350,7 @@ class _MarketSkeletonTileState extends State<_MarketSkeletonTile>
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
           decoration: BoxDecoration(
             border: Border(
-              bottom: BorderSide(color: AppColors.borderDark, width: 0.5),
+              bottom: BorderSide(color: context.dreamColors.stroke, width: 0.5),
             ),
           ),
           child: Row(
@@ -410,7 +411,7 @@ class _Slab extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.borderDark,
+          color: context.dreamColors.stroke,
           borderRadius: BorderRadius.circular(radius ?? 3.r),
         ),
       ),

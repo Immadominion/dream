@@ -9,6 +9,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../positions/providers/positions_provider.dart';
 import '../../providers/bottom_nav_providers.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom navigation bar for the primary mobile shell
@@ -109,7 +110,7 @@ class _ShellBottomNavState extends ConsumerState<ShellBottomNav> {
             curve: Curves.easeOutCubic,
             opacity: isVisible ? 1 : 0,
             child: Padding(
-              padding: EdgeInsets.fromLTRB(48.w, 8.h, 48.w, 12.h),
+              padding: EdgeInsets.fromLTRB(40.w, 8.h, 40.w, 12.h),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Fluid widths: active tab grows to fit its label,
@@ -137,6 +138,7 @@ class _ShellBottomNavState extends ConsumerState<ShellBottomNav> {
                         children: [
                           AnimatedContainer(
                             width: w(0),
+                            height: 60.h,
                             duration: const Duration(milliseconds: 260),
                             curve: Curves.easeOutCubic,
                             child: ShellNavItem(
@@ -235,14 +237,14 @@ class _GlassPill extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
-            height: 48.h,
+            height: 60.h,
             padding: EdgeInsets.all(4.r),
             decoration: BoxDecoration(
               // Semi-transparent fill — blurred content shows through.
-              color: AppColors.cardDark.withValues(alpha: 0.65),
+              color: context.dreamColors.surfaceVariant.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(radius),
               border: Border.all(
-                color: AppColors.borderDark.withValues(alpha: 0.85),
+                color: context.dreamColors.stroke.withValues(alpha: 0.85),
               ),
             ),
             child: child,
@@ -281,7 +283,7 @@ class ShellNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final iconColor = selected
         ? AppColors.primaryLight
-        : AppColors.textSecondaryDark;
+        : context.dreamColors.muted;
     final badgeLabel = badgeCount > 99 ? '99+' : '$badgeCount';
     final isSingleDigitBadge = badgeLabel.length == 1;
 
@@ -330,7 +332,7 @@ class ShellNavItem extends StatelessWidget {
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(999.r),
                         border: Border.all(
-                          color: AppColors.backgroundDark,
+                          color: context.dreamColors.background,
                           width: 1,
                         ),
                       ),
@@ -362,7 +364,7 @@ class ShellNavItem extends StatelessWidget {
                         label,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: AppColors.textPrimaryDark,
+                          color: context.dreamColors.onSurface,
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w700,
                         ),

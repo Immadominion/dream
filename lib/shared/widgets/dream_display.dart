@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/dream_colors.dart';
 
 // =============================================================================
 // AVATAR - Token or user avatar with optional verified badge
@@ -38,7 +39,7 @@ class DreamAvatar extends StatelessWidget {
           height: avatarSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.surfaceDark,
+            color: context.dreamColors.surface,
             border: borderColor != null || isVerified
                 ? Border.all(color: borderColor ?? AppColors.info, width: 2)
                 : Border.all(color: Colors.white.withOpacity(0.06), width: 1),
@@ -73,7 +74,7 @@ class DreamAvatar extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.all(2.r),
               decoration: BoxDecoration(
-                color: AppColors.backgroundDark,
+                color: context.dreamColors.background,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -128,7 +129,7 @@ class DreamStatItem extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 11.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -146,7 +147,7 @@ class DreamStatItem extends StatelessWidget {
             : Text(
                 value,
                 style: TextStyle(
-                  color: valueColor ?? AppColors.textPrimaryDark,
+                  color: valueColor ?? context.dreamColors.onSurface,
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -197,7 +198,7 @@ class DreamEmptyState extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w600,
               ),
@@ -208,7 +209,7 @@ class DreamEmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 14.sp,
                 ),
                 textAlign: TextAlign.center,

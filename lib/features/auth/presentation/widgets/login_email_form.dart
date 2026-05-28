@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:pinput/pinput.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class LoginEmailForm extends StatelessWidget {
   const LoginEmailForm({
@@ -148,10 +149,10 @@ class LoginEmailForm extends StatelessWidget {
         color: theme.colorScheme.onSurface,
       ),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.surfaceLight,
+        color: isDark ? context.dreamColors.surfaceVariant : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          color: isDark ? context.dreamColors.stroke : AppColors.borderLight,
           width: 1.5,
         ),
       ),

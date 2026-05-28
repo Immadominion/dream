@@ -7,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/intelligence_models.dart';
 import '../../providers/ai_trading_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class AgentConfigSheet extends ConsumerStatefulWidget {
   final AIBotConfig initialConfig;
@@ -81,9 +82,9 @@ class _AgentConfigSheetState extends ConsumerState<AgentConfigSheet> {
     return Container(
       constraints: BoxConstraints(maxHeight: size.height * 0.88),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -95,7 +96,7 @@ class _AgentConfigSheetState extends ConsumerState<AgentConfigSheet> {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: AppColors.borderDark,
+                color: context.dreamColors.stroke,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -115,13 +116,13 @@ class _AgentConfigSheetState extends ConsumerState<AgentConfigSheet> {
                       height: 36.r,
                       margin: EdgeInsets.only(top: 2.h, right: 12.w),
                       decoration: BoxDecoration(
-                        color: AppColors.cardDark,
+                        color: context.dreamColors.surfaceVariant,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.borderDark),
+                        border: Border.all(color: context.dreamColors.stroke),
                       ),
                       child: Icon(
                         PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-                        color: AppColors.textSecondaryDark,
+                        color: context.dreamColors.muted,
                         size: 16.r,
                       ),
                     ),
@@ -136,7 +137,7 @@ class _AgentConfigSheetState extends ConsumerState<AgentConfigSheet> {
                           Text(
                             _stepTitle,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 18.sp,
                               fontWeight: FontWeight.w700,
                             ),
@@ -149,7 +150,7 @@ class _AgentConfigSheetState extends ConsumerState<AgentConfigSheet> {
                       Text(
                         _stepSubtitle,
                         style: TextStyle(
-                          color: AppColors.textMutedDark,
+                          color: context.dreamColors.mutedSecondary,
                           fontSize: 13.sp,
                         ),
                       ),
@@ -163,7 +164,7 @@ class _AgentConfigSheetState extends ConsumerState<AgentConfigSheet> {
                       padding: EdgeInsets.only(left: 12.w, top: 2.h),
                       child: Icon(
                         PhosphorIcons.x(PhosphorIconsStyle.bold),
-                        color: AppColors.textSecondaryDark,
+                        color: context.dreamColors.muted,
                         size: 20.r,
                       ),
                     ),
@@ -247,7 +248,7 @@ class _StepPills extends StatelessWidget {
                 ? AppColors.primary.withValues(alpha: 0.45)
                 : isActive
                 ? AppColors.primary
-                : AppColors.borderDark,
+                : context.dreamColors.stroke,
             borderRadius: BorderRadius.circular(3.r),
           ),
         );
@@ -300,12 +301,12 @@ class _RiskStep extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.primary.withValues(alpha: 0.10)
-                    : AppColors.cardDark,
+                    : context.dreamColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(14.r),
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primary.withValues(alpha: 0.45)
-                      : AppColors.borderDark,
+                      : context.dreamColors.stroke,
                 ),
               ),
               child: Row(
@@ -317,13 +318,13 @@ class _RiskStep extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: isSelected
                           ? AppColors.primary.withValues(alpha: 0.15)
-                          : AppColors.backgroundDark.withValues(alpha: 0.6),
+                          : context.dreamColors.background.withValues(alpha: 0.6),
                     ),
                     child: Icon(
                       icon,
                       color: isSelected
                           ? AppColors.primary
-                          : AppColors.textSecondaryDark,
+                          : context.dreamColors.muted,
                       size: 15.r,
                     ),
                   ),
@@ -335,7 +336,7 @@ class _RiskStep extends StatelessWidget {
                         Text(
                           label,
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: context.dreamColors.onSurface,
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w700,
                           ),
@@ -344,7 +345,7 @@ class _RiskStep extends StatelessWidget {
                         Text(
                           desc,
                           style: TextStyle(
-                            color: AppColors.textMutedDark,
+                            color: context.dreamColors.mutedSecondary,
                             fontSize: 11.sp,
                             height: 1.35,
                           ),
@@ -479,7 +480,7 @@ class _TickSlider extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 10.sp,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.0,
@@ -586,7 +587,7 @@ class _TickSlider extends StatelessWidget {
                               (l) => Text(
                                 l,
                                 style: TextStyle(
-                                  color: AppColors.textMutedDark.withValues(
+                                  color: context.dreamColors.mutedSecondary.withValues(
                                     alpha: 0.6,
                                   ),
                                   fontSize: 9.sp,

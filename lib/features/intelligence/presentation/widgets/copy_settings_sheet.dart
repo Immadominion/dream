@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../models/intelligence_models.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 /// Bottom sheet for configuring copy settings before following a leader.
 class CopySettingsSheet extends StatefulWidget {
@@ -65,12 +66,12 @@ class _CopySettingsSheetState extends State<CopySettingsSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20.r),
           topRight: Radius.circular(20.r),
         ),
-        border: Border.all(color: AppColors.borderDark.withValues(alpha: 0.5)),
+        border: Border.all(color: context.dreamColors.stroke.withValues(alpha: 0.5)),
       ),
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -92,7 +93,7 @@ class _CopySettingsSheetState extends State<CopySettingsSheet> {
               Text(
                 'Copy ${widget.leader.displayLabel}',
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w700,
                 ),
@@ -101,7 +102,7 @@ class _CopySettingsSheetState extends State<CopySettingsSheet> {
               Text(
                 'Orders are mirrored proportionally as the trader opens positions.',
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 12.sp,
                 ),
               ),
@@ -130,7 +131,7 @@ class _CopySettingsSheetState extends State<CopySettingsSheet> {
                 max: 0.05,
                 divisions: 49,
                 activeColor: AppColors.primary,
-                inactiveColor: AppColors.borderDark,
+                inactiveColor: context.dreamColors.stroke,
                 onChanged: (v) => setState(() => _slippage = v),
               ),
               SizedBox(height: 12.h),
@@ -145,7 +146,7 @@ class _CopySettingsSheetState extends State<CopySettingsSheet> {
                 max: 0.5,
                 divisions: 45,
                 activeColor: AppColors.warning,
-                inactiveColor: AppColors.borderDark,
+                inactiveColor: context.dreamColors.stroke,
                 onChanged: (v) => setState(() => _stopLoss = v),
               ),
               SizedBox(height: 24.h),
@@ -177,7 +178,7 @@ class _Handle extends StatelessWidget {
         width: 36.w,
         height: 4.h,
         decoration: BoxDecoration(
-          color: AppColors.borderDark,
+          color: context.dreamColors.stroke,
           borderRadius: BorderRadius.circular(2.r),
         ),
       ),
@@ -194,7 +195,7 @@ class _Label extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        color: AppColors.textSecondaryDark,
+        color: context.dreamColors.muted,
         fontSize: 12.sp,
         fontWeight: FontWeight.w500,
       ),
@@ -223,7 +224,7 @@ class _TextField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.insetDark,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: Row(
         children: [
@@ -233,7 +234,7 @@ class _TextField extends StatelessWidget {
               keyboardType: keyboardType,
               onChanged: onChanged,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 14.sp,
               ),
               decoration: const InputDecoration(
@@ -246,7 +247,7 @@ class _TextField extends StatelessWidget {
           Text(
             suffix,
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 12.sp,
             ),
           ),

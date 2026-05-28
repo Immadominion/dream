@@ -12,6 +12,7 @@ import '../../providers/account_provider.dart';
 import 'deposit_phoenix_collateral_sheet.dart';
 import 'receive_usdc_sheet.dart';
 import 'withdraw_usdc_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Wallet balance card — wallet USDC + Phoenix deposited + collateral actions
@@ -87,7 +88,7 @@ class AccountBalanceCard extends ConsumerWidget {
                 child: _CollateralButton(
                   label: 'Send',
                   icon: Icons.send_outlined,
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   onTap: () => WithdrawUsdcSheet.show(
                     context,
                     walletAddress: walletAddress,
@@ -121,7 +122,7 @@ class AccountBalanceCard extends ConsumerWidget {
               'Wallet USDC is not tradable until it is deposited to Phoenix collateral.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textMutedDark,
+                color: context.dreamColors.mutedSecondary,
                 fontSize: 10.sp,
                 height: 1.3,
               ),
@@ -155,9 +156,9 @@ class AccountWalletCard extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: AppColors.cardDark,
+          color: context.dreamColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: AppColors.borderDark),
+          border: Border.all(color: context.dreamColors.stroke),
         ),
         child: Row(
           children: [
@@ -171,13 +172,13 @@ class AccountWalletCard extends StatelessWidget {
               child: Text(
                 short,
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontFamily: 'monospace',
                 ),
               ),
             ),
-            Icon(Icons.copy, color: AppColors.textSecondaryDark, size: 14.sp),
+            Icon(Icons.copy, color: context.dreamColors.muted, size: 14.sp),
           ],
         ),
       ),
@@ -215,7 +216,7 @@ class AccountErrorBanner extends StatelessWidget {
             child: Text(
               error.length > 60 ? '${error.substring(0, 60)}…' : error,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 12.sp,
               ),
             ),
@@ -258,12 +259,16 @@ class _BalanceStat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          PhosphorIcon(icon, size: 32.sp, color: AppColors.textMutedDark),
+          PhosphorIcon(
+            icon,
+            size: 32.sp,
+            color: context.dreamColors.mutedSecondary,
+          ),
           SizedBox(height: 4.h),
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? AppColors.textPrimaryDark,
+              color: valueColor ?? context.dreamColors.onSurface,
               fontSize: 13.sp,
               fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -272,7 +277,10 @@ class _BalanceStat extends StatelessWidget {
           SizedBox(height: 2.h),
           Text(
             label,
-            style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+            style: TextStyle(
+              color: context.dreamColors.mutedSecondary,
+              fontSize: 10.sp,
+            ),
           ),
         ],
       ),
@@ -283,7 +291,11 @@ class _BalanceStat extends StatelessWidget {
 class _VerticalDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 0.5, height: 36.h, color: AppColors.borderDark);
+    return Container(
+      width: 0.5,
+      height: 36.h,
+      color: context.dreamColors.stroke,
+    );
   }
 }
 

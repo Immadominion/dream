@@ -7,8 +7,10 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/auth/client_auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 import '../widgets/settings_notifications_tile.dart';
 import '../widgets/settings_tiles.dart';
+import '../widgets/theme_toggle_tile.dart';
 
 // ---------------------------------------------------------------------------
 // Settings Page — Phoenix trading terminal settings
@@ -23,9 +25,10 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(clientAuthProvider);
     final walletAddress = authState.walletAddress ?? '';
+    final c = context.dreamColors;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: c.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,6 +46,12 @@ class SettingsPage extends ConsumerWidget {
                     SettingsWalletTile(walletAddress: walletAddress),
                     SizedBox(height: 20.h),
                   ],
+
+                  // Appearance section — dark / light toggle
+                  _SectionLabel(label: 'Appearance'),
+                  SizedBox(height: 6.h),
+                  const ThemeToggleTile(),
+                  SizedBox(height: 20.h),
 
                   // Trading section
                   _SectionLabel(label: 'Trading'),
@@ -109,6 +118,7 @@ class SettingsPage extends ConsumerWidget {
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
       child: Row(
@@ -117,7 +127,7 @@ class _Header extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(),
             child: Icon(
               PhosphorIcons.arrowLeft(),
-              color: AppColors.textPrimaryDark,
+              color: c.onSurface,
               size: 20.sp,
             ),
           ),
@@ -125,7 +135,7 @@ class _Header extends StatelessWidget {
           Text(
             'Settings',
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: c.onSurface,
               fontSize: 20.sp,
               fontWeight: FontWeight.w700,
             ),
@@ -142,12 +152,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     return Padding(
       padding: EdgeInsets.only(left: 4.w),
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          color: AppColors.textMutedDark,
+          color: c.mutedSecondary,
           fontSize: 10.sp,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.2,

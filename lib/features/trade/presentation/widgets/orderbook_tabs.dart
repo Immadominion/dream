@@ -8,6 +8,7 @@ import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import 'orderbook_widget.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 String _obPrice(double price) {
   if (price >= 10000) return addThousandsSep(price.toStringAsFixed(0));
@@ -32,7 +33,7 @@ class OrderbookDepthTab extends ConsumerWidget {
       return Center(
         child: Text(
           'Connecting…',
-          style: TextStyle(color: AppColors.textMutedDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 12.sp),
         ),
       );
     }
@@ -57,7 +58,7 @@ class OrderbookDepthTab extends ConsumerWidget {
                     Text(
                       'Bid Qty',
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 10.sp,
                       ),
                     ),
@@ -65,7 +66,7 @@ class OrderbookDepthTab extends ConsumerWidget {
                     Text(
                       'Bid',
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 10.sp,
                       ),
                     ),
@@ -79,7 +80,7 @@ class OrderbookDepthTab extends ConsumerWidget {
                     Text(
                       'Ask',
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 10.sp,
                       ),
                     ),
@@ -87,7 +88,7 @@ class OrderbookDepthTab extends ConsumerWidget {
                     Text(
                       'Ask Qty',
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 10.sp,
                       ),
                     ),
@@ -191,7 +192,7 @@ class _OrderbookSideHalf extends StatelessWidget {
                   Text(
                     _formatDepthSize(level?.size),
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 11.sp,
                     ),
                   ),
@@ -218,7 +219,7 @@ class _OrderbookSideHalf extends StatelessWidget {
                   Text(
                     _formatDepthSize(level?.size),
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 11.sp,
                     ),
                   ),
@@ -249,7 +250,7 @@ class OrderbookTradesTab extends ConsumerWidget {
       return Center(
         child: Text(
           'Waiting for trades…',
-          style: TextStyle(color: AppColors.textMutedDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 12.sp),
         ),
       );
     }
@@ -265,7 +266,7 @@ class OrderbookTradesTab extends ConsumerWidget {
                 child: Text(
                   'Time',
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 10.sp,
                   ),
                 ),
@@ -275,7 +276,7 @@ class OrderbookTradesTab extends ConsumerWidget {
                 child: Text(
                   'Side',
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 10.sp,
                   ),
                 ),
@@ -284,7 +285,7 @@ class OrderbookTradesTab extends ConsumerWidget {
                 child: Text(
                   'Price',
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 10.sp,
                   ),
                 ),
@@ -295,7 +296,7 @@ class OrderbookTradesTab extends ConsumerWidget {
                   'Qty',
                   textAlign: TextAlign.right,
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 10.sp,
                   ),
                 ),
@@ -347,7 +348,7 @@ class OrderbookTradeTile extends StatelessWidget {
               child: Text(
                 timeStr,
                 style: TextStyle(
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   fontSize: 10.sp,
                 ),
               ),
@@ -379,7 +380,7 @@ class OrderbookTradeTile extends StatelessWidget {
                 sizeStr,
                 textAlign: TextAlign.right,
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 11.sp,
                 ),
               ),

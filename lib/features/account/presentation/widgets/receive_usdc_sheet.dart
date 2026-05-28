@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 /// Bottom sheet that shows the user's wallet address + QR for receiving USDC.
 ///
@@ -18,7 +19,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
@@ -70,7 +71,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 16.h),
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -79,7 +80,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
               'Receive USDC',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -89,7 +90,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
               'Send Solana USDC here, then deposit it to Phoenix collateral',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 12.sp,
               ),
             ),
@@ -138,7 +139,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
                           Text(
                             'Wallet address',
                             style: TextStyle(
-                              color: AppColors.textMutedDark,
+                              color: context.dreamColors.mutedSecondary,
                               fontSize: 11.sp,
                             ),
                           ),
@@ -146,7 +147,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
                           Text(
                             _shortAddress,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 13.sp,
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.w600,
@@ -175,8 +176,8 @@ class ReceiveUsdcSheet extends StatelessWidget {
                     icon: Icon(Icons.copy_rounded, size: 16.sp),
                     label: const Text('Copy'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimaryDark,
-                      side: BorderSide(color: AppColors.borderDark),
+                      foregroundColor: context.dreamColors.onSurface,
+                      side: BorderSide(color: context.dreamColors.stroke),
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.r),
@@ -191,8 +192,8 @@ class ReceiveUsdcSheet extends StatelessWidget {
                     icon: Icon(Icons.ios_share_rounded, size: 16.sp),
                     label: const Text('Share'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimaryDark,
-                      side: BorderSide(color: AppColors.borderDark),
+                      foregroundColor: context.dreamColors.onSurface,
+                      side: BorderSide(color: context.dreamColors.stroke),
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.r),
@@ -220,7 +221,7 @@ class ReceiveUsdcSheet extends StatelessWidget {
                     'balance here for network fees, and do not send funds over '
                     'non-Solana networks.',
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 11.sp,
                       height: 1.4,
                     ),

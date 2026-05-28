@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../providers/trade_state.dart';
 import '../widgets/trade_receipt_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class TradeOrderSuccessScreen extends StatelessWidget {
   final TradeSubmittedTrade trade;
@@ -62,7 +63,7 @@ class TradeOrderSuccessScreen extends StatelessWidget {
         position?.liquidationPrice ?? trade.estimatedLiqPrice;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -70,7 +71,7 @@ class TradeOrderSuccessScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           icon: Icon(
             Icons.close_rounded,
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             size: 22.sp,
           ),
         ),
@@ -120,7 +121,7 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                         'Order placed',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: AppColors.textPrimaryDark,
+                          color: context.dreamColors.onSurface,
                           fontSize: 30.sp,
                           fontWeight: FontWeight.w800,
                           height: 1,
@@ -141,7 +142,7 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                         _orderSubtitle,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                           fontSize: 13.sp,
                           height: 1.45,
                         ),
@@ -210,8 +211,8 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textPrimaryDark,
-                    side: BorderSide(color: AppColors.borderDark),
+                    foregroundColor: context.dreamColors.onSurface,
+                    side: BorderSide(color: context.dreamColors.stroke),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18.r),
                     ),
@@ -230,7 +231,7 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                 TextButton(
                   onPressed: _openSolscan,
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondaryDark,
+                    foregroundColor: context.dreamColors.muted,
                   ),
                   child: Text(
                     'View on Solscan',
@@ -273,7 +274,7 @@ class _SuccessMetricRow extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
                   ),
@@ -285,7 +286,7 @@ class _SuccessMetricRow extends StatelessWidget {
                   value,
                   textAlign: TextAlign.right,
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
                   ),
@@ -295,7 +296,7 @@ class _SuccessMetricRow extends StatelessWidget {
           ),
           if (!isLast) ...[
             SizedBox(height: 14.h),
-            Divider(height: 1, thickness: 1, color: AppColors.borderDark),
+            Divider(height: 1, thickness: 1, color: context.dreamColors.stroke),
           ],
         ],
       ),

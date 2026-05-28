@@ -6,6 +6,7 @@ import '../../../../core/services/phoenix/phoenix_trader_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/account_provider.dart';
 import '../../../positions/providers/positions_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Activate trading account card
@@ -92,7 +93,7 @@ class _AccountActivateCardState extends ConsumerState<AccountActivateCard> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: AppColors.primary.withOpacity(0.4)),
       ),
@@ -111,7 +112,7 @@ class _AccountActivateCardState extends ConsumerState<AccountActivateCard> {
               Text(
                 'Activate Trading Account',
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w700,
                 ),
@@ -124,7 +125,7 @@ class _AccountActivateCardState extends ConsumerState<AccountActivateCard> {
           Container(
             height: 34.h,
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: context.dreamColors.surface,
               borderRadius: BorderRadius.circular(6.r),
             ),
             child: Row(
@@ -157,7 +158,7 @@ class _AccountActivateCardState extends ConsumerState<AccountActivateCard> {
                 ? 'Enter a referral code from an existing Phoenix trader.'
                 : 'Enter your allowlist access code from the Phoenix team.',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 12.sp,
               height: 1.5,
             ),
@@ -169,26 +170,26 @@ class _AccountActivateCardState extends ConsumerState<AccountActivateCard> {
             controller: _codeCtrl,
             autocorrect: false,
             textCapitalization: TextCapitalization.none,
-            style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 14.sp),
+            style: TextStyle(color: context.dreamColors.onSurface, fontSize: 14.sp),
             decoration: InputDecoration(
               hintText: _tab == 0 ? 'e.g. DREAM-XXXX' : 'Access code',
               hintStyle: TextStyle(
-                color: AppColors.textMutedDark,
+                color: context.dreamColors.mutedSecondary,
                 fontSize: 13.sp,
               ),
               filled: true,
-              fillColor: AppColors.surfaceDark,
+              fillColor: context.dreamColors.surface,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 12.w,
                 vertical: 12.h,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: AppColors.borderDark),
+                borderSide: BorderSide(color: context.dreamColors.stroke),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: AppColors.borderDark),
+                borderSide: BorderSide(color: context.dreamColors.stroke),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
@@ -269,7 +270,7 @@ class _CodeTab extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : AppColors.textSecondaryDark,
+              color: selected ? Colors.white : context.dreamColors.muted,
               fontSize: 12.sp,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
             ),

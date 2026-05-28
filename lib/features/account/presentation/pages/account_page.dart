@@ -22,6 +22,8 @@ import 'history_page.dart';
 import 'earn_page.dart';
 import 'leaderboard_page.dart';
 import 'health_page.dart';
+import '../../../../core/theme/dream_colors.dart';
+import '../../../settings/presentation/widgets/theme_toggle_tile.dart';
 
 class AccountPage extends ConsumerWidget {
   const AccountPage({super.key});
@@ -80,7 +82,7 @@ class AccountPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -98,13 +100,13 @@ class AccountPage extends ConsumerWidget {
                     child: Container(
                       padding: EdgeInsets.all(8.r),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceDark,
+                        color: context.dreamColors.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.borderDark),
+                        border: Border.all(color: context.dreamColors.stroke),
                       ),
                       child: Icon(
                         PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         size: 24.sp,
                       ),
                     ),
@@ -112,7 +114,7 @@ class AccountPage extends ConsumerWidget {
                   Text(
                     'Profile',
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 24.sp,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -134,7 +136,7 @@ class AccountPage extends ConsumerWidget {
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
-                backgroundColor: AppColors.surfaceDark,
+                backgroundColor: context.dreamColors.surface,
                 onRefresh: () => ref.read(accountProvider.notifier).refresh(),
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(
@@ -174,13 +176,14 @@ class AccountPage extends ConsumerWidget {
                                       )
                                     : CircleAvatar(
                                         radius: 42.r,
-                                        backgroundColor: AppColors.cardDark,
+                                        backgroundColor:
+                                            context.dreamColors.surfaceVariant,
                                         child: Icon(
                                           PhosphorIcons.user(
                                             PhosphorIconsStyle.duotone,
                                           ),
                                           size: 40.sp,
-                                          color: AppColors.textSecondaryDark,
+                                          color: context.dreamColors.muted,
                                         ),
                                       ),
                               ),
@@ -192,7 +195,7 @@ class AccountPage extends ConsumerWidget {
                           Text(
                             displayName,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 22.sp,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.5,
@@ -209,7 +212,7 @@ class AccountPage extends ConsumerWidget {
                                 ? '${walletAddress.substring(0, 6)}…${walletAddress.substring(walletAddress.length - 6)}'
                                 : 'Solana Wallet',
                             style: TextStyle(
-                              color: AppColors.textSecondaryDark,
+                              color: context.dreamColors.muted,
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w400,
                             ),
@@ -245,7 +248,7 @@ class AccountPage extends ConsumerWidget {
                                   color: Colors.white.withOpacity(0.04),
                                   borderRadius: BorderRadius.circular(16.r),
                                   border: Border.all(
-                                    color: AppColors.borderDark,
+                                    color: context.dreamColors.stroke,
                                     width: 0.8,
                                   ),
                                 ),
@@ -263,7 +266,7 @@ class AccountPage extends ConsumerWidget {
                                     Text(
                                       '${walletAddress.substring(0, 8)}…${walletAddress.substring(walletAddress.length - 8)}',
                                       style: TextStyle(
-                                        color: AppColors.textPrimaryDark,
+                                        color: context.dreamColors.onSurface,
                                         fontSize: 12.sp,
                                         fontFamily: 'monospace',
                                         fontWeight: FontWeight.w600,
@@ -274,7 +277,7 @@ class AccountPage extends ConsumerWidget {
                                       PhosphorIcons.copy(
                                         PhosphorIconsStyle.regular,
                                       ),
-                                      color: AppColors.textSecondaryDark,
+                                      color: context.dreamColors.muted,
                                       size: 12.sp,
                                     ),
                                   ],
@@ -348,7 +351,8 @@ class AccountPage extends ConsumerWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const EarnPage(),
+                                builder: (_) =>
+                                    EarnPage(walletAddress: walletAddress),
                               ),
                             );
                           },
@@ -421,13 +425,13 @@ class AccountPage extends ConsumerWidget {
       child: Container(
         padding: EdgeInsets.all(8.r),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: context.dreamColors.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.borderDark),
+          border: Border.all(color: context.dreamColors.stroke),
         ),
         child: Icon(
           PhosphorIcons.gearSix(PhosphorIconsStyle.bold),
-          color: AppColors.textPrimaryDark,
+          color: context.dreamColors.onSurface,
           size: 24.sp,
         ),
       ),
@@ -448,13 +452,13 @@ class AccountPage extends ConsumerWidget {
       child: Container(
         padding: EdgeInsets.all(8.r),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: context.dreamColors.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.borderDark),
+          border: Border.all(color: context.dreamColors.stroke),
         ),
         child: Icon(
           PhosphorIcons.clockCounterClockwise(PhosphorIconsStyle.bold),
-          color: AppColors.textPrimaryDark,
+          color: context.dreamColors.onSurface,
           size: 24.sp,
         ),
       ),
@@ -464,7 +468,7 @@ class AccountPage extends ConsumerWidget {
   void _showSettingsSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       barrierColor: Colors.black.withOpacity(0.5),
       isScrollControlled: true,
       shape: RoundedRectangleBorder(
@@ -483,18 +487,18 @@ class AccountPage extends ConsumerWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         title: Text(
           'Sign Out',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 16.sp,
             fontWeight: FontWeight.w700,
           ),
         ),
         content: Text(
           'Are you sure you want to sign out?',
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 13.sp),
         ),
         actions: [
           TextButton(
@@ -502,7 +506,7 @@ class AccountPage extends ConsumerWidget {
             child: Text(
               'Cancel',
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 13.sp,
               ),
             ),
@@ -560,7 +564,7 @@ class _SettingsSheet extends ConsumerWidget {
                 width: 36.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -570,7 +574,7 @@ class _SettingsSheet extends ConsumerWidget {
             Text(
               'Settings & Security',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 24.sp,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
@@ -578,14 +582,20 @@ class _SettingsSheet extends ConsumerWidget {
             ),
             SizedBox(height: 24.h),
 
+            // ── Appearance ───────────────────────────────────────────────
+            _SheetSectionLabel(label: 'Appearance'),
+            SizedBox(height: 10.h),
+            const ThemeToggleTile(),
+            SizedBox(height: 24.h),
+
             // ── UI Preferences ──────────────────────────────────────────
             _SheetSectionLabel(label: 'Preferences'),
             SizedBox(height: 10.h),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: context.dreamColors.surface,
                 borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(color: AppColors.borderDark),
+                border: Border.all(color: context.dreamColors.stroke),
               ),
               child: SwitchListTile(
                 value: uiPrefs.enabled,
@@ -602,7 +612,7 @@ class _SettingsSheet extends ConsumerWidget {
                     Text(
                       'Remember UI State',
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w700,
                       ),
@@ -616,14 +626,14 @@ class _SettingsSheet extends ConsumerWidget {
                         ? 'Trade direction & layout saved locally'
                         : 'No UI state persisted',
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 12.sp,
                     ),
                   ),
                 ),
                 activeColor: AppColors.primary,
                 activeTrackColor: AppColors.primary.withOpacity(0.2),
-                inactiveThumbColor: AppColors.textSecondaryDark,
+                inactiveThumbColor: context.dreamColors.muted,
                 inactiveTrackColor: Colors.white.withOpacity(0.06),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18.r),
@@ -637,9 +647,9 @@ class _SettingsSheet extends ConsumerWidget {
             SizedBox(height: 10.h),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: context.dreamColors.surface,
                 borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(color: AppColors.borderDark),
+                border: Border.all(color: context.dreamColors.stroke),
               ),
               child: Column(
                 children: [
@@ -649,8 +659,8 @@ class _SettingsSheet extends ConsumerWidget {
                     value: 'v$_appVersion',
                     isFirst: true,
                   ),
-                  const Divider(
-                    color: AppColors.borderDark,
+                  Divider(
+                    color: context.dreamColors.stroke,
                     height: 1,
                     indent: 16,
                     endIndent: 16,
@@ -660,8 +670,8 @@ class _SettingsSheet extends ConsumerWidget {
                     title: 'Powered by',
                     value: 'Phoenix Trade · Solana',
                   ),
-                  const Divider(
-                    color: AppColors.borderDark,
+                  Divider(
+                    color: context.dreamColors.stroke,
                     height: 1,
                     indent: 16,
                     endIndent: 16,
@@ -736,7 +746,7 @@ class _SheetSectionLabel extends StatelessWidget {
     return Text(
       label.toUpperCase(),
       style: TextStyle(
-        color: AppColors.textMutedDark,
+        color: context.dreamColors.mutedSecondary,
         fontSize: 11.sp,
         fontWeight: FontWeight.w600,
         letterSpacing: 1.3,
@@ -772,14 +782,14 @@ class _SheetInfoTile extends StatelessWidget {
         children: [
           Icon(
             icon,
-            color: iconColor ?? AppColors.textSecondaryDark,
+            color: iconColor ?? context.dreamColors.muted,
             size: 22.sp,
           ),
           SizedBox(width: 14.w),
           Text(
             title,
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 15.sp,
               fontWeight: FontWeight.w500,
             ),
@@ -788,7 +798,7 @@ class _SheetInfoTile extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? AppColors.textSecondaryDark,
+              color: valueColor ?? context.dreamColors.muted,
               fontSize: 14.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -812,9 +822,9 @@ class _ProfileGroupContainer extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.circular(26.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: Column(children: children),
     );
@@ -867,7 +877,7 @@ class _ProfileItemTile extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          color: AppColors.textPrimaryDark,
+                          color: context.dreamColors.onSurface,
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.3,
@@ -877,7 +887,7 @@ class _ProfileItemTile extends StatelessWidget {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                           fontSize: 12.sp,
                         ),
                       ),
@@ -886,7 +896,7 @@ class _ProfileItemTile extends StatelessWidget {
                 ),
                 Icon(
                   PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   size: 16.sp,
                 ),
               ],
@@ -894,7 +904,7 @@ class _ProfileItemTile extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(color: AppColors.borderDark, height: 1, indent: 72),
+          Divider(color: context.dreamColors.stroke, height: 1, indent: 72),
       ],
     );
   }

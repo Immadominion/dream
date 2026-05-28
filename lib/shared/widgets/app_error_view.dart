@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/dream_colors.dart';
 
 /// Full-screen error state used across all feature pages.
 ///
@@ -64,7 +65,7 @@ class AppErrorView extends StatelessWidget {
             Text(
               friendly(error),
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 14.sp,
                 height: 1.55,
               ),

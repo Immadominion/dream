@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import 'account_history_providers.dart';
 import 'account_history_shared.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class AccountTradeHistoryTab extends ConsumerWidget {
   final String walletAddress;
@@ -33,7 +34,7 @@ class AccountTradeHistoryTab extends ConsumerWidget {
       ),
       error: (e, _) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: buildAccountHistoryFallbackScrollView(
           child: const AccountHistoryErrorState(),
@@ -41,7 +42,7 @@ class AccountTradeHistoryTab extends ConsumerWidget {
       ),
       data: (trades) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: trades.isEmpty
             ? buildAccountHistoryFallbackScrollView(
@@ -62,7 +63,7 @@ class AccountTradeHistoryTab extends ConsumerWidget {
                 itemCount: trades.length,
                 separatorBuilder: (context, index) => Divider(
                   height: 1,
-                  color: AppColors.borderDark.withValues(alpha: 0.5),
+                  color: context.dreamColors.stroke.withValues(alpha: 0.5),
                 ),
                 itemBuilder: (_, i) => _TradeHistoryRow(trade: trades[i]),
               ),
@@ -95,7 +96,7 @@ class AccountOrderHistoryTab extends ConsumerWidget {
       ),
       error: (e, _) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: buildAccountHistoryFallbackScrollView(
           child: const AccountHistoryErrorState(),
@@ -103,7 +104,7 @@ class AccountOrderHistoryTab extends ConsumerWidget {
       ),
       data: (items) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: items.isEmpty
             ? buildAccountHistoryFallbackScrollView(
@@ -124,7 +125,7 @@ class AccountOrderHistoryTab extends ConsumerWidget {
                 itemCount: items.length,
                 separatorBuilder: (context, index) => Divider(
                   height: 1,
-                  color: AppColors.borderDark.withValues(alpha: 0.5),
+                  color: context.dreamColors.stroke.withValues(alpha: 0.5),
                 ),
                 itemBuilder: (_, i) => _OrderHistoryRow(data: items[i]),
               ),
@@ -153,7 +154,7 @@ class _TradeHistoryRow extends StatelessWidget {
         : '@ ${_formatHistoryPrice(trade.price)}';
     final secondaryColor = hasRealizedPnl
         ? (trade.realizedPnl >= 0 ? AppColors.bullish : AppColors.bearish)
-        : AppColors.textSecondaryDark;
+        : context.dreamColors.muted;
 
     return InkWell(
       onTap: () => _showTradeDetail(context, trade),
@@ -176,7 +177,7 @@ class _TradeHistoryRow extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
                     ),
@@ -185,7 +186,7 @@ class _TradeHistoryRow extends StatelessWidget {
                   Text(
                     '$subtitle · ${formatAccountHistoryDate(trade.dateTime)}',
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 12.sp,
                     ),
                   ),
@@ -199,7 +200,7 @@ class _TradeHistoryRow extends StatelessWidget {
                 Text(
                   '${trade.size.toStringAsFixed(4)} $baseSymbol',
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
                   ),
@@ -220,7 +221,7 @@ class _TradeHistoryRow extends StatelessWidget {
   void _showTradeDetail(BuildContext context, PhoenixTradeHistoryItem trade) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
@@ -234,13 +235,17 @@ class _OrderHistoryRow extends StatelessWidget {
 
   const _OrderHistoryRow({required this.data});
 
-  static const _statusColors = {
-    'filled': AppColors.bullish,
-    'cancelled': AppColors.textMutedDark,
-    'expired': AppColors.textMutedDark,
-    'partial': AppColors.primary,
-    'open': AppColors.primary,
-  };
+  static Color _statusColor(String status, BuildContext context) {
+    switch (status) {
+      case 'filled':
+        return AppColors.bullish;
+      case 'partial':
+      case 'open':
+        return AppColors.primary;
+      default: // cancelled, expired, etc.
+        return context.dreamColors.mutedSecondary;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +266,7 @@ class _OrderHistoryRow extends StatelessWidget {
         (data['orderType'] as String? ?? data['type'] as String? ?? 'market')
             .toLowerCase();
     final sideColor = isBuy ? AppColors.bullish : AppColors.bearish;
-    final statusColor = _statusColors[statusRaw] ?? AppColors.textSecondaryDark;
+    final statusColor = _statusColor(statusRaw, context);
     final base = symbol.split('-').first;
 
     return Padding(
@@ -283,7 +288,7 @@ class _OrderHistoryRow extends StatelessWidget {
                 Text(
                   '${isBuy ? 'Long' : 'Short'} $base',
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -292,7 +297,7 @@ class _OrderHistoryRow extends StatelessWidget {
                 Text(
                   '${orderTypeRaw.toUpperCase()} · ${formatAccountHistoryDate(data['timestamp'] ?? data['createdAt'] ?? data['time'])}',
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -300,7 +305,7 @@ class _OrderHistoryRow extends StatelessWidget {
                 Text(
                   amount > 0 ? '${amount.toStringAsFixed(4)} $base' : symbol,
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 11.sp,
                   ),
                 ),
@@ -314,7 +319,7 @@ class _OrderHistoryRow extends StatelessWidget {
               Text(
                 price > 0 ? formatPrice(price) : 'Market',
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w700,
                 ),
@@ -402,7 +407,7 @@ class _TradeDetailSheet extends StatelessWidget {
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 16.h),
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -414,7 +419,7 @@ class _TradeDetailSheet extends StatelessWidget {
                 Text(
                   trade.symbol,
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 17.sp,
                     fontWeight: FontWeight.w700,
                   ),
@@ -440,7 +445,10 @@ class _TradeDetailSheet extends StatelessWidget {
             SizedBox(height: 4.h),
             Text(
               dateFull,
-              style: TextStyle(color: AppColors.textMutedDark, fontSize: 11.sp),
+              style: TextStyle(
+                color: context.dreamColors.mutedSecondary,
+                fontSize: 11.sp,
+              ),
             ),
 
             SizedBox(height: 20.h),
@@ -449,9 +457,9 @@ class _TradeDetailSheet extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: AppColors.cardDark,
+                color: context.dreamColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: AppColors.borderDark),
+                border: Border.all(color: context.dreamColors.stroke),
               ),
               child: Column(
                 children: [
@@ -544,14 +552,14 @@ class _DetailRow extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 13.sp,
                 ),
               ),
               Text(
                 value,
                 style: TextStyle(
-                  color: valueColor ?? AppColors.textPrimaryDark,
+                  color: valueColor ?? context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w500,
                 ),
@@ -559,7 +567,7 @@ class _DetailRow extends StatelessWidget {
             ],
           ),
         ),
-        if (!isLast) Divider(height: 1, color: AppColors.borderDark),
+        if (!isLast) Divider(height: 1, color: context.dreamColors.stroke),
       ],
     );
   }

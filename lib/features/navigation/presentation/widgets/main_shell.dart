@@ -29,6 +29,7 @@ import 'bottom_nav.dart';
 import 'notification_runtime_listener.dart';
 import 'shell_banners.dart';
 import 'wallet_deposit_listener.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 /// Main application shell — 4-tab trading terminal.
 class MainShell extends ConsumerStatefulWidget {
@@ -288,7 +289,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                           size: 45.r,
                           borderColor: isAccount
                               ? AppColors.primary.withValues(alpha: 0.65)
-                              : AppColors.borderDark,
+                              : context.dreamColors.stroke,
                         )
                       : Icon(
                           PhosphorIcons.userCircle(
@@ -298,7 +299,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                           ),
                           color: isAccount
                               ? AppColors.primaryLight
-                              : AppColors.textSecondaryDark,
+                              : context.dreamColors.muted,
                           size: 26.sp,
                         ),
                 ),
@@ -310,7 +311,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                         TextSpan(
                           text: 'Hi, ',
                           style: TextStyle(
-                            color: AppColors.textSecondaryDark,
+                            color: context.dreamColors.muted,
                             fontSize: 17.sp,
                             fontWeight: FontWeight.w400,
                           ),
@@ -321,7 +322,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                             resolvedDomain: resolvedDomain,
                           ),
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: context.dreamColors.onSurface,
                             fontSize: 17.sp,
                             fontWeight: FontWeight.w700,
                           ),
@@ -343,12 +344,12 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                       duration: const Duration(milliseconds: 180),
                       height: 36.h,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceDark,
+                        color: context.dreamColors.surface,
                         borderRadius: BorderRadius.circular(18.r),
                         border: Border.all(
                           color: _searchFocused
                               ? AppColors.primary
-                              : AppColors.borderDark,
+                              : context.dreamColors.stroke,
                           width: _searchFocused ? 1.2 : 1,
                         ),
                       ),
@@ -356,19 +357,19 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                         controller: _textCtrl,
                         focusNode: _focusNode,
                         style: TextStyle(
-                          color: AppColors.textPrimaryDark,
+                          color: context.dreamColors.onSurface,
                           fontSize: 14.sp,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Search markets…',
                           hintStyle: TextStyle(
-                            color: AppColors.textMutedDark,
+                            color: context.dreamColors.mutedSecondary,
                             fontSize: 14.sp,
                           ),
                           prefixIcon: Icon(
                             PhosphorIcons.magnifyingGlass(),
                             size: 17.sp,
-                            color: AppColors.textMutedDark,
+                            color: context.dreamColors.mutedSecondary,
                           ),
                           suffixIcon: _textCtrl.text.isNotEmpty
                               ? GestureDetector(
@@ -385,7 +386,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                                   },
                                   child: Icon(
                                     PhosphorIcons.xCircle(),
-                                    color: AppColors.textMutedDark,
+                                    color: context.dreamColors.mutedSecondary,
                                     size: 16.sp,
                                   ),
                                 )
@@ -415,7 +416,7 @@ class _ShellTopBarState extends ConsumerState<_ShellTopBar> {
                       size: 20.sp,
                       color: watchlistOnly
                           ? AppColors.warningLight
-                          : AppColors.textSecondaryDark,
+                          : context.dreamColors.muted,
                     ),
                   ),
                 ],
@@ -455,7 +456,7 @@ class _BellIcon extends ConsumerWidget {
           children: [
             Icon(
               PhosphorIcons.bell(PhosphorIconsStyle.bold),
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               size: 22.sp,
             ),
             if (unread > 0)
@@ -474,7 +475,7 @@ class _BellIcon extends ConsumerWidget {
                     color: AppColors.error,
                     borderRadius: BorderRadius.circular(999.r),
                     border: Border.all(
-                      color: AppColors.backgroundDark,
+                      color: context.dreamColors.background,
                       width: 1,
                     ),
                   ),
@@ -522,7 +523,7 @@ class _HistoryIcon extends StatelessWidget {
         padding: EdgeInsets.only(left: 8.w),
         child: Icon(
           PhosphorIcons.clockCounterClockwise(PhosphorIconsStyle.bold),
-          color: AppColors.textSecondaryDark,
+          color: context.dreamColors.muted,
           size: 22.sp,
         ),
       ),

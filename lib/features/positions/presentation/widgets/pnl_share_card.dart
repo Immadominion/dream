@@ -11,6 +11,7 @@ import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // PnL Share Card — renders to PNG and shares via system share sheet
@@ -114,13 +115,13 @@ class _PnlShareButtonState extends State<PnlShareButton> {
                           height: 14.r,
                           child: CircularProgressIndicator(
                             strokeWidth: 1.5,
-                            color: AppColors.textSecondaryDark,
+                            color: context.dreamColors.muted,
                           ),
                         )
                       : Icon(
                           PhosphorIcons.shareFat(),
                           size: 16.sp,
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                         ),
                   padding: EdgeInsets.zero,
                   tooltip: 'Share PnL',
@@ -132,7 +133,7 @@ class _PnlShareButtonState extends State<PnlShareButton> {
                   onPressed: _sharing ? null : _share,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: AppColors.textMutedDark.withValues(alpha: 0.4),
+                      color: context.dreamColors.mutedSecondary.withValues(alpha: 0.4),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(6.r),
@@ -145,18 +146,18 @@ class _PnlShareButtonState extends State<PnlShareButton> {
                           height: 12.w,
                           child: CircularProgressIndicator(
                             strokeWidth: 1.5,
-                            color: AppColors.textSecondaryDark,
+                            color: context.dreamColors.muted,
                           ),
                         )
                       : Icon(
                           Icons.share_outlined,
                           size: 13.sp,
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                         ),
                   label: Text(
                     'Share',
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w600,
                     ),
@@ -231,8 +232,8 @@ class _PnlCard extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          AppColors.surfaceDark,
-                          AppColors.cardDark,
+                          context.dreamColors.surface,
+                          context.dreamColors.surfaceVariant,
                           glowColor.withValues(alpha: 0.22),
                         ],
                       ),
@@ -289,20 +290,20 @@ class _PnlCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.textPrimaryDark.withValues(
+                              color: context.dreamColors.onSurface.withValues(
                                 alpha: 0.08,
                               ),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: AppColors.textPrimaryDark.withValues(
+                                color: context.dreamColors.onSurface.withValues(
                                   alpha: 0.08,
                                 ),
                               ),
                             ),
-                            child: const Text(
+                            child: Text(
                               'DREAM',
                               style: TextStyle(
-                                color: AppColors.textPrimaryDark,
+                                color: context.dreamColors.onSurface,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1.5,
@@ -312,8 +313,8 @@ class _PnlCard extends StatelessWidget {
                           const Spacer(),
                           Text(
                             position.symbol,
-                            style: const TextStyle(
-                              color: AppColors.textPrimaryDark,
+                            style: TextStyle(
+                              color: context.dreamColors.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),

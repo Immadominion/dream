@@ -9,6 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/constants/app_constants.dart';
+import 'core/providers/theme/theme_provider.dart';
 import 'core/services/notifications/remote_notification_service.dart';
 import 'core/services/logger_service.dart';
 import 'core/services/notification_service.dart';
@@ -37,14 +38,6 @@ void main() async {
   final notifications = NotificationService(logger: logger);
   await notifications.initialize();
 
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
-
   runApp(
     ProviderScope(
       overrides: [
@@ -72,7 +65,10 @@ Future<void> _initializeCloudServices(LoggerService logger) async {
   }
 
   if (!AppConstants.hasSupabaseConfig) {
-    logger.warning('Supabase config missing; backend sync disabled', tag: 'Supabase');
+    logger.warning(
+      'Supabase config missing; backend sync disabled',
+      tag: 'Supabase',
+    );
     return;
   }
 
@@ -98,36 +94,47 @@ class DreamApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
 
     return ScreenUtilInit(
       designSize: const Size(375, 812), // iPhone 13 Pro design size
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return SessionManager(
-          child: MaterialApp.router(
-            title: 'Dream',
-            debugShowCheckedModeBanner: false,
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
+            statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          ),
+          child: SessionManager(
+            child: MaterialApp.router(
+              title: 'Dream',
+              debugShowCheckedModeBanner: false,
 
-            // Theme Configuration — always dark
-            theme: AppTheme.darkTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.dark,
+              // Theme Configuration — driven by themeModeProvider
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
 
-            // Router Configuration
-            routerConfig: router,
+              // Router Configuration
+              routerConfig: router,
 
-            // Builder for responsive design
-            builder: (context, child) {
-              return MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(
-                    MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+              // Builder for responsive design
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: TextScaler.linear(
+                      MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+                    ),
                   ),
-                ),
-                child: child!,
-              );
-            },
+                  child: child!,
+                );
+              },
+            ),
           ),
         );
       },

@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../models/intelligence_models.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class LeaderCard extends StatelessWidget {
   final LeaderProfile leader;
@@ -29,9 +30,9 @@ class LeaderCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 10.h),
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.borderDark.withValues(alpha: 0.6)),
+        border: Border.all(color: context.dreamColors.stroke.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +48,7 @@ class LeaderCard extends StatelessWidget {
                     Text(
                       leader.displayLabel,
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -62,7 +63,7 @@ class LeaderCard extends StatelessWidget {
                             _short(leader.address),
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: AppColors.textMutedDark,
+                              color: context.dreamColors.mutedSecondary,
                               fontSize: 11.sp,
                               fontFeatures: const [
                                 FontFeature.tabularFigures(),
@@ -159,7 +160,7 @@ class _LiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? AppColors.success : AppColors.textMutedDark;
+    final color = active ? AppColors.success : context.dreamColors.mutedSecondary;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
       decoration: BoxDecoration(
@@ -192,14 +193,14 @@ class _InlineMetric extends StatelessWidget {
         children: [
           Text(
             '$label ',
-            style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+            style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 10.sp),
           ),
           Flexible(
             child: Text(
               value,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 10.sp,
                 fontWeight: FontWeight.w700,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -287,7 +288,7 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.circular(6.r),
       ),
       child: Column(
@@ -295,7 +296,7 @@ class _StatChip extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? AppColors.textPrimaryDark,
+              color: valueColor ?? context.dreamColors.onSurface,
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -304,7 +305,7 @@ class _StatChip extends StatelessWidget {
           SizedBox(height: 1.h),
           Text(
             label,
-            style: TextStyle(color: AppColors.textMutedDark, fontSize: 9.sp),
+            style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 9.sp),
           ),
         ],
       ),
@@ -361,9 +362,9 @@ class _Skeleton extends StatelessWidget {
       height: 80.h,
       padding: EdgeInsets.all(14.r),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.borderDark.withValues(alpha: 0.6)),
+        border: Border.all(color: context.dreamColors.stroke.withValues(alpha: 0.6)),
       ),
       child: Row(
         children: [
@@ -371,7 +372,7 @@ class _Skeleton extends StatelessWidget {
             width: 36.r,
             height: 36.r,
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: context.dreamColors.surface,
               shape: BoxShape.circle,
             ),
           ),
@@ -385,7 +386,7 @@ class _Skeleton extends StatelessWidget {
                   height: 11.h,
                   width: 100.w,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: context.dreamColors.surface,
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                 ),
@@ -394,7 +395,7 @@ class _Skeleton extends StatelessWidget {
                   height: 9.h,
                   width: 60.w,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: context.dreamColors.surface,
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                 ),

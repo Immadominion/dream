@@ -11,6 +11,7 @@ import '../../models/intelligence_models.dart';
 import '../../providers/ai_trading_provider.dart';
 import '../widgets/agent_activation_sheet.dart';
 import '../widgets/agent_config_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class AITradingPage extends ConsumerWidget {
   const AITradingPage({super.key});
@@ -85,7 +86,7 @@ class _AgentHeader extends ConsumerWidget {
             child: Text(
               'Signal Agent',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
@@ -112,7 +113,7 @@ class _AgentHeader extends ConsumerWidget {
             },
             child: Icon(
               PhosphorIcons.slidersHorizontal(PhosphorIconsStyle.bold),
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               size: 20.r,
             ),
           ),
@@ -161,7 +162,7 @@ class _HeroStatus extends StatelessWidget {
                 style: GoogleFonts.vt323(
                   color: isRunning
                       ? AppColors.primary
-                      : AppColors.textSecondaryDark,
+                      : context.dreamColors.muted,
                   fontSize: 44.sp,
                   height: 1.0,
                 ),
@@ -172,7 +173,7 @@ class _HeroStatus extends StatelessWidget {
                     ? 'Scanning ${state.config.market} · every 60s'
                     : 'Tap activate to start scanning',
                 style: TextStyle(
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   fontSize: 13.sp,
                   height: 1.4,
                 ),
@@ -184,7 +185,7 @@ class _HeroStatus extends StatelessWidget {
                     Text(
                       'Session',
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -254,12 +255,12 @@ class _InlineStat extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 11.r, color: AppColors.textMutedDark),
+        Icon(icon, size: 11.r, color: context.dreamColors.mutedSecondary),
         SizedBox(width: 4.w),
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textSecondaryDark,
+            color: context.dreamColors.muted,
             fontSize: 12.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -277,9 +278,9 @@ class _Separator extends StatelessWidget {
       child: Container(
         width: 3.r,
         height: 3.r,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.borderDark,
+          color: context.dreamColors.stroke,
         ),
       ),
     );
@@ -359,7 +360,7 @@ class _FeedHeader extends StatelessWidget {
         Text(
           'SIGNALS',
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 11.sp,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
@@ -369,7 +370,7 @@ class _FeedHeader extends StatelessWidget {
         Expanded(
           child: Container(
             height: 1,
-            color: AppColors.borderDark.withValues(alpha: 0.4),
+            color: context.dreamColors.stroke.withValues(alpha: 0.4),
           ),
         ),
       ],
@@ -384,7 +385,7 @@ class _SignalEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (barColor, label) = _meta(entry.action);
+    final (barColor, label) = _meta(entry.action, context);
     final timeStr = _relativeTime(entry.timestamp);
 
     return IntrinsicHeight(
@@ -407,7 +408,7 @@ class _SignalEntry extends StatelessWidget {
                 Container(
                   width: 2,
                   height: 14.h,
-                  color: AppColors.borderDark.withValues(alpha: 0.3),
+                  color: context.dreamColors.stroke.withValues(alpha: 0.3),
                 ),
             ],
           ),
@@ -434,7 +435,7 @@ class _SignalEntry extends StatelessWidget {
                       Text(
                         timeStr,
                         style: TextStyle(
-                          color: AppColors.textMutedDark,
+                          color: context.dreamColors.mutedSecondary,
                           fontSize: 11.sp,
                         ),
                       ),
@@ -444,7 +445,7 @@ class _SignalEntry extends StatelessWidget {
                   Text(
                     entry.reason,
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 12.sp,
                       height: 1.45,
                     ),
@@ -480,11 +481,12 @@ class _SignalEntry extends StatelessWidget {
     );
   }
 
-  (Color, String) _meta(BotAction action) => switch (action) {
-    BotAction.buy => (AppColors.bullish, 'BUY'),
-    BotAction.sell => (AppColors.bearish, 'SELL'),
-    BotAction.hold => (AppColors.textSecondaryDark, 'HOLD'),
-  };
+  (Color, String) _meta(BotAction action, BuildContext context) =>
+      switch (action) {
+        BotAction.buy => (AppColors.bullish, 'BUY'),
+        BotAction.sell => (AppColors.bearish, 'SELL'),
+        BotAction.hold => (context.dreamColors.muted, 'HOLD'),
+      };
 
   String _relativeTime(DateTime t) {
     final diff = DateTime.now().difference(t);
@@ -504,13 +506,13 @@ class _EmptyFeed extends StatelessWidget {
         Icon(
           PhosphorIcons.waveform(PhosphorIconsStyle.duotone),
           size: 38.r,
-          color: AppColors.textMutedDark.withValues(alpha: 0.5),
+          color: context.dreamColors.mutedSecondary.withValues(alpha: 0.5),
         ),
         SizedBox(height: 14.h),
         Text(
           'No signals yet',
           style: TextStyle(
-            color: AppColors.textSecondaryDark,
+            color: context.dreamColors.muted,
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -519,7 +521,7 @@ class _EmptyFeed extends StatelessWidget {
         Text(
           'Activate the agent to start scanning\nfor entry and exit opportunities.',
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 12.sp,
             height: 1.55,
           ),
@@ -542,10 +544,12 @@ class _PurchaseSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         border: Border(
-          top: BorderSide(color: AppColors.borderDark.withValues(alpha: 0.6)),
+          top: BorderSide(
+            color: context.dreamColors.stroke.withValues(alpha: 0.6),
+          ),
         ),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -565,7 +569,7 @@ class _PurchaseSheet extends StatelessWidget {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -574,7 +578,7 @@ class _PurchaseSheet extends StatelessWidget {
           Text(
             'Signal Credits',
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 22.sp,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -583,7 +587,10 @@ class _PurchaseSheet extends StatelessWidget {
           SizedBox(height: 6.h),
           Text(
             'Each scan uses 1 credit. Credits never expire.',
-            style: TextStyle(color: AppColors.textMutedDark, fontSize: 13.sp),
+            style: TextStyle(
+              color: context.dreamColors.mutedSecondary,
+              fontSize: 13.sp,
+            ),
           ),
           SizedBox(height: 32.h),
           ...CreditTier.tiers.asMap().entries.map(
@@ -641,7 +648,10 @@ class _TierRow extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [color.withValues(alpha: 0.14), AppColors.surfaceDark],
+              colors: [
+                color.withValues(alpha: 0.14),
+                context.dreamColors.surface,
+              ],
             ),
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(color: color.withValues(alpha: 0.3)),
@@ -681,7 +691,7 @@ class _TierRow extends StatelessWidget {
                     Text(
                       tier.label,
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w800,
                       ),
@@ -690,7 +700,7 @@ class _TierRow extends StatelessWidget {
                     Text(
                       '${tier.credits} scans',
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -714,7 +724,7 @@ class _TierRow extends StatelessWidget {
                   Text(
                     '~\$${(tier.solPrice * 150).toStringAsFixed(0)}',
                     style: TextStyle(
-                      color: AppColors.textMutedDark,
+                      color: context.dreamColors.mutedSecondary,
                       fontSize: 11.sp,
                     ),
                   ),
@@ -740,9 +750,9 @@ class _BatteryCredits extends StatelessWidget {
       return SizedBox(
         width: 18.r,
         height: 18.r,
-        child: const CircularProgressIndicator(
+        child: CircularProgressIndicator(
           strokeWidth: 1.5,
-          color: AppColors.textMutedDark,
+          color: context.dreamColors.mutedSecondary,
         ),
       );
     }
@@ -819,13 +829,13 @@ class _NotConnected extends StatelessWidget {
             Icon(
               PhosphorIcons.wallet(PhosphorIconsStyle.duotone),
               size: 44.r,
-              color: AppColors.textMutedDark.withValues(alpha: 0.5),
+              color: context.dreamColors.mutedSecondary.withValues(alpha: 0.5),
             ),
             SizedBox(height: 16.h),
             Text(
               'Connect a wallet',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -833,7 +843,10 @@ class _NotConnected extends StatelessWidget {
             SizedBox(height: 6.h),
             Text(
               'Sign in to use the Signal Agent.',
-              style: TextStyle(color: AppColors.textMutedDark, fontSize: 13.sp),
+              style: TextStyle(
+                color: context.dreamColors.mutedSecondary,
+                fontSize: 13.sp,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

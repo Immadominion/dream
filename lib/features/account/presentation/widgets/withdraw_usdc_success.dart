@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 /// Success view shown in WithdrawUsdcSheet after a transaction is submitted.
 class WithdrawSuccessView extends StatelessWidget {
@@ -37,7 +38,7 @@ class WithdrawSuccessView extends StatelessWidget {
         Text(
           'Transaction sent',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 17.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -46,7 +47,7 @@ class WithdrawSuccessView extends StatelessWidget {
         Text(
           'Your USDC transfer was submitted to the network',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 12.sp),
         ),
         SizedBox(height: 20.h),
         Row(
@@ -57,8 +58,8 @@ class WithdrawSuccessView extends StatelessWidget {
                 icon: Icon(Icons.open_in_new_rounded, size: 14.sp),
                 label: const Text('Explorer'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimaryDark,
-                  side: BorderSide(color: AppColors.borderDark),
+                  foregroundColor: context.dreamColors.onSurface,
+                  side: BorderSide(color: context.dreamColors.stroke),
                   padding: EdgeInsets.symmetric(vertical: 12.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.r),

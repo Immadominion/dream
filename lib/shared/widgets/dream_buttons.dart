@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/dream_colors.dart';
 
 // =============================================================================
 // PRIMARY BUTTON - Large tactile CTA
@@ -117,13 +118,13 @@ class DreamGhostButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, color: AppColors.textPrimaryDark, size: 18.sp),
+                  Icon(icon, color: context.dreamColors.onSurface, size: 18.sp),
                   SizedBox(width: 8.w),
                 ],
                 Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -181,7 +182,7 @@ class DreamIconButton extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          color: isActive ? AppColors.primary : AppColors.textSecondaryDark,
+          color: isActive ? AppColors.primary : context.dreamColors.muted,
           size: (buttonSize * 0.5).sp,
         ),
       ),

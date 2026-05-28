@@ -4,9 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/format_utils.dart';
 import '../../providers/account_provider.dart';
-import '../widgets/account_portfolio_card.dart';
+import '../../../../core/theme/dream_colors.dart';
 
+/// Account health & risk — anti-box layout. The status hero and risk detail
+/// live in flat rows inside two squircle sections, no nested tiles.
 class HealthPage extends ConsumerWidget {
   const HealthPage({super.key});
 
@@ -22,8 +25,16 @@ class HealthPage extends ConsumerWidget {
         ? AppColors.warning
         : AppColors.bearish;
 
+    final collateral = accountState.collateral;
+    final available = accountState.availableMargin;
+    final reserved = (collateral - available).clamp(0.0, double.infinity);
+    final usage = collateral > 0
+        ? (reserved / collateral).clamp(0.0, 1.0)
+        : 0.0;
+    final pnl = accountState.unrealizedPnl;
+
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -39,22 +50,22 @@ class HealthPage extends ConsumerWidget {
                     child: Container(
                       padding: EdgeInsets.all(8.r),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceDark,
+                        color: context.dreamColors.surface,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.borderDark),
+                        border: Border.all(color: context.dreamColors.stroke),
                       ),
                       child: Icon(
                         PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         size: 24.sp,
                       ),
                     ),
                   ),
                   SizedBox(width: 16.w),
                   Text(
-                    'Account Health & Risk',
+                    'Health & Risk',
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 24.sp,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.3,
@@ -66,28 +77,21 @@ class HealthPage extends ConsumerWidget {
 
             Expanded(
               child: ListView(
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 40.h),
+                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 40.h),
                 children: [
-                  // Health Status Squircle Card
+                  // Health Status section (squircle)
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(24.w),
+                    padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 8.h),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(26.r),
+                      color: context.dreamColors.surface,
+                      borderRadius: BorderRadius.circular(28.r),
                       border: Border.all(
                         color: tier == 0
-                            ? AppColors.borderDark
-                            : color.withOpacity(0.4),
+                            ? context.dreamColors.stroke
+                            : color.withValues(alpha: 0.4),
                         width: 1.5,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withOpacity(0.04),
-                          blurRadius: 20,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Column(
                       children: [
@@ -95,7 +99,7 @@ class HealthPage extends ConsumerWidget {
                           width: 60.w,
                           height: 60.w,
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
+                            color: color.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           alignment: Alignment.center,
@@ -113,9 +117,9 @@ class HealthPage extends ConsumerWidget {
                         ),
                         SizedBox(height: 16.h),
                         Text(
-                          'Your Account Status Is',
+                          'Your account status is',
                           style: TextStyle(
-                            color: AppColors.textSecondaryDark,
+                            color: context.dreamColors.muted,
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w500,
                           ),
@@ -130,23 +134,50 @@ class HealthPage extends ConsumerWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        SizedBox(height: 16.h),
-                        const Divider(color: AppColors.borderDark, height: 1),
-                        SizedBox(height: 16.h),
-                        AccountRiskCard(accountState: accountState),
+                        SizedBox(height: 20.h),
+                        // Margin usage bar
+                        _MarginUsageBar(usage: usage, color: color),
+                        SizedBox(height: 8.h),
+                        _HealthRow(
+                          label: 'Equity',
+                          value: formatUsdc(accountState.equity),
+                        ),
+                        const _Hairline(),
+                        _HealthRow(
+                          label: 'Collateral',
+                          value: formatUsdc(collateral),
+                        ),
+                        const _Hairline(),
+                        _HealthRow(
+                          label: 'Reserved (in positions)',
+                          value: formatUsdc(reserved),
+                        ),
+                        const _Hairline(),
+                        _HealthRow(
+                          label: 'Available to trade',
+                          value: formatUsdc(available),
+                        ),
+                        const _Hairline(),
+                        _HealthRow(
+                          label: 'Unrealized PnL',
+                          value: formatPnl(pnl),
+                          valueColor: pnl >= 0
+                              ? AppColors.bullish
+                              : AppColors.bearish,
+                        ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 20.h),
 
-                  // Risk Rules Squircle Card
+                  // Risk Rules section (squircle)
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(20.w),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(26.r),
-                      border: Border.all(color: AppColors.borderDark),
+                      color: context.dreamColors.surface,
+                      borderRadius: BorderRadius.circular(28.r),
+                      border: Border.all(color: context.dreamColors.stroke),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,36 +187,37 @@ class HealthPage extends ConsumerWidget {
                             Icon(
                               PhosphorIcons.info(PhosphorIconsStyle.bold),
                               color: AppColors.primary,
-                              size: 22.sp,
+                              size: 16.sp,
                             ),
-                            SizedBox(width: 10.w),
+                            SizedBox(width: 8.w),
                             Text(
-                              'Risk Parameters',
+                              'HOW RISK WORKS',
                               style: TextStyle(
-                                color: AppColors.textPrimaryDark,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w800,
+                                color: context.dreamColors.muted,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 16.h),
-                        _RiskRuleRow(
-                          title: 'Liquidation Threshold',
+                        SizedBox(height: 18.h),
+                        const _RiskRuleRow(
+                          title: 'Liquidation threshold',
                           desc:
                               'Triggered when available collateral drops below the maintenance margin requirement.',
                         ),
-                        SizedBox(height: 14.h),
-                        _RiskRuleRow(
-                          title: 'Cross-Margin Sharing',
+                        SizedBox(height: 16.h),
+                        const _RiskRuleRow(
+                          title: 'Cross-margin sharing',
                           desc:
                               'All open positions share the same collateral pool to lower individual liquidation pricing.',
                         ),
-                        SizedBox(height: 14.h),
-                        _RiskRuleRow(
-                          title: 'Auto-Deleveraging (ADL)',
+                        SizedBox(height: 16.h),
+                        const _RiskRuleRow(
+                          title: 'Auto-deleveraging (ADL)',
                           desc:
-                              'In extreme market lockups, highly profitable opposing trades may be automatically adjusted to safeguard net system solvency.',
+                              'In extreme market conditions, highly profitable opposing trades may be automatically adjusted to safeguard system solvency.',
                         ),
                       ],
                     ),
@@ -196,6 +228,101 @@ class HealthPage extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MarginUsageBar extends StatelessWidget {
+  final double usage;
+  final Color color;
+  const _MarginUsageBar({required this.usage, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Margin usage',
+              style: TextStyle(
+                color: context.dreamColors.muted,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              '${(usage * 100).toStringAsFixed(0)}%',
+              style: TextStyle(
+                color: context.dreamColors.onSurface,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8.r),
+          child: LinearProgressIndicator(
+            value: usage,
+            minHeight: 6.h,
+            backgroundColor: context.dreamColors.stroke,
+            valueColor: AlwaysStoppedAnimation(color),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HealthRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+  const _HealthRow({required this.label, required this.value, this.valueColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 14.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: context.dreamColors.muted,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? context.dreamColors.onSurface,
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Hairline extends StatelessWidget {
+  const _Hairline();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: context.dreamColors.stroke.withValues(alpha: 0.5),
     );
   }
 }
@@ -213,7 +340,7 @@ class _RiskRuleRow extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 14.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -222,7 +349,7 @@ class _RiskRuleRow extends StatelessWidget {
         Text(
           desc,
           style: TextStyle(
-            color: AppColors.textSecondaryDark,
+            color: context.dreamColors.muted,
             fontSize: 12.sp,
             height: 1.4,
           ),

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/trade_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Bybit-style trade form primitives.
@@ -26,7 +27,7 @@ class TradeSideToggle extends ConsumerWidget {
     return Container(
       height: 36.h,
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(18.r),
       ),
       padding: EdgeInsets.all(2.r),
@@ -84,7 +85,7 @@ class _PillSide extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : AppColors.textSecondaryDark,
+            color: selected ? color : context.dreamColors.muted,
             fontSize: 14.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -108,11 +109,11 @@ class TradeOrderTypeToggle extends ConsumerWidget {
     return PopupMenuButton<OrderType>(
       initialValue: tradeState.orderType,
       onSelected: (v) => ref.read(tradeProvider.notifier).setOrderType(v),
-      color: AppColors.surfaceDark,
+      color: context.dreamColors.surface,
       elevation: 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(6.r),
-        side: BorderSide(color: AppColors.borderDark),
+        side: BorderSide(color: context.dreamColors.stroke),
       ),
       padding: EdgeInsets.zero,
       itemBuilder: (context) => [
@@ -121,7 +122,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
           height: 36.h,
           child: Text(
             'Market',
-            style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 13.sp),
+            style: TextStyle(color: context.dreamColors.onSurface, fontSize: 13.sp),
           ),
         ),
         PopupMenuItem(
@@ -129,7 +130,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
           height: 36.h,
           child: Text(
             'Limit',
-            style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 13.sp),
+            style: TextStyle(color: context.dreamColors.onSurface, fontSize: 13.sp),
           ),
         ),
       ],
@@ -139,7 +140,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 14.sp,
               fontWeight: FontWeight.w700,
             ),
@@ -148,7 +149,7 @@ class TradeOrderTypeToggle extends ConsumerWidget {
           Icon(
             Icons.expand_more_rounded,
             size: 16.sp,
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
           ),
         ],
       ),
@@ -211,7 +212,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
       height: 44.h,
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
@@ -220,7 +221,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
           Text(
             'Price',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 12.sp,
             ),
           ),
@@ -236,7 +237,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
               ],
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 15.sp,
                 fontWeight: FontWeight.w600,
               ),
@@ -257,7 +258,7 @@ class _TradePriceInputState extends ConsumerState<TradePriceInput> {
           Text(
             'USDC',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 12.sp,
             ),
           ),
@@ -291,7 +292,7 @@ class TradeLeverageSelector extends ConsumerWidget {
             Text(
               'Leverage',
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 12.sp,
               ),
             ),
@@ -299,7 +300,7 @@ class TradeLeverageSelector extends ConsumerWidget {
             Text(
               '${_levels[idx].toInt()}×',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -310,13 +311,13 @@ class TradeLeverageSelector extends ConsumerWidget {
           data: SliderTheme.of(context).copyWith(
             trackHeight: 2.h,
             activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.cardDark,
-            thumbColor: AppColors.textPrimaryDark,
+            inactiveTrackColor: context.dreamColors.surfaceVariant,
+            thumbColor: context.dreamColors.onSurface,
             overlayColor: AppColors.primary.withValues(alpha: 0.12),
             thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7.r),
             tickMarkShape: RoundSliderTickMarkShape(tickMarkRadius: 3.r),
             activeTickMarkColor: AppColors.primary,
-            inactiveTickMarkColor: AppColors.borderDark,
+            inactiveTickMarkColor: context.dreamColors.stroke,
           ),
           child: Slider(
             value: idx.toDouble(),
@@ -397,7 +398,7 @@ class _TradeInlineNumericFieldState extends State<TradeInlineNumericField> {
       height: 52.h,
       padding: EdgeInsets.symmetric(horizontal: 14.w),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Stack(
@@ -410,7 +411,7 @@ class _TradeInlineNumericFieldState extends State<TradeInlineNumericField> {
             child: AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 150),
               style: TextStyle(
-                color: AppColors.textMutedDark,
+                color: context.dreamColors.mutedSecondary,
                 fontSize: showLabelTop ? 10.sp : 14.sp,
                 fontWeight: FontWeight.w500,
               ),
@@ -434,7 +435,7 @@ class _TradeInlineNumericFieldState extends State<TradeInlineNumericField> {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
                     ),
@@ -455,7 +456,7 @@ class _TradeInlineNumericFieldState extends State<TradeInlineNumericField> {
                   child: Text(
                     widget.suffix!,
                     style: TextStyle(
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                     ),
@@ -500,7 +501,7 @@ class TradePostOnlyToggle extends ConsumerWidget {
               color: enabled ? AppColors.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(3.r),
               border: Border.all(
-                color: enabled ? AppColors.primary : AppColors.textMutedDark,
+                color: enabled ? AppColors.primary : context.dreamColors.mutedSecondary,
                 width: 1.4,
               ),
             ),
@@ -513,8 +514,8 @@ class TradePostOnlyToggle extends ConsumerWidget {
             'Post-Only',
             style: TextStyle(
               color: enabled
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textSecondaryDark,
+                  ? context.dreamColors.onSurface
+                  : context.dreamColors.muted,
               fontSize: 12.sp,
             ),
           ),
@@ -522,7 +523,7 @@ class TradePostOnlyToggle extends ConsumerWidget {
           Text(
             'GTC',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
             ),

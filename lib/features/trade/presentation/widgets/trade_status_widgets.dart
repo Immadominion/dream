@@ -7,6 +7,7 @@ import '../../../../core/utils/format_utils.dart';
 import '../../../positions/providers/positions_provider.dart';
 import '../../providers/trade_provider.dart';
 import 'trade_receipt_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Active position strip — shown when user already has a position open
@@ -65,7 +66,7 @@ class TradeActivePositionStrip extends ConsumerWidget {
           Text(
             '${position.sizeBase.toStringAsFixed(4)} $baseSymbol',
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
             ),
@@ -74,7 +75,7 @@ class TradeActivePositionStrip extends ConsumerWidget {
           Text(
             '@ ${formatPrice(position.entryPrice)}',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 11.sp,
             ),
           ),
@@ -90,12 +91,12 @@ class TradeActivePositionStrip extends ConsumerWidget {
               height: 32.w,
               margin: EdgeInsets.only(right: 8.w),
               decoration: BoxDecoration(
-                color: AppColors.textPrimaryDark.withValues(alpha: 0.06),
+                color: context.dreamColors.onSurface.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Icon(
                 Icons.ios_share_rounded,
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 size: 16.sp,
               ),
             ),
@@ -114,7 +115,7 @@ class TradeActivePositionStrip extends ConsumerWidget {
               Text(
                 position.isProfitable ? 'Shareable P&L' : 'Open position',
                 style: TextStyle(
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   fontSize: 9.sp,
                 ),
               ),
@@ -175,7 +176,7 @@ class TradeSubmissionStatusText extends StatelessWidget {
     return Text(
       '$sideLabel $baseSymbol order placed · ${_formatTradeSubmissionTime(trade.submittedAt)}',
       style: TextStyle(
-        color: AppColors.textSecondaryDark,
+        color: context.dreamColors.muted,
         fontSize: 12.sp,
         fontWeight: FontWeight.w500,
       ),

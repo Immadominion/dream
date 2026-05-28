@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/dream_colors.dart';
 
 /// iOS-style segmented control widget
 /// Follows Apple Human Interface Guidelines for segmented controls
@@ -61,7 +62,7 @@ class DreamSegmentedControl<T> extends StatelessWidget {
                   curve: Curves.easeOutCubic,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? (isDark ? AppColors.cardDark : Colors.white)
+                        ? (isDark ? context.dreamColors.surfaceVariant : Colors.white)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8.r),
                     boxShadow: isSelected

@@ -11,6 +11,7 @@ import '../../../../core/utils/format_utils.dart';
 import '../../providers/markets_provider.dart';
 import '../../providers/watchlist_provider.dart';
 import '../../../positions/providers/positions_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class MarketTile extends ConsumerWidget {
   final PhoenixMarket market;
@@ -73,7 +74,7 @@ class MarketTile extends ConsumerWidget {
                           Text(
                             market.baseAsset,
                             style: TextStyle(
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               fontSize: 15.sp,
                               fontWeight: FontWeight.w700,
                             ),
@@ -81,7 +82,7 @@ class MarketTile extends ConsumerWidget {
                           Text(
                             ' / USDC',
                             style: TextStyle(
-                              color: AppColors.textMutedDark,
+                              color: context.dreamColors.mutedSecondary,
                               fontSize: 12.sp,
                               fontWeight: FontWeight.w500,
                             ),
@@ -109,7 +110,7 @@ class MarketTile extends ConsumerWidget {
                           SizedBox(width: 5.w),
                           _MetaBadge(
                             label: '${market.maxLeverage}x',
-                            color: AppColors.textMutedDark,
+                            color: context.dreamColors.mutedSecondary,
                           ),
                           if (market.isIsolatedOnly) ...[
                             SizedBox(width: 4.w),
@@ -134,7 +135,7 @@ class MarketTile extends ConsumerWidget {
                             ? '${formatCompact(snapshot.volume24hUsd)} USDC'
                             : '0.00 USDC',
                         style: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                         ),
@@ -154,7 +155,7 @@ class MarketTile extends ConsumerWidget {
                         Text(
                           price > 0 ? formatPrice(price) : '--',
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: context.dreamColors.onSurface,
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w700,
                             fontFeatures: const [FontFeature.tabularFigures()],
@@ -199,7 +200,7 @@ class MarketTile extends ConsumerWidget {
                             : Icons.star_outline_rounded,
                         color: isWatched
                             ? const Color(0xFFF5C518)
-                            : AppColors.textMutedDark,
+                            : context.dreamColors.mutedSecondary,
                         size: 22.sp,
                       ),
                     ),
@@ -331,9 +332,9 @@ class _TokenLogo extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         border: Border.all(
-          color: borderColor ?? AppColors.borderDark,
+          color: borderColor ?? context.dreamColors.stroke,
           width: 1.5,
         ),
       ),

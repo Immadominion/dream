@@ -152,18 +152,18 @@ class DreamColors extends ThemeExtension<DreamColors> {
     info: AppColors.info,
   );
 
-  /// Dark theme colors
+  /// Dark theme colors — match the AppColors.*Dark pitch-black palette exactly
   static const dark = DreamColors(
-    background: AppColors.darkBackground,
-    surface: AppColors.darkSurface,
-    surfaceVariant: AppColors.darkSurfaceVariant,
-    stroke: Color(0xFF2C3137),
-    muted: Color(0xFF8B8D98),
-    mutedSecondary: Color(0xFF68696E),
-    subtle: Color(0xFF2A2D33),
-    onSurface: AppColors.white,
-    onSurfaceVariant: Color(0xFFD1D1D6),
-    onBackground: AppColors.white,
+    background: Color(0xFF050507), // AppColors.backgroundDark
+    surface: Color(0xFF0D0E12), // AppColors.surfaceDark
+    surfaceVariant: Color(0xFF12141A), // AppColors.cardDark
+    stroke: Color(0xFF1F2128), // AppColors.borderDark
+    muted: Color(0xFF9CA3AF), // AppColors.textSecondaryDark
+    mutedSecondary: Color(0xFF4B5563), // AppColors.textMutedDark
+    subtle: Color(0xFF1A1C22), // AppColors.dividerDark
+    onSurface: Color(0xFFF9FAFB), // AppColors.textPrimaryDark
+    onSurfaceVariant: Color(0xFF9CA3AF), // AppColors.textSecondaryDark
+    onBackground: Color(0xFFF9FAFB), // AppColors.textPrimaryDark
     primary: AppColors.primary,
     primaryContainer: AppColors.primaryDark,
     onPrimary: AppColors.white,
@@ -181,10 +181,35 @@ extension DreamThemeExtension on BuildContext {
   DreamColors get dreamColors =>
       Theme.of(this).extension<DreamColors>() ?? DreamColors.dark;
 
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
+
+  // ── Primary semantic accessors ──────────────────────────────────────────
   Color get backgroundColor => dreamColors.background;
   Color get surfaceColor => dreamColors.surface;
   Color get primaryColor => dreamColors.primary;
   Color get mutedColor => dreamColors.muted;
   Color get strokeColor => dreamColors.stroke;
   Color get onSurfaceColor => dreamColors.onSurface;
+
+  // ── Compat getters (drop-in for AppColors.*Dark references) ─────────────
+  /// Background — replaces AppColors.backgroundDark
+  Color get bgColor => dreamColors.background;
+
+  /// Primary surface — replaces AppColors.surfaceDark
+  Color get sfColor => dreamColors.surface;
+
+  /// Card / elevated surface — replaces AppColors.cardDark
+  Color get cardColor => dreamColors.surfaceVariant;
+
+  /// Primary text — replaces AppColors.textPrimaryDark
+  Color get textPrimary => dreamColors.onSurface;
+
+  /// Secondary text — replaces AppColors.textSecondaryDark
+  Color get textSecondary => dreamColors.muted;
+
+  /// Muted / hint text — replaces AppColors.textMutedDark
+  Color get textMuted => dreamColors.mutedSecondary;
+
+  /// Border / divider — replaces AppColors.borderDark
+  Color get borderColor => dreamColors.stroke;
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../account/presentation/widgets/account_history_providers.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Tier definitions
@@ -90,15 +90,12 @@ double _progressToNextTier(double volume) {
 // Widget
 // ---------------------------------------------------------------------------
 
-/// Shows the trader's tier badge, volume stats, and a link to the
-/// Phoenix Flight leaderboard (https://flight.phoenix.trade).
+/// Shows the trader's tier badge and volume stats computed natively from
+/// the trader's recent fills.
 class AccountLeaderboardCard extends ConsumerWidget {
   const AccountLeaderboardCard({super.key, required this.walletAddress});
 
   final String walletAddress;
-
-  static const _flightLeaderboardUrl =
-      'https://flight.phoenix.trade/leaderboard';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -107,19 +104,19 @@ class AccountLeaderboardCard extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: tradesAsync.when(
-        loading: () => _buildLoading(),
+        loading: () => _buildLoading(context),
         error: (err, st) => _buildError(),
-        data: (trades) => _buildContent(trades),
+        data: (trades) => _buildContent(context, trades),
       ),
     );
   }
 
-  Widget _buildLoading() {
+  Widget _buildLoading(BuildContext context) {
     return Row(
       children: [
         SizedBox(
@@ -133,7 +130,7 @@ class AccountLeaderboardCard extends ConsumerWidget {
         SizedBox(width: 10.w),
         Text(
           'Loading trader stats…',
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 12.sp),
         ),
       ],
     );
@@ -146,7 +143,7 @@ class AccountLeaderboardCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(List trades) {
+  Widget _buildContent(BuildContext context, List trades) {
     // Compute stats from trade history
     final totalVolume = trades.fold<double>(
       0,
@@ -175,27 +172,31 @@ class AccountLeaderboardCard extends ConsumerWidget {
               child: Icon(tier.icon, color: tier.color, size: 16.sp),
             ),
             SizedBox(width: 10.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Trader Rank',
-                  style: TextStyle(
-                    color: AppColors.textPrimaryDark,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Trader Rank',
+                    style: TextStyle(
+                      color: context.dreamColors.onSurface,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  'Based on last 50 filled trades',
-                  style: TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 11.sp,
+                  Text(
+                    'Based on last 50 filled trades',
+                    style: TextStyle(
+                      color: context.dreamColors.muted,
+                      fontSize: 11.sp,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Spacer(),
+            SizedBox(width: 8.w),
             // Tier badge
             Container(
               padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
@@ -230,7 +231,10 @@ class AccountLeaderboardCard extends ConsumerWidget {
         SizedBox(height: 6.h),
         Text(
           tier.nextLevelHint,
-          style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+          style: TextStyle(
+            color: context.dreamColors.mutedSecondary,
+            fontSize: 10.sp,
+          ),
         ),
 
         SizedBox(height: 14.h),
@@ -244,47 +248,12 @@ class AccountLeaderboardCard extends ConsumerWidget {
               flex: 2,
             ),
             _StatItem(label: 'Trades', value: tradeCount.toString()),
-            _StatItem(label: 'Fees Paid', value: formatCompact(totalFees)),
+            _StatItem(
+              label: 'Fees Paid',
+              value: formatCompact(totalFees),
+              isLast: true,
+            ),
           ],
-        ),
-
-        SizedBox(height: 14.h),
-
-        // ── Flight leaderboard CTA ───────────────────────────────────────
-        GestureDetector(
-          onTap: () => launchUrl(
-            Uri.parse(_flightLeaderboardUrl),
-            mode: LaunchMode.externalApplication,
-          ),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(7.r),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'View Global Leaderboard',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: 6.w),
-                Icon(
-                  Icons.leaderboard_outlined,
-                  color: AppColors.primary,
-                  size: 13.sp,
-                ),
-              ],
-            ),
-          ),
         ),
       ],
     );
@@ -311,7 +280,7 @@ class _ProgressBar extends StatelessWidget {
             Container(
               height: 6.h,
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: context.dreamColors.surface,
                 borderRadius: BorderRadius.circular(3.r),
               ),
             ),
@@ -339,11 +308,17 @@ class _ProgressBar extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  const _StatItem({required this.label, required this.value, this.flex = 1});
+  const _StatItem({
+    required this.label,
+    required this.value,
+    this.flex = 1,
+    this.isLast = false,
+  });
 
   final String label;
   final String value;
   final int flex;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
@@ -351,27 +326,32 @@ class _StatItem extends StatelessWidget {
       flex: flex,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-        margin: EdgeInsets.only(right: 6.w),
+        margin: EdgeInsets.only(right: isLast ? 0 : 6.w),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: context.dreamColors.surface,
           borderRadius: BorderRadius.circular(7.r),
-          border: Border.all(color: AppColors.borderDark),
+          border: Border.all(color: context.dreamColors.stroke),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
+              style: TextStyle(
+                color: context.dreamColors.mutedSecondary,
+                fontSize: 10.sp,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 2.h),
             Text(
               value,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

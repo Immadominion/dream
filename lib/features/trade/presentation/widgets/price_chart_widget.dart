@@ -9,7 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/services/phoenix/phoenix_market_service.dart';
 import '../../../../core/services/phoenix/phoenix_websocket_service.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Timeframe options
@@ -149,7 +149,7 @@ class PriceChartWidget extends ConsumerWidget {
 
     return Container(
       height: height.h,
-      color: AppColors.backgroundDark,
+      color: context.dreamColors.background,
       child: Column(
         children: [
           _TimeframeBar(
@@ -175,7 +175,7 @@ class PriceChartWidget extends ConsumerWidget {
                     child: Text(
                       state.error!,
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 12.sp,
                       ),
                     ),
@@ -219,8 +219,8 @@ class _TimeframeBar extends StatelessWidget {
                           ? FontWeight.w600
                           : FontWeight.w400,
                       color: tf == selected
-                          ? AppColors.textPrimaryDark
-                          : AppColors.textMutedDark,
+                          ? context.dreamColors.onSurface
+                          : context.dreamColors.mutedSecondary,
                     ),
                   ),
                 ),

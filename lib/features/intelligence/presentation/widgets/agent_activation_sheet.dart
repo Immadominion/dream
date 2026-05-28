@@ -7,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../models/intelligence_models.dart';
 import '../../providers/ai_trading_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ── Market groups ─────────────────────────────────────────────────────────────
 
@@ -116,10 +117,10 @@ class _AgentActivationSheetState extends ConsumerState<AgentActivationSheet> {
     return Container(
       constraints: BoxConstraints(maxHeight: size.height * 0.88),
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.dreamColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         border: Border(
-          top: BorderSide(color: AppColors.borderDark.withValues(alpha: 0.6)),
+          top: BorderSide(color: context.dreamColors.stroke.withValues(alpha: 0.6)),
         ),
       ),
       child: Column(
@@ -132,7 +133,7 @@ class _AgentActivationSheetState extends ConsumerState<AgentActivationSheet> {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -151,7 +152,7 @@ class _AgentActivationSheetState extends ConsumerState<AgentActivationSheet> {
                     duration: const Duration(milliseconds: 180),
                     child: Icon(
                       PhosphorIcons.arrowLeft(PhosphorIconsStyle.bold),
-                      color: AppColors.textSecondaryDark,
+                      color: context.dreamColors.muted,
                       size: 20.r,
                     ),
                   ),
@@ -163,7 +164,7 @@ class _AgentActivationSheetState extends ConsumerState<AgentActivationSheet> {
                   onTap: () => Navigator.of(context).pop(),
                   child: Icon(
                     PhosphorIcons.x(PhosphorIconsStyle.bold),
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     size: 18.r,
                   ),
                 ),
@@ -187,7 +188,7 @@ class _AgentActivationSheetState extends ConsumerState<AgentActivationSheet> {
                     child: Text(
                       _stepTitle,
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 26.sp,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -1.0,
@@ -205,7 +206,7 @@ class _AgentActivationSheetState extends ConsumerState<AgentActivationSheet> {
                     child: Text(
                       _stepSubtitle,
                       style: TextStyle(
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                         fontSize: 12.sp,
                         height: 1.45,
                       ),
@@ -319,7 +320,7 @@ class _StepPills extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDone || isActive
                 ? AppColors.primary
-                : AppColors.borderDark,
+                : context.dreamColors.stroke,
             borderRadius: BorderRadius.circular(3.r),
           ),
         );
@@ -356,12 +357,12 @@ class _GroupStep extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? color.withValues(alpha: 0.10)
-                    : AppColors.cardDark,
+                    : context.dreamColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(
                   color: isSelected
                       ? color.withValues(alpha: 0.45)
-                      : AppColors.borderDark,
+                      : context.dreamColors.stroke,
                 ),
               ),
               child: Row(
@@ -385,7 +386,7 @@ class _GroupStep extends StatelessWidget {
                         Text(
                           g.$2,
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: context.dreamColors.onSurface,
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w700,
                           ),
@@ -421,7 +422,7 @@ class _GroupStep extends StatelessWidget {
                         Text(
                           g.$3,
                           style: TextStyle(
-                            color: AppColors.textMutedDark,
+                            color: context.dreamColors.mutedSecondary,
                             fontSize: 11.sp,
                             height: 1.4,
                           ),
@@ -500,7 +501,7 @@ class _RiskStep extends StatelessWidget {
                 border: Border.all(
                   color: isSelected
                       ? color.withValues(alpha: 0.45)
-                      : AppColors.borderDark.withValues(alpha: 0.5),
+                      : context.dreamColors.stroke.withValues(alpha: 0.5),
                 ),
               ),
               child: Row(
@@ -510,12 +511,12 @@ class _RiskStep extends StatelessWidget {
                     height: 38.r,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: (isSelected ? color : AppColors.textMutedDark)
+                      color: (isSelected ? color : context.dreamColors.mutedSecondary)
                           .withValues(alpha: 0.12),
                     ),
                     child: Icon(
                       icon,
-                      color: isSelected ? color : AppColors.textMutedDark,
+                      color: isSelected ? color : context.dreamColors.mutedSecondary,
                       size: 18.r,
                     ),
                   ),
@@ -527,7 +528,7 @@ class _RiskStep extends StatelessWidget {
                         Text(
                           label,
                           style: TextStyle(
-                            color: AppColors.textPrimaryDark,
+                            color: context.dreamColors.onSurface,
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w700,
                           ),
@@ -536,7 +537,7 @@ class _RiskStep extends StatelessWidget {
                         Text(
                           desc,
                           style: TextStyle(
-                            color: AppColors.textSecondaryDark,
+                            color: context.dreamColors.muted,
                             fontSize: 11.sp,
                             height: 1.35,
                           ),
@@ -639,7 +640,7 @@ class _AuraSlider extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textMutedDark,
+            color: context.dreamColors.mutedSecondary,
             fontSize: 10.sp,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.0,
@@ -652,7 +653,7 @@ class _AuraSlider extends StatelessWidget {
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.borderDark,
+                  inactiveTrackColor: context.dreamColors.stroke,
                   thumbColor: Colors.white,
                   overlayColor: AppColors.primary.withValues(alpha: 0.15),
                   trackHeight: 3.h,
@@ -672,14 +673,14 @@ class _AuraSlider extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
               decoration: BoxDecoration(
-                color: AppColors.cardDark,
+                color: context.dreamColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: AppColors.borderDark),
+                border: Border.all(color: context.dreamColors.stroke),
               ),
               child: Text(
                 format(value),
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w800,
                   fontFeatures: const [FontFeature.tabularFigures()],

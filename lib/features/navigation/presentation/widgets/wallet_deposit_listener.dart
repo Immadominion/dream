@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../../shared/services/storage_service.dart';
 import '../../../account/presentation/widgets/deposit_phoenix_collateral_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class WalletDepositListener extends ConsumerStatefulWidget {
   const WalletDepositListener({super.key});
@@ -97,14 +98,14 @@ class _WalletDepositListenerState extends ConsumerState<WalletDepositListener> {
     final shouldDeposit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.r),
         ),
         title: Text(
           'USDC received',
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 18.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -112,7 +113,7 @@ class _WalletDepositListenerState extends ConsumerState<WalletDepositListener> {
         content: Text(
           '${formatUsdc(receivedAmount)} arrived in your Dream wallet. Convert it to Phoenix collateral now?',
           style: TextStyle(
-            color: AppColors.textSecondaryDark,
+            color: context.dreamColors.muted,
             fontSize: 13.sp,
             height: 1.35,
           ),

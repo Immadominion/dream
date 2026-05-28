@@ -9,6 +9,7 @@ import '../../../../core/services/phoenix/phoenix_collateral_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../positions/providers/positions_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class DepositPhoenixCollateralSheet extends ConsumerStatefulWidget {
   final String walletAddress;
@@ -28,7 +29,7 @@ class DepositPhoenixCollateralSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
@@ -172,7 +173,7 @@ class _DepositPhoenixCollateralSheetState
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 16.h),
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -181,7 +182,7 @@ class _DepositPhoenixCollateralSheetState
               'Deposit to Phoenix',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -191,7 +192,7 @@ class _DepositPhoenixCollateralSheetState
               'Move Solana USDC from your Dream wallet into tradable Phoenix collateral',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 12.sp,
               ),
             ),
@@ -211,7 +212,7 @@ class _DepositPhoenixCollateralSheetState
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,6}')),
               ],
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 22.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -219,19 +220,19 @@ class _DepositPhoenixCollateralSheetState
                 labelText: 'Amount',
                 suffixText: 'USDC',
                 suffixStyle: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),
                 filled: true,
-                fillColor: AppColors.cardDark,
+                fillColor: context.dreamColors.surfaceVariant,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: AppColors.borderDark),
+                  borderSide: BorderSide(color: context.dreamColors.stroke),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: AppColors.borderDark),
+                  borderSide: BorderSide(color: context.dreamColors.stroke),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -283,7 +284,7 @@ class _DepositPhoenixCollateralSheetState
               'This uses your current Dream wallet. Keep a small SOL balance for network fees.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textMutedDark,
+                color: context.dreamColors.mutedSecondary,
                 fontSize: 11.sp,
                 height: 1.35,
               ),
@@ -306,16 +307,16 @@ class _BalanceRow extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: Row(
         children: [
           Text(
             label,
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 12.sp,
             ),
           ),
@@ -323,7 +324,7 @@ class _BalanceRow extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 13.sp,
               fontWeight: FontWeight.w700,
             ),

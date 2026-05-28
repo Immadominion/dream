@@ -10,6 +10,7 @@ import '../../../../core/utils/format_utils.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../../positions/providers/positions_provider.dart';
 import '../../providers/trade_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // USDC collateral size input — balance badge + inline deposit notice
@@ -95,7 +96,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 12.sp,
               ),
             ),
@@ -126,7 +127,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                         vertical: 3.h,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.cardDark,
+                        color: context.dreamColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(10.r),
                       ),
                       child: usdcAsync.isLoading
@@ -138,14 +139,14 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                                   height: 12.h,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 1.4,
-                                    color: AppColors.textMutedDark,
+                                    color: context.dreamColors.mutedSecondary,
                                   ),
                                 ),
                                 SizedBox(width: 5.w),
                                 Text(
                                   'Checking',
                                   style: TextStyle(
-                                    color: AppColors.textMutedDark,
+                                    color: context.dreamColors.mutedSecondary,
                                     fontSize: 11.sp,
                                   ),
                                 ),
@@ -166,7 +167,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                                 Text(
                                   'Collateral: ',
                                   style: TextStyle(
-                                    color: AppColors.textMutedDark,
+                                    color: context.dreamColors.mutedSecondary,
                                     fontSize: 11.sp,
                                   ),
                                 ),
@@ -175,7 +176,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                                   maxLines: 1,
                                   overflow: TextOverflow.visible,
                                   style: TextStyle(
-                                    color: AppColors.textSecondaryDark,
+                                    color: context.dreamColors.muted,
                                     fontSize: 11.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -206,7 +207,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
             'Notional \$${notional.toStringAsFixed(2)}  ·  '
             '${qty.toStringAsFixed(4)} $baseSymbol',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 11.sp,
             ),
           ),
@@ -214,7 +215,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
           Text(
             'Includes isolated margin buffer for fees and execution.',
             style: TextStyle(
-              color: AppColors.textMutedDark,
+              color: context.dreamColors.mutedSecondary,
               fontSize: 10.sp,
             ),
           ),
@@ -228,23 +229,23 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
           ],
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 16.sp,
             fontWeight: FontWeight.w600,
           ),
           decoration: InputDecoration(
             hintText: '0.00',
             hintStyle: TextStyle(
-              color: AppColors.textMutedDark,
+              color: context.dreamColors.mutedSecondary,
               fontSize: 16.sp,
             ),
             suffixText: 'USDC',
             suffixStyle: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 13.sp,
             ),
             filled: true,
-            fillColor: AppColors.cardDark,
+            fillColor: context.dreamColors.surfaceVariant,
             contentPadding: EdgeInsets.symmetric(
               horizontal: 12.w,
               vertical: 14.h,
@@ -277,7 +278,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                 Icon(
                   Icons.info_outline,
                   size: 12.sp,
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                 ),
                 SizedBox(width: 4.w),
                 Expanded(
@@ -286,7 +287,7 @@ class TradeSizeInputState extends ConsumerState<TradeSizeInput> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: AppColors.textMutedDark,
+                      color: context.dreamColors.mutedSecondary,
                       fontSize: 10.sp,
                     ),
                   ),

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../providers/trade_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Order confirmation bottom sheet — shown before submitting
@@ -70,7 +71,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                   height: 4.h,
                   margin: EdgeInsets.only(bottom: 18.h),
                   decoration: BoxDecoration(
-                    color: AppColors.borderDark,
+                    color: context.dreamColors.stroke,
                     borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
@@ -99,7 +100,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                   Text(
                     tradeState.symbol,
                     style: TextStyle(
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       fontSize: 17.sp,
                       fontWeight: FontWeight.w700,
                     ),
@@ -111,16 +112,16 @@ class TradeConfirmSheet extends ConsumerWidget {
                       vertical: 2.h,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.cardDark,
+                      color: context.dreamColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(4.r),
-                      border: Border.all(color: AppColors.borderDark),
+                      border: Border.all(color: context.dreamColors.stroke),
                     ),
                     child: Text(
                       tradeState.orderType == OrderType.market
                           ? 'Market'
                           : 'Limit',
                       style: TextStyle(
-                        color: AppColors.textSecondaryDark,
+                        color: context.dreamColors.muted,
                         fontSize: 11.sp,
                       ),
                     ),
@@ -153,7 +154,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                     label: 'Est. Fee',
                     value:
                         '~\$${estFee.toStringAsFixed(3)} (${takerFeeBps.toStringAsFixed(1)} bps)',
-                    valueColor: AppColors.textSecondaryDark,
+                    valueColor: context.dreamColors.muted,
                   ),
                   if (liqPrice != null && liqPrice > 0) ...[
                     SizedBox(height: 15.h),
@@ -190,7 +191,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.borderDark),
+                        side: BorderSide(color: context.dreamColors.stroke),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22.r),
                         ),
@@ -199,7 +200,7 @@ class TradeConfirmSheet extends ConsumerWidget {
                       child: Text(
                         'Cancel',
                         style: TextStyle(
-                          color: AppColors.textSecondaryDark,
+                          color: context.dreamColors.muted,
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -262,7 +263,7 @@ class _ConfirmRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 12.sp),
         ),
         SizedBox(width: 8.w),
         Expanded(
@@ -278,7 +279,7 @@ class _ConfirmRow extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                color: valueColor ?? AppColors.textPrimaryDark,
+                color: valueColor ?? context.dreamColors.onSurface,
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -288,7 +289,7 @@ class _ConfirmRow extends StatelessWidget {
               Text(
                 sub!,
                 style: TextStyle(
-                  color: AppColors.textMutedDark,
+                  color: context.dreamColors.mutedSecondary,
                   fontSize: 10.sp,
                 ),
               ),
@@ -308,7 +309,7 @@ class _DottedConnector extends StatelessWidget {
       height: 1,
       child: CustomPaint(
         painter: _DottedConnectorPainter(
-          color: AppColors.borderDark.withValues(alpha: 0.9),
+          color: context.dreamColors.stroke.withValues(alpha: 0.9),
         ),
       ),
     );

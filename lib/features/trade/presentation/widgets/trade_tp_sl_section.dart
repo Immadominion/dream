@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../providers/trade_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Take Profit / Stop Loss expandable section — with % shortcuts + validation
@@ -114,15 +115,15 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
                 size: 14.sp,
                 color: s.tpSlEnabled
                     ? AppColors.primary
-                    : AppColors.textMutedDark,
+                    : context.dreamColors.mutedSecondary,
               ),
               SizedBox(width: 6.w),
               Text(
                 'TP / SL',
                 style: TextStyle(
                   color: s.tpSlEnabled
-                      ? AppColors.textPrimaryDark
-                      : AppColors.textSecondaryDark,
+                      ? context.dreamColors.onSurface
+                      : context.dreamColors.muted,
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w500,
                 ),
@@ -148,7 +149,7 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
                       Icon(
                         Icons.info_outline,
                         size: 12.r,
-                        color: AppColors.textMutedDark,
+                        color: context.dreamColors.mutedSecondary,
                       ),
                       SizedBox(width: 4.w),
                       Flexible(
@@ -156,7 +157,7 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
                           'Mark: ${formatPrice(s.markPrice)}  •  '
                           '${isLong ? 'Long' : 'Short'}: TP ${isLong ? 'above' : 'below'}, SL ${isLong ? 'below' : 'above'}',
                           style: TextStyle(
-                            color: AppColors.textMutedDark,
+                            color: context.dreamColors.mutedSecondary,
                             fontSize: 11.sp,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -255,7 +256,7 @@ class _TinySwitch extends StatelessWidget {
         height: 18.h,
         padding: EdgeInsets.all(2.r),
         decoration: BoxDecoration(
-          color: value ? AppColors.primary : AppColors.borderDark,
+          color: value ? AppColors.primary : context.dreamColors.stroke,
           borderRadius: BorderRadius.circular(9.r),
         ),
         child: Align(
@@ -386,18 +387,18 @@ class _TpSlField extends StatelessWidget {
             FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
           ],
           style: TextStyle(
-            color: AppColors.textPrimaryDark,
+            color: context.dreamColors.onSurface,
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
             hintText: '0.00',
             hintStyle: TextStyle(
-              color: AppColors.textMutedDark,
+              color: context.dreamColors.mutedSecondary,
               fontSize: 14.sp,
             ),
             filled: true,
-            fillColor: AppColors.surfaceDark,
+            fillColor: context.dreamColors.surface,
             contentPadding: EdgeInsets.symmetric(
               horizontal: 10.w,
               vertical: 10.h,

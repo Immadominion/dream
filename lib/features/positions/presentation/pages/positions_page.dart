@@ -9,6 +9,7 @@ import '../../providers/positions_provider.dart';
 import '../widgets/order_tile.dart';
 import '../widgets/position_card.dart';
 import '../../../../shared/widgets/app_error_view.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 class PositionsPage extends ConsumerWidget {
   const PositionsPage({super.key});
@@ -18,7 +19,7 @@ class PositionsPage extends ConsumerWidget {
     final state = ref.watch(positionsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(bottom: false, child: _Body(state: state)),
     );
   }
@@ -59,7 +60,7 @@ class _Body extends ConsumerWidget {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       onRefresh: () => ref.read(positionsProvider.notifier).refresh(),
       child: ListView(
         padding: EdgeInsets.fromLTRB(
@@ -95,7 +96,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label,
       style: TextStyle(
-        color: AppColors.textSecondaryDark,
+        color: context.dreamColors.muted,
         fontSize: 12.sp,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.5,
@@ -125,7 +126,7 @@ class _NotRegisteredView extends StatelessWidget {
             Text(
               'Account Not Registered',
               style: TextStyle(
-                color: AppColors.textPrimaryDark,
+                color: context.dreamColors.onSurface,
                 fontSize: 17.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -134,7 +135,7 @@ class _NotRegisteredView extends StatelessWidget {
             Text(
               'You need a Phoenix account to trade.\nGo to Account to activate with an invite code.',
               style: TextStyle(
-                color: AppColors.textSecondaryDark,
+                color: context.dreamColors.muted,
                 fontSize: 13.sp,
                 height: 1.5,
               ),
@@ -187,7 +188,7 @@ class _EmptyView extends ConsumerWidget {
           Text(
             'No open positions',
             style: TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: context.dreamColors.onSurface,
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
@@ -196,7 +197,7 @@ class _EmptyView extends ConsumerWidget {
           Text(
             'Your positions will appear here\nonce you open a trade.',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: context.dreamColors.muted,
               fontSize: 13.sp,
             ),
             textAlign: TextAlign.center,

@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/providers/phoenix/phoenix_auth_provider.dart';
 import '../../../../core/providers/settings/ui_preferences_provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../providers/trade_provider.dart';
 import '../widgets/orderbook_widget.dart';
@@ -16,6 +15,7 @@ import '../widgets/trade_order_panel.dart';
 import '../widgets/trade_size_input.dart';
 import '../widgets/trade_status_widgets.dart';
 import '../widgets/trade_tp_sl_section.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 const double _kTabletBreakpoint = 768.0;
 
@@ -50,7 +50,7 @@ class TradePage extends ConsumerWidget {
     final isAuthed = phoenixAuth.isAuthenticated;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       body: SafeArea(
         bottom: false,
         child: LayoutBuilder(
@@ -240,7 +240,7 @@ class _TabletLayout extends StatelessWidget {
               ),
               Container(
                 width: 1,
-                color: AppColors.borderDark.withValues(alpha: 0.4),
+                color: context.dreamColors.stroke.withValues(alpha: 0.4),
               ),
               SizedBox(
                 width: 340,

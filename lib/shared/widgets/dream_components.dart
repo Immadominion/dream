@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/dream_colors.dart';
 
 // =============================================================================
 // GLASS CARD - Premium glassmorphic container
@@ -33,7 +34,7 @@ class DreamCard extends StatelessWidget {
       margin: margin,
       padding: padding ?? EdgeInsets.all(20.r),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
+        color: isDark ? context.dreamColors.surfaceVariant : Colors.white,
         borderRadius: borderRadius ?? BorderRadius.circular(20.r),
         border: Border.all(
           color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200,
@@ -161,7 +162,7 @@ class DreamTextField extends StatelessWidget {
       obscureText: obscureText,
       enabled: enabled,
       style: TextStyle(
-        color: isDark ? AppColors.textPrimaryDark : Colors.black87,
+        color: isDark ? context.dreamColors.onSurface : Colors.black87,
         fontSize: 15.sp,
       ),
       cursorColor: AppColors.primary,
@@ -173,7 +174,7 @@ class DreamTextField extends StatelessWidget {
           fontSize: 14.sp,
         ),
         hintStyle: TextStyle(
-          color: isDark ? AppColors.textMutedDark : Colors.grey.shade400,
+          color: isDark ? context.dreamColors.mutedSecondary : Colors.grey.shade400,
           fontSize: 14.sp,
         ),
         prefixIcon: prefixIcon != null
@@ -190,7 +191,7 @@ class DreamTextField extends StatelessWidget {
         fillColor: isDark ? AppColors.insetDark : Colors.grey.shade100,
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         counterStyle: TextStyle(
-          color: isDark ? AppColors.textMutedDark : Colors.grey.shade500,
+          color: isDark ? context.dreamColors.mutedSecondary : Colors.grey.shade500,
           fontSize: 12.sp,
         ),
         border: OutlineInputBorder(

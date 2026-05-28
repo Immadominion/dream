@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../providers/trade_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Bybit-style trade header.
@@ -42,7 +43,7 @@ class TradeMarketHeader extends ConsumerWidget {
     final changeColor = change >= 0 ? AppColors.bullish : AppColors.bearish;
 
     return Container(
-      color: AppColors.backgroundDark,
+      color: context.dreamColors.background,
       child: Column(
         children: [
           SizedBox(
@@ -57,7 +58,7 @@ class TradeMarketHeader extends ConsumerWidget {
                       padding: EdgeInsets.symmetric(horizontal: 14.w),
                       child: Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         size: 18.sp,
                       ),
                     ),
@@ -69,7 +70,7 @@ class TradeMarketHeader extends ConsumerWidget {
                     child: Text(
                       'Trade',
                       style: TextStyle(
-                        color: AppColors.textPrimaryDark,
+                        color: context.dreamColors.onSurface,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
                       ),
@@ -83,7 +84,7 @@ class TradeMarketHeader extends ConsumerWidget {
                     padding: EdgeInsets.symmetric(horizontal: 14.w),
                     child: Icon(
                       Icons.open_in_full_rounded,
-                      color: AppColors.textPrimaryDark,
+                      color: context.dreamColors.onSurface,
                       size: 18.sp,
                     ),
                   ),
@@ -110,7 +111,7 @@ class TradeMarketHeader extends ConsumerWidget {
                             Text(
                               _displaySymbol(tradeState.symbol),
                               style: TextStyle(
-                                color: AppColors.textPrimaryDark,
+                                color: context.dreamColors.onSurface,
                                 fontSize: 22.sp,
                                 fontWeight: FontWeight.w700,
                                 height: 1.1,
@@ -119,7 +120,7 @@ class TradeMarketHeader extends ConsumerWidget {
                             SizedBox(width: 4.w),
                             Icon(
                               Icons.arrow_drop_down,
-                              color: AppColors.textPrimaryDark,
+                              color: context.dreamColors.onSurface,
                               size: 22.sp,
                             ),
                           ],
@@ -164,7 +165,7 @@ class TradeMarketHeader extends ConsumerWidget {
     final markets = ref.read(marketsProvider).markets;
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
@@ -193,7 +194,7 @@ class _ChartTogglePill extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(3.r),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Row(
@@ -235,13 +236,15 @@ class _PillSide extends StatelessWidget {
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
         decoration: BoxDecoration(
-          color: selected ? AppColors.surfaceDark : Colors.transparent,
+          color: selected ? context.dreamColors.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(17.r),
         ),
         child: Icon(
           icon,
           size: 17.sp,
-          color: selected ? AppColors.textPrimaryDark : AppColors.textMutedDark,
+          color: selected
+              ? context.dreamColors.onSurface
+              : context.dreamColors.mutedSecondary,
         ),
       ),
     );
@@ -301,7 +304,7 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
               width: 36.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: AppColors.borderDark,
+                color: context.dreamColors.stroke,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -312,22 +315,22 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                 controller: _ctrl,
                 autofocus: true,
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 14.sp,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Search markets',
                   hintStyle: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 14.sp,
                   ),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     size: 18.sp,
                   ),
                   filled: true,
-                  fillColor: AppColors.cardDark,
+                  fillColor: context.dreamColors.surfaceVariant,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 12.w,
                     vertical: 12.h,
@@ -356,7 +359,7 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                       child: Text(
                         'No markets found',
                         style: TextStyle(
-                          color: AppColors.textMutedDark,
+                          color: context.dreamColors.mutedSecondary,
                           fontSize: 13.sp,
                         ),
                       ),
@@ -397,7 +400,8 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                           Text(
                                             m.baseAsset,
                                             style: TextStyle(
-                                              color: AppColors.textPrimaryDark,
+                                              color:
+                                                  context.dreamColors.onSurface,
                                               fontSize: 14.sp,
                                               fontWeight: isSel
                                                   ? FontWeight.w800
@@ -407,7 +411,9 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                           Text(
                                             ' / USDC',
                                             style: TextStyle(
-                                              color: AppColors.textMutedDark,
+                                              color: context
+                                                  .dreamColors
+                                                  .mutedSecondary,
                                               fontSize: 12.sp,
                                             ),
                                           ),
@@ -418,7 +424,9 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                               vertical: 1.h,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: AppColors.textMutedDark
+                                              color: context
+                                                  .dreamColors
+                                                  .mutedSecondary
                                                   .withValues(alpha: 0.12),
                                               borderRadius:
                                                   BorderRadius.circular(3.r),
@@ -426,7 +434,9 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                             child: Text(
                                               '${m.maxLeverage}×',
                                               style: TextStyle(
-                                                color: AppColors.textMutedDark,
+                                                color: context
+                                                    .dreamColors
+                                                    .mutedSecondary,
                                                 fontSize: 9.sp,
                                                 fontWeight: FontWeight.w700,
                                               ),
@@ -445,7 +455,7 @@ class _SymbolPickerSheetState extends ConsumerState<_SymbolPickerSheet> {
                                     Text(
                                       price > 0 ? formatPrice(price) : '--',
                                       style: TextStyle(
-                                        color: AppColors.textPrimaryDark,
+                                        color: context.dreamColors.onSurface,
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w700,
                                         fontFeatures: const [
@@ -580,22 +590,23 @@ class _SheetTokenLogo extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
-                errorWidget: (context, url, error) => _monogram(symbol, size),
-                placeholder: (context, url) => _monogram(symbol, size),
+                errorWidget: (context, url, error) =>
+                    _monogram(symbol, size, context),
+                placeholder: (context, url) => _monogram(symbol, size, context),
               )
-            : _monogram(symbol, size),
+            : _monogram(symbol, size, context),
       ),
     );
   }
 
-  Widget _monogram(String sym, double size) {
+  Widget _monogram(String sym, double size, BuildContext context) {
     return Container(
-      color: AppColors.cardDark,
+      color: context.dreamColors.surfaceVariant,
       alignment: Alignment.center,
       child: Text(
         sym.isNotEmpty ? sym[0] : '?',
         style: TextStyle(
-          color: AppColors.textSecondaryDark,
+          color: context.dreamColors.muted,
           fontSize: size * 0.42,
           fontWeight: FontWeight.w700,
         ),

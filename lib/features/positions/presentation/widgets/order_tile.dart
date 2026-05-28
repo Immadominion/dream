@@ -8,6 +8,7 @@ import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/services/phoenix/phoenix_order_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/positions_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Open order tile — cancel conditional orders or redirect to phoenix.trade
@@ -67,7 +68,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
             style: TextStyle(fontSize: 12.sp),
           ),
           duration: const Duration(seconds: 4),
-          backgroundColor: AppColors.surfaceDark,
+          backgroundColor: context.dreamColors.surface,
         ),
       );
     }
@@ -82,21 +83,21 @@ class _OrderTileState extends ConsumerState<OrderTile> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         title: Text(
           'Cancel Order',
-          style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 16.sp),
+          style: TextStyle(color: context.dreamColors.onSurface, fontSize: 16.sp),
         ),
         content: Text(
           'Cancel this conditional order?',
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 13.sp),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Keep',
-              style: TextStyle(color: AppColors.textSecondaryDark),
+              style: TextStyle(color: context.dreamColors.muted),
             ),
           ),
           TextButton(
@@ -163,9 +164,9 @@ class _OrderTileState extends ConsumerState<OrderTile> {
       margin: EdgeInsets.only(bottom: 8.h),
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.dreamColors.stroke),
       ),
       child: Row(
         children: [
@@ -175,7 +176,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
               Text(
                 order.symbol,
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -198,7 +199,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
               Text(
                 '\$${order.price.toStringAsFixed(2)}',
                 style: TextStyle(
-                  color: AppColors.textPrimaryDark,
+                  color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -207,7 +208,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
               Text(
                 'Filled $fillPct%',
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 11.sp,
                 ),
               ),
@@ -244,13 +245,13 @@ class _OrderTileState extends ConsumerState<OrderTile> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: context.dreamColors.stroke,
                   borderRadius: BorderRadius.circular(6.r),
                 ),
                 child: Text(
                   'Cancel',
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w500,
                   ),

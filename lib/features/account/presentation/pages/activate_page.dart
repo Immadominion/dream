@@ -11,6 +11,7 @@ import '../../../auth/presentation/widgets/auth_background.dart';
 import '../../../auth/presentation/widgets/login_header.dart';
 import '../../providers/account_provider.dart';
 import '../../../positions/providers/positions_provider.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Activation gate page — shown after login when account is not registered.
@@ -116,7 +117,7 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundDark,
+      backgroundColor: context.dreamColors.background,
       resizeToAvoidBottomInset: true,
       body: AuthBackground(
         child: SafeArea(
@@ -132,7 +133,7 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
                 Text(
                   'Activate Your\nAccount',
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 30.sp,
                     fontWeight: FontWeight.w800,
                     height: 1.12,
@@ -142,7 +143,7 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
                 Text(
                   'Phoenix Trade is invite-only for now. Enter your referral or access code below.',
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 14.sp,
                     height: 1.55,
                   ),
@@ -155,7 +156,7 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
                   autocorrect: false,
                   textCapitalization: TextCapitalization.characters,
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.5,
@@ -163,23 +164,23 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
                   decoration: InputDecoration(
                     hintText: 'Enter your code',
                     hintStyle: TextStyle(
-                      color: AppColors.textMutedDark,
+                      color: context.dreamColors.mutedSecondary,
                       fontSize: 14.sp,
                       letterSpacing: 0,
                     ),
                     filled: true,
-                    fillColor: AppColors.surfaceDark,
+                    fillColor: context.dreamColors.surface,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 16.w,
                       vertical: 14.h,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.r),
-                      borderSide: BorderSide(color: AppColors.borderDark),
+                      borderSide: BorderSide(color: context.dreamColors.stroke),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.r),
-                      borderSide: BorderSide(color: AppColors.borderDark),
+                      borderSide: BorderSide(color: context.dreamColors.stroke),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10.r),
@@ -206,7 +207,7 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
                   child: Text(
                     'Search "Phoenix referral" on X or Discord if you need a code.',
                     style: TextStyle(
-                      color: AppColors.textMutedDark,
+                      color: context.dreamColors.mutedSecondary,
                       fontSize: 11.sp,
                       height: 1.4,
                     ),
@@ -258,7 +259,7 @@ class _ActivatePageState extends ConsumerState<ActivatePage> {
                     child: Text(
                       'Sign out',
                       style: TextStyle(
-                        color: AppColors.textSecondaryDark,
+                        color: context.dreamColors.muted,
                         fontSize: 13.sp,
                       ),
                     ),

@@ -9,6 +9,7 @@ import '../../../../core/services/phoenix/phoenix_websocket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import 'orderbook_tabs.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Orderbook Provider
@@ -150,15 +151,15 @@ class _OrderbookWidgetState extends ConsumerState<OrderbookWidget>
           controller: _tab,
           indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.label,
-          labelColor: AppColors.textPrimaryDark,
-          unselectedLabelColor: AppColors.textMutedDark,
+          labelColor: context.dreamColors.onSurface,
+          unselectedLabelColor: context.dreamColors.mutedSecondary,
           labelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
           unselectedLabelStyle: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,
           ),
           labelPadding: EdgeInsets.symmetric(horizontal: 12.w),
-          dividerColor: AppColors.borderDark,
+          dividerColor: context.dreamColors.stroke,
           tabs: const [
             Tab(text: 'Depth'),
             Tab(text: 'Trades'),
@@ -206,13 +207,13 @@ class _OrderbookHeadlineMetric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: AppColors.textMutedDark, fontSize: 9.sp),
+          style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 9.sp),
         ),
         SizedBox(height: 2.h),
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? AppColors.textPrimaryDark,
+            color: valueColor ?? context.dreamColors.onSurface,
             fontSize: 11.sp,
             fontWeight: FontWeight.w600,
           ),

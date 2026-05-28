@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'account_trade_order_tabs.dart';
 import 'account_funding_collateral_tabs.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // History section — tabbed: Trades | Orders | Funding | Collateral
@@ -47,8 +48,8 @@ class _AccountHistorySectionState extends ConsumerState<AccountHistorySection>
             indicatorColor: AppColors.primary,
             indicatorSize: TabBarIndicatorSize.label,
             indicatorWeight: 2.4,
-            labelColor: AppColors.textPrimaryDark,
-            unselectedLabelColor: AppColors.textMutedDark,
+            labelColor: context.dreamColors.onSurface,
+            unselectedLabelColor: context.dreamColors.mutedSecondary,
             labelStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700),
             unselectedLabelStyle: TextStyle(
               fontSize: 13.sp,

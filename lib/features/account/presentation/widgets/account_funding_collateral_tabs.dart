@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'account_history_providers.dart';
 import 'account_history_shared.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Funding history tab + row
@@ -34,7 +35,7 @@ class AccountFundingHistoryTab extends ConsumerWidget {
       ),
       error: (e, _) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: buildAccountHistoryFallbackScrollView(
           child: const AccountHistoryErrorState(),
@@ -42,7 +43,7 @@ class AccountFundingHistoryTab extends ConsumerWidget {
       ),
       data: (items) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: items.isEmpty
             ? buildAccountHistoryFallbackScrollView(
@@ -63,7 +64,7 @@ class AccountFundingHistoryTab extends ConsumerWidget {
                 itemCount: items.length,
                 separatorBuilder: (context, index) => Divider(
                   height: 1,
-                  color: AppColors.borderDark.withValues(alpha: 0.5),
+                  color: context.dreamColors.stroke.withValues(alpha: 0.5),
                 ),
                 itemBuilder: (_, i) => _FundingHistoryRow(data: items[i]),
               ),
@@ -105,7 +106,7 @@ class _FundingHistoryRow extends StatelessWidget {
                 Text(
                   '$symbol Funding',
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -114,7 +115,7 @@ class _FundingHistoryRow extends StatelessWidget {
                 Text(
                   formatAccountHistoryDate(data['timestamp']),
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -123,7 +124,7 @@ class _FundingHistoryRow extends StatelessWidget {
                   Text(
                     '$positionSide ${positionSize.toStringAsFixed(4)} ${symbol.split('-').first}',
                     style: TextStyle(
-                      color: AppColors.textMutedDark,
+                      color: context.dreamColors.mutedSecondary,
                       fontSize: 11.sp,
                     ),
                   ),
@@ -147,7 +148,7 @@ class _FundingHistoryRow extends StatelessWidget {
               Text(
                 '${ratePct >= 0 ? '+' : ''}${ratePct.toStringAsFixed(4)}%',
                 style: TextStyle(
-                  color: AppColors.textSecondaryDark,
+                  color: context.dreamColors.muted,
                   fontSize: 11.sp,
                 ),
               ),
@@ -186,7 +187,7 @@ class AccountCollateralHistoryTab extends ConsumerWidget {
       ),
       error: (e, _) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: buildAccountHistoryFallbackScrollView(
           child: const AccountHistoryErrorState(),
@@ -194,7 +195,7 @@ class AccountCollateralHistoryTab extends ConsumerWidget {
       ),
       data: (items) => RefreshIndicator(
         color: AppColors.primary,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.dreamColors.surface,
         onRefresh: refresh,
         child: items.isEmpty
             ? buildAccountHistoryFallbackScrollView(
@@ -217,7 +218,7 @@ class AccountCollateralHistoryTab extends ConsumerWidget {
                 itemCount: items.length,
                 separatorBuilder: (context, index) => Divider(
                   height: 1,
-                  color: AppColors.borderDark.withValues(alpha: 0.5),
+                  color: context.dreamColors.stroke.withValues(alpha: 0.5),
                 ),
                 itemBuilder: (_, i) => _CollateralHistoryRow(data: items[i]),
               ),
@@ -264,7 +265,7 @@ class _CollateralHistoryRow extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: AppColors.textPrimaryDark,
+                    color: context.dreamColors.onSurface,
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -273,7 +274,7 @@ class _CollateralHistoryRow extends StatelessWidget {
                 Text(
                   formatAccountHistoryDate(data['timestamp']),
                   style: TextStyle(
-                    color: AppColors.textSecondaryDark,
+                    color: context.dreamColors.muted,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -281,7 +282,7 @@ class _CollateralHistoryRow extends StatelessWidget {
                 Text(
                   'Balance ${balanceAfter.toStringAsFixed(2)} USDC',
                   style: TextStyle(
-                    color: AppColors.textMutedDark,
+                    color: context.dreamColors.mutedSecondary,
                     fontSize: 11.sp,
                   ),
                 ),

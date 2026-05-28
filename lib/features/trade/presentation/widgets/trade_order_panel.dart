@@ -13,6 +13,7 @@ import '../../providers/trade_provider.dart';
 import '../../../../core/providers/wallet/wallet_balance_provider.dart';
 import '../pages/trade_order_success_screen.dart';
 import 'trade_confirm_sheet.dart';
+import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Order summary card — shown below the form
@@ -54,7 +55,7 @@ class TradeOrderSummary extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: context.dreamColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10.r),
       ),
       child: Column(
@@ -94,7 +95,7 @@ class TradeOrderSummary extends ConsumerWidget {
             value: notional > 0
                 ? '~\$${estFee.toStringAsFixed(3)} (${takerFeeBps.toStringAsFixed(1)} bps)'
                 : '--',
-            valueColor: AppColors.textSecondaryDark,
+            valueColor: context.dreamColors.muted,
           ),
           if (tradeState.estimatedLiqPrice != null &&
               tradeState.estimatedLiqPrice! > 0) ...[
@@ -129,12 +130,12 @@ class _SummaryRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 12.sp),
         ),
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? AppColors.textPrimaryDark,
+            color: valueColor ?? context.dreamColors.onSurface,
             fontSize: 12.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -231,7 +232,7 @@ class TradeSubmitButton extends ConsumerWidget {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.dreamColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
@@ -358,7 +359,7 @@ class TradeSlippageSelector extends ConsumerWidget {
       children: [
         Text(
           'Slippage',
-          style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 12.sp),
+          style: TextStyle(color: context.dreamColors.muted, fontSize: 12.sp),
         ),
         const Spacer(),
         ..._options.map((bps) {
@@ -373,7 +374,7 @@ class TradeSlippageSelector extends ConsumerWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: selected ? AppColors.primary : AppColors.textMutedDark,
+                  color: selected ? AppColors.primary : context.dreamColors.mutedSecondary,
                   fontSize: 12.sp,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                   decoration: selected
