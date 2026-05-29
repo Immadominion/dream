@@ -426,14 +426,43 @@ class PhoenixOrderService {
 
   String _orderErrorMessage(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '').trim();
+
+    // ── Specific, user-friendly patterns ────────────────────────────────────
+
+    // Wallet needs SOL to open a Phoenix trader account for the first time
+    if (message.contains('RegisterTrader') &&
+        message.contains('insufficient lamports')) {
+      return 'Your wallet needs a small amount of SOL (~0.003 SOL) to open a Phoenix account for the first time. Add SOL and try again.';
+    }
+
+    // Phoenix collateral shortfall
     if (message.contains('TransferCollateralRegular') &&
         message.contains('insufficient collateral for withdrawal')) {
-      return 'Not enough Phoenix collateral for this isolated order after fees and margin buffer. Reduce size or leverage, or add more collateral.';
+      return 'Not enough collateral for this order after fees and margin. Reduce size or leverage.';
     }
+
+    // Phoenix simulation size/collateral mismatch
     if (message.contains('InstructionError') &&
         message.contains('InsufficientFunds')) {
-      return 'Phoenix simulation says this order is too large for the collateral being allocated. Reduce size or leverage, or increase isolated collateral.';
+      return 'Order size exceeds available collateral. Reduce size or leverage.';
     }
+
+    // Generic insufficient lamports / SOL
+    if (message.contains('insufficient lamports')) {
+      return 'Insufficient SOL in your wallet to cover transaction fees. Add SOL and try again.';
+    }
+
+    // Slippage exceeded
+    if (message.contains('slippage') || message.contains('SlippageExceeded')) {
+      return 'Price moved too fast. Increase your slippage tolerance or try again.';
+    }
+
+    // Already registered (shouldn't reach user but just in case)
+    if (message.contains('already in use')) {
+      return 'Account already registered. Please try your order again.';
+    }
+
+    // ── Network / Dio errors ─────────────────────────────────────────────────
 
     if (error is DioException) {
       final apiMessage = _apiErrorFromData(error.response?.data);
@@ -443,17 +472,28 @@ class PhoenixOrderService {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          return 'Phoenix order builder timed out. Please try again.';
+          return 'Request timed out. Please try again.';
         case DioExceptionType.connectionError:
-          return 'Could not reach Phoenix. Check your connection and try again.';
+          return 'Could not reach Phoenix. Check your connection.';
         case DioExceptionType.badResponse:
           return 'Phoenix rejected the order. Please check the order details.';
         case DioExceptionType.cancel:
-          return 'Order request was cancelled.';
+          return 'Order was cancelled.';
         case DioExceptionType.badCertificate:
         case DioExceptionType.unknown:
-          return 'Order request failed. Please try again.';
+          return 'Order failed. Please try again.';
       }
+    }
+
+    // ── Fallback: never show raw JSON to the user ────────────────────────────
+
+    // If the message looks like a raw RPC/JSON blob, replace it entirely.
+    if (message.contains('jsonrpc') ||
+        message.contains('InstructionError') ||
+        message.contains('loadedAccountsDataSize') ||
+        message.contains('Program log:')) {
+      _logger.error('Raw RPC error swallowed: $message', tag: 'Order');
+      return 'Transaction failed. Please try again.';
     }
 
     return message.isEmpty ? 'Order failed. Please try again.' : message;
