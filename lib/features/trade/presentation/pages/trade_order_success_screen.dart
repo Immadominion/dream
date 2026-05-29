@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:lottie/lottie.dart';
+import 'package:rive/rive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -34,18 +34,13 @@ class TradeOrderSuccessScreen extends StatelessWidget {
       ? '${trade.leverage.toStringAsFixed(0)}x'
       : '${trade.leverage.toStringAsFixed(1)}x';
 
-  String get _orderSubtitle => trade.orderType == OrderType.market
-      ? 'Market order submitted to Phoenix.'
-      : 'Limit order submitted to Phoenix.';
-
   String get _txLabel {
-    if (trade.txSignature.isEmpty) return 'Pending confirmation';
-    return '${trade.txSignature.substring(0, 8)}...${trade.txSignature.substring(trade.txSignature.length - 8)}';
+    if (trade.txSignature.isEmpty) return 'Pending';
+    return '${trade.txSignature.substring(0, 6)}...${trade.txSignature.substring(trade.txSignature.length - 6)}';
   }
 
   Future<void> _openSolscan() async {
     if (trade.txSignature.isEmpty) return;
-
     final uri = Uri.parse('https://solscan.io/tx/${trade.txSignature}');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -58,190 +53,172 @@ class TradeOrderSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.dreamColors;
     final entryPrice = position?.entryPrice ?? trade.entryPrice;
-    final liquidationPrice =
-        position?.liquidationPrice ?? trade.estimatedLiqPrice;
+    final liquidationPrice = position?.liquidationPrice ?? trade.estimatedLiqPrice;
 
     return Scaffold(
-      backgroundColor: context.dreamColors.background,
+      backgroundColor: c.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: Icon(
-            Icons.close_rounded,
-            color: context.dreamColors.onSurface,
-            size: 22.sp,
-          ),
+          icon: Icon(Icons.arrow_back_rounded, color: c.onSurface, size: 22.sp),
         ),
       ),
       body: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 24.h),
+          padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      SizedBox(height: 12.h),
-                      SizedBox(
-                        width: 176.w,
-                        height: 176.w,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 132.w,
-                              height: 132.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    AppColors.success.withValues(alpha: 0.28),
-                                    Colors.transparent,
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Lottie.asset(
-                              AppAssets.successAnimation,
-                              repeat: false,
-                              width: 176.w,
-                              height: 176.w,
-                            ),
-                          ],
+              // ── Animation + heading ─────────────────────────────────────
+              SizedBox(height: 4.h),
+              Center(
+                child: SizedBox(
+                  width: 96.w,
+                  height: 96.w,
+                  child: RiveWidgetBuilder(
+                    fileLoader: FileLoader.fromAsset(
+                      AppAssets.successAnimation,
+                      riveFactory: Factory.rive,
+                    ),
+                    stateMachineSelector: const StateMachineNamed(
+                      'State Machine 1',
+                    ),
+                    builder: (context, riveState) {
+                      if (riveState is RiveLoaded) {
+                        return RiveWidget(
+                          controller: riveState.controller,
+                          fit: Fit.contain,
+                        );
+                      }
+                      if (riveState is RiveFailed) {
+                        return Icon(
+                          Icons.check_circle_rounded,
+                          color: AppColors.success,
+                          size: 68.sp,
+                        );
+                      }
+                      return Center(
+                        child: SizedBox(
+                          width: 22.w,
+                          height: 22.w,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.success,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Order placed',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: context.dreamColors.onSurface,
-                          fontSize: 30.sp,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Text(
-                        '$_sideLabel $_baseSymbol $_leverageLabel',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _sideColor,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 6.h),
-                      Text(
-                        _orderSubtitle,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: context.dreamColors.muted,
-                          fontSize: 13.sp,
-                          height: 1.45,
-                        ),
-                      ),
-                      SizedBox(height: 28.h),
-                      _SuccessMetricRow(
-                        label: 'Size',
-                        value:
-                            '${trade.quantity.toStringAsFixed(4)} $_baseSymbol',
-                      ),
-                      _SuccessMetricRow(
-                        label: 'Collateral',
-                        value: formatUsdc(trade.collateralUsdc),
-                      ),
-                      _SuccessMetricRow(
-                        label: trade.orderType == OrderType.market
-                            ? 'Est. Entry'
-                            : 'Limit Price',
-                        value: formatPrice(entryPrice),
-                      ),
-                      _SuccessMetricRow(
-                        label: 'Notional',
-                        value: formatUsdc(trade.notionalUsdc),
-                      ),
-                      if (liquidationPrice != null && liquidationPrice > 0)
-                        _SuccessMetricRow(
-                          label: 'Est. Liq. Price',
-                          value: formatPrice(liquidationPrice),
-                        ),
-                      _SuccessMetricRow(
-                        label: 'Transaction',
-                        value: _txLabel,
-                        isLast: true,
-                      ),
-                    ],
+                      );
+                    },
                   ),
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                'Order placed',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: c.onSurface,
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Text(
+                '$_sideLabel $_baseSymbol $_leverageLabel',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: _sideColor,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               SizedBox(height: 16.h),
-              SizedBox(
-                width: double.infinity,
-                height: 52.h,
-                child: ElevatedButton(
-                  onPressed: () => _openSharePreview(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18.r),
+
+              // ── Receipt card ─────────────────────────────────────────────
+              Container(
+                decoration: BoxDecoration(
+                  color: c.surfaceVariant,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: c.stroke, width: 0.5),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                child: Column(
+                  children: [
+                    _Row(label: 'Size', value: '${trade.quantity.toStringAsFixed(4)} $_baseSymbol', c: c),
+                    _Divider(c: c),
+                    _Row(label: 'Collateral', value: formatUsdc(trade.collateralUsdc), c: c),
+                    _Divider(c: c),
+                    _Row(
+                      label: trade.orderType == OrderType.market ? 'Entry price' : 'Limit price',
+                      value: formatPrice(entryPrice),
+                      c: c,
                     ),
-                  ),
-                  child: Text(
-                    'Share Setup',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                    _Divider(c: c),
+                    _Row(label: 'Notional', value: formatUsdc(trade.notionalUsdc), c: c),
+                    if (liquidationPrice != null && liquidationPrice > 0) ...[
+                      _Divider(c: c),
+                      _Row(label: 'Liq. price', value: formatPrice(liquidationPrice), c: c),
+                    ],
+                    _Divider(c: c),
+                    _Row(label: 'Tx', value: _txLabel, c: c, valueColor: c.muted),
+                  ],
                 ),
               ),
-              SizedBox(height: 10.h),
-              SizedBox(
-                width: double.infinity,
-                height: 52.h,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: context.dreamColors.onSurface,
-                    side: BorderSide(color: context.dreamColors.stroke),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18.r),
+
+              const Spacer(),
+
+              // ── CTAs ─────────────────────────────────────────────────────
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48.h,
+                      child: ElevatedButton(
+                        onPressed: () => _openSharePreview(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Share setup',
+                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+                        ),
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Done',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
+                  if (trade.txSignature.isNotEmpty) ...[
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48.h,
+                        child: OutlinedButton(
+                          onPressed: _openSolscan,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: c.onSurface,
+                            side: BorderSide(color: c.stroke),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                          ),
+                          child: Text(
+                            'View live',
+                            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  ],
+                ],
               ),
-              if (trade.txSignature.isNotEmpty) ...[
-                SizedBox(height: 6.h),
-                TextButton(
-                  onPressed: _openSolscan,
-                  style: TextButton.styleFrom(
-                    foregroundColor: context.dreamColors.muted,
-                  ),
-                  child: Text(
-                    'View on Solscan',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -250,56 +227,47 @@ class TradeOrderSuccessScreen extends StatelessWidget {
   }
 }
 
-class _SuccessMetricRow extends StatelessWidget {
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+class _Row extends StatelessWidget {
   final String label;
   final String value;
-  final bool isLast;
+  final DreamColors c;
+  final Color? valueColor;
 
-  const _SuccessMetricRow({
-    required this.label,
-    required this.value,
-    this.isLast = false,
-  });
+  const _Row({required this.label, required this.value, required this.c, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 14.h),
-      child: Column(
+      padding: EdgeInsets.symmetric(vertical: 9.h),
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: context.dreamColors.mutedSecondary,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Flexible(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: context.dreamColors.onSurface,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            label,
+            style: TextStyle(color: c.muted, fontSize: 12.sp, fontWeight: FontWeight.w500),
           ),
-          if (!isLast) ...[
-            SizedBox(height: 14.h),
-            Divider(height: 1, thickness: 1, color: context.dreamColors.stroke),
-          ],
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? c.onSurface,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  final DreamColors c;
+  const _Divider({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(height: 1, thickness: 0.5, color: c.stroke);
   }
 }

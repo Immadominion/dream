@@ -446,7 +446,7 @@ class _TradeReceiptCard extends StatelessWidget {
                           child: Text(
                             data.txLabel,
                             style: TextStyle(
-                              color: AppColors.textTertiaryDark,
+                              color: context.dreamColors.mutedSecondary,
                               fontSize: 10.sp,
                             ),
                           ),
@@ -486,9 +486,11 @@ class _ReceiptMetric extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
+          color: context.dreamColors.onSurface.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(
+            color: context.dreamColors.onSurface.withValues(alpha: 0.06),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,7 +499,7 @@ class _ReceiptMetric extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: AppColors.textTertiaryDark,
+                color: context.dreamColors.mutedSecondary,
                 fontSize: 10.sp,
               ),
             ),

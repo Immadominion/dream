@@ -253,7 +253,7 @@ class AppAssets {
 
   // Lottie Animations
   static const String loadingAnimation = 'assets/lottie/loading.json';
-  static const String successAnimation = 'assets/lottie/success.json';
+  static const String successAnimation = 'assets/animations/success.riv';
   static const String errorAnimation = 'assets/lottie/error.json';
   static const String emptyStateAnimation = 'assets/lottie/empty_state.json';
   static const String walletConnectAnimation =

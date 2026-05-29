@@ -113,7 +113,7 @@ class _ThemeToggleTileState extends ConsumerState<ThemeToggleTile> {
                       borderRadius: BorderRadius.circular(50.r),
                       child: RiveWidget(
                         controller: riveState.controller,
-                        fit: Fit.fitWidth,
+                        fit: Fit.cover,
                       ),
                     );
                   }
