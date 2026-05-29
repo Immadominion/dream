@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/app_notification.dart';
 import '../../../core/models/phoenix/phoenix_models.dart';
 import '../../../core/providers/auth/client_auth_provider.dart';
+import '../../../core/services/analytics/telegram_analytics_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/services/notifications/remote_notification_service.dart';
 import '../../../core/services/phoenix/phoenix_order_service.dart';
@@ -117,6 +118,15 @@ class PositionsNotifier extends Notifier<PositionsState> {
         // Refresh positions after a short delay so the on-chain state settles
         await Future.delayed(const Duration(seconds: 2));
         await refresh();
+
+        // Analytics
+        unawaited(
+          ref.read(telegramAnalyticsProvider).trackPositionClosed(
+            symbol: position.symbol,
+            side: position.side,
+          ),
+        );
+
         return null;
       }
       return result.error ?? 'Close position failed';
@@ -180,6 +190,15 @@ class PositionsNotifier extends Notifier<PositionsState> {
       if (result.success) {
         await Future.delayed(const Duration(seconds: 2));
         await refresh();
+
+        // Analytics
+        unawaited(
+          ref.read(telegramAnalyticsProvider).trackCollateralDeposit(
+            walletAddress,
+            amountUsdc,
+          ),
+        );
+
         return null;
       }
       return result.error ?? 'Add collateral failed';

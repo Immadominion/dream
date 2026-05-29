@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/auth/client_auth_provider.dart';
 import '../../../core/providers/settings/ui_preferences_provider.dart';
+import '../../../core/services/analytics/telegram_analytics_service.dart';
 import '../../../core/services/phoenix/phoenix_order_service.dart';
 import '../../../core/services/phoenix/phoenix_websocket_service.dart';
 import '../../../core/services/ui_preferences_service.dart';
@@ -336,6 +337,20 @@ class TradeNotifier extends Notifier<TradeState> {
         lastSubmittedTrade: snapshot,
         estimatedLiqPrice: result.estimatedLiquidationPrice,
         submitError: null,
+      );
+
+      // Analytics
+      unawaited(
+        ref.read(telegramAnalyticsProvider).trackOrderPlaced(
+          symbol: state.symbol,
+          side: state.side == OrderSide.buy ? 'buy' : 'sell',
+          orderType: state.orderType == OrderType.market ? 'market' : 'limit',
+          sizeUsdc: state.sizeUsdc,
+          leverage: state.leverage.toDouble(),
+          notionalUsdc: notionalUsdc,
+          entryPrice: entryPrice,
+          txSignature: result.txSignature ?? '',
+        ),
       );
     } else {
       state = state.copyWith(

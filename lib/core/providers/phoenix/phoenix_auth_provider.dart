@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/phoenix/phoenix_models.dart';
+import '../../services/analytics/telegram_analytics_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/phoenix/phoenix_auth_service.dart';
 import '../../services/wallet/mwa_wallet_service.dart';
@@ -232,6 +233,13 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
       state = state.copyWith(
         status: PhoenixAuthStatus.authenticated,
         session: session,
+      );
+
+      // Analytics — track new users (no-op if already reported for this wallet)
+      unawaited(
+        ref
+            .read(telegramAnalyticsProvider)
+            .trackNewUser(walletAddress),
       );
     } on PhoenixAuthException catch (e) {
       _logger.error(
