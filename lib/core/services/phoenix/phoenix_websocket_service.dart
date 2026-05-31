@@ -77,6 +77,9 @@ class PhoenixWebSocketService {
   final LoggerService _logger;
 
   WebSocketChannel? _channel;
+  StreamSubscription? _channelSubscription;
+  Future<void>? _connectFuture;
+  Timer? _reconnectTimer;
   bool _connected = false;
   bool _disposed = false;
 
@@ -125,7 +128,7 @@ class PhoenixWebSocketService {
 
   // Track active subscriptions so we can re-subscribe after reconnects
   final Set<String> _subscribedMarkets = {};
-  String? _subscribedAuthority;
+  final Set<String> _subscribedAuthorities = {};
   final Set<String> _subscribedOrderbooks = {};
   final Map<String, String> _subscribedCandles = {}; // symbol → timeframe
   final Set<String> _subscribedTrades = {};
@@ -139,11 +142,39 @@ class PhoenixWebSocketService {
   // ---------------------------------------------------------------------------
 
   Future<void> connect() async {
-    if (_connected || _disposed) return;
+    if (_disposed || _connected) return;
+    if (_connectFuture != null) return _connectFuture!;
+
+    final channel = WebSocketChannel.connect(Uri.parse(AppConstants.phoenixWsUrl));
+    _channel = channel;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+
+    _connectFuture = _connectChannel(channel);
+    try {
+      await _connectFuture;
+    } finally {
+      if (identical(_channel, channel)) {
+        _connectFuture = null;
+      }
+    }
+  }
+
+  Future<void> _connectChannel(WebSocketChannel channel) async {
     try {
       _logger.info('Connecting to Phoenix WS', tag: 'WS');
-      _channel = WebSocketChannel.connect(Uri.parse(AppConstants.phoenixWsUrl));
-      await _channel!.ready;
+      await channel.ready;
+
+      if (_disposed) {
+        await channel.sink.close();
+        return;
+      }
+
+      if (!identical(_channel, channel)) {
+        await channel.sink.close();
+        return;
+      }
+
       _connected = true;
       _reconnectAttempts = 0;
       _logger.info('Phoenix WS connected', tag: 'WS');
@@ -151,18 +182,16 @@ class PhoenixWebSocketService {
         _connectionStatusController.add(true);
       }
 
-      // Always subscribe to allMids on connection
       _send({
         'type': 'subscribe',
         'subscription': {'channel': 'allMids'},
       });
 
-      // Re-subscribe to active channels after reconnect
       for (final symbol in _subscribedMarkets) {
         _sendMarketSub(symbol);
       }
-      if (_subscribedAuthority != null) {
-        _sendTraderSub(_subscribedAuthority!);
+      for (final authority in _subscribedAuthorities) {
+        _sendTraderSub(authority);
       }
       for (final symbol in _subscribedOrderbooks) {
         _sendOrderbookSub(symbol);
@@ -174,17 +203,23 @@ class PhoenixWebSocketService {
         _sendTradesSub(symbol);
       }
 
-      _channel!.stream.listen(
+      await _channelSubscription?.cancel();
+      _channelSubscription = channel.stream.listen(
         _onMessage,
-        onDone: _onDisconnect,
-        onError: _onError,
+        onDone: () => _onDisconnect(channel),
+        onError: (Object error, StackTrace stackTrace) =>
+            _onError(channel, error, stackTrace),
         cancelOnError: false,
       );
 
       _startHeartbeat();
-    } catch (e) {
-      _logger.error('WS connect failed', error: e, tag: 'WS');
+    } catch (e, stackTrace) {
+      if (!identical(_channel, channel)) return;
+      _logger.error('WS connect failed', error: e, stackTrace: stackTrace, tag: 'WS');
       _connected = false;
+      _channel = null;
+      await _channelSubscription?.cancel();
+      _channelSubscription = null;
       _scheduleReconnect();
     }
   }
@@ -193,6 +228,10 @@ class PhoenixWebSocketService {
     _disposed = true;
     _connected = false;
     _stopHeartbeat();
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _channelSubscription?.cancel();
+    _channelSubscription = null;
     _channel?.sink.close();
     _channel = null;
     _allMidsController.close();
@@ -227,21 +266,32 @@ class PhoenixWebSocketService {
 
   /// Subscribe to real-time trader state updates for [authority].
   void subscribeTraderState(String authority) {
-    _subscribedAuthority = authority;
+    _subscribedAuthorities.add(authority);
     if (_connected) _sendTraderSub(authority);
   }
 
-  void unsubscribeTraderState() {
-    if (_subscribedAuthority != null && _connected) {
-      _send({
-        'type': 'unsubscribe',
-        'subscription': {
-          'channel': 'traderState',
-          'authority': _subscribedAuthority,
-        },
-      });
+  /// Unsubscribe [authority] from trader state updates.
+  /// If [authority] is null, unsubscribes all tracked authorities.
+  void unsubscribeTraderState([String? authority]) {
+    if (authority != null) {
+      _subscribedAuthorities.remove(authority);
+      if (_connected) {
+        _send({
+          'type': 'unsubscribe',
+          'subscription': {'channel': 'traderState', 'authority': authority},
+        });
+      }
+    } else {
+      for (final a in _subscribedAuthorities) {
+        if (_connected) {
+          _send({
+            'type': 'unsubscribe',
+            'subscription': {'channel': 'traderState', 'authority': a},
+          });
+        }
+      }
+      _subscribedAuthorities.clear();
     }
-    _subscribedAuthority = null;
   }
 
   /// Subscribe to live orderbook for [symbol] (e.g. "SOL-PERP").
@@ -385,9 +435,12 @@ class PhoenixWebSocketService {
     }
   }
 
-  void _onDisconnect() {
+  void _onDisconnect(WebSocketChannel channel) {
+    if (!identical(_channel, channel) && _channel != null) return;
     _connected = false;
     _stopHeartbeat();
+    _channel = null;
+    _channelSubscription = null;
     _logger.warning('Phoenix WS disconnected', tag: 'WS');
     if (!_connectionStatusController.isClosed) {
       _connectionStatusController.add(false);
@@ -395,10 +448,13 @@ class PhoenixWebSocketService {
     if (!_disposed) _scheduleReconnect();
   }
 
-  void _onError(Object error) {
+  void _onError(WebSocketChannel channel, Object error, StackTrace stackTrace) {
+    if (!identical(_channel, channel) && _channel != null) return;
     _connected = false;
     _stopHeartbeat();
-    _logger.error('Phoenix WS error', error: error, tag: 'WS');
+    _channel = null;
+    _channelSubscription = null;
+    _logger.error('Phoenix WS error', error: error, stackTrace: stackTrace, tag: 'WS');
     if (!_connectionStatusController.isClosed) {
       _connectionStatusController.add(false);
     }
@@ -461,7 +517,9 @@ class PhoenixWebSocketService {
   }
 
   void _scheduleReconnect() {
-    if (_disposed) return;
+    if (_disposed || _connected || _connectFuture != null || _reconnectTimer != null) {
+      return;
+    }
     _reconnectAttempts++;
     final delay = Duration(
       seconds: (2 << _reconnectAttempts.clamp(0, 5)).clamp(
@@ -470,7 +528,10 @@ class PhoenixWebSocketService {
       ),
     );
     _logger.info('WS reconnect in ${delay.inSeconds}s', tag: 'WS');
-    Future.delayed(delay, connect);
+    _reconnectTimer = Timer(delay, () {
+      _reconnectTimer = null;
+      connect();
+    });
   }
 
   // ---------------------------------------------------------------------------

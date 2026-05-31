@@ -7,17 +7,22 @@ import 'package:solana/base58.dart';
 import '../../constants/app_constants.dart';
 import '../../models/phoenix/phoenix_models.dart';
 import '../logger_service.dart';
+import '../secure_storage_service.dart';
 import '../wallet/mwa_wallet_service.dart';
 import '../wallet/privy_wallet_manager.dart';
 import '../../../shared/services/storage_service.dart';
 
-// Storage keys for persisting Phoenix JWT pair
+// Storage keys for persisting the Phoenix JWT pair. These authorize trading,
+// so they live in hardware-backed secure storage (Keystore/Keychain), never
+// in plaintext SharedPreferences.
 const _kAccessToken = 'phoenix_access_token';
 const _kRefreshToken = 'phoenix_refresh_token';
 const _kExpiresAt = 'phoenix_token_expires_at';
 const _kRefreshExpiresAt = 'phoenix_refresh_expires_at';
 
-/// 'privy' | 'mwa' — persisted so wallet type survives app restarts
+/// 'privy' | 'mwa' — persisted so wallet type survives app restarts.
+/// Not sensitive (no token material), so it stays in SharedPreferences where a
+/// synchronous read is convenient.
 const _kWalletType = 'phoenix_wallet_type';
 
 /// Handles Phoenix perpetual-futures API authentication.
@@ -80,13 +85,13 @@ class PhoenixAuthService {
   /// - the refresh token has also expired (requires full re-authentication)
   Future<PhoenixSession?> getStoredSession() async {
     try {
-      final accessToken = StorageService.getString(_kAccessToken);
-      final expiresAtStr = StorageService.getString(_kExpiresAt);
+      final accessToken = await _readSecure(_kAccessToken);
+      final expiresAtStr = await _readSecure(_kExpiresAt);
       if (accessToken.isEmpty || expiresAtStr.isEmpty) return null;
 
       final expiresAt = DateTime.parse(expiresAtStr);
-      final refreshToken = StorageService.getString(_kRefreshToken);
-      final refreshExpiresAtStr = StorageService.getString(_kRefreshExpiresAt);
+      final refreshToken = await _readSecure(_kRefreshToken);
+      final refreshExpiresAtStr = await _readSecure(_kRefreshExpiresAt);
       final refreshExpiresAt = refreshExpiresAtStr.isNotEmpty
           ? DateTime.parse(refreshExpiresAtStr)
           : null;
@@ -214,13 +219,33 @@ class PhoenixAuthService {
   /// Clear persisted Phoenix session (call on user logout).
   Future<void> clearStoredSession() async {
     await Future.wait([
+      SecureStorageService.delete(_kAccessToken),
+      SecureStorageService.delete(_kRefreshToken),
+      SecureStorageService.delete(_kExpiresAt),
+      SecureStorageService.delete(_kRefreshExpiresAt),
+      StorageService.setString(_kWalletType, ''),
+      // Best-effort cleanup of any legacy plaintext copies.
       StorageService.setString(_kAccessToken, ''),
       StorageService.setString(_kRefreshToken, ''),
       StorageService.setString(_kExpiresAt, ''),
       StorageService.setString(_kRefreshExpiresAt, ''),
-      StorageService.setString(_kWalletType, ''),
     ]);
     _logger.info('Phoenix session cleared', tag: 'PhoenixAuth');
+  }
+
+  /// Read a sensitive value from secure storage, transparently migrating any
+  /// value left in legacy plaintext SharedPreferences by older app builds.
+  Future<String> _readSecure(String key) async {
+    final secureValue = await SecureStorageService.read(key);
+    if (secureValue != null && secureValue.isNotEmpty) return secureValue;
+
+    final legacyValue = StorageService.getString(key);
+    if (legacyValue.isNotEmpty) {
+      // Migrate forward, then wipe the plaintext copy.
+      await SecureStorageService.write(key, legacyValue);
+      await StorageService.setString(key, '');
+    }
+    return legacyValue;
   }
 
   /// Returns the persisted wallet type: 'mwa' or 'privy'.
@@ -321,7 +346,7 @@ class PhoenixAuthService {
     } catch (e) {
       _logger.error('Token refresh failed', error: e, tag: 'PhoenixAuth');
 
-      if (StorageService.getString(_kRefreshToken) == refreshToken) {
+      if (await _readSecure(_kRefreshToken) == refreshToken) {
         await clearStoredSession();
       } else {
         _logger.warning(
@@ -350,19 +375,21 @@ class PhoenixAuthService {
     required bool? usesMwa,
   }) async {
     await Future.wait([
-      StorageService.setString(_kAccessToken, session.accessToken),
-      StorageService.setString(
+      SecureStorageService.write(_kAccessToken, session.accessToken),
+      SecureStorageService.write(
         _kExpiresAt,
         session.expiresAt.toIso8601String(),
       ),
       if (session.refreshToken != null)
-        StorageService.setString(_kRefreshToken, session.refreshToken!),
+        SecureStorageService.write(_kRefreshToken, session.refreshToken!),
       if (session.refreshExpiresAt != null)
-        StorageService.setString(
+        SecureStorageService.write(
           _kRefreshExpiresAt,
           session.refreshExpiresAt!.toIso8601String(),
         ),
-      // Only write wallet type when explicitly provided (not on refresh)
+      // Wallet type carries no token material; keep it in SharedPreferences so
+      // [persistedWalletType] can stay a synchronous getter. Only write when
+      // explicitly provided (not on a silent refresh).
       if (usesMwa != null)
         StorageService.setString(_kWalletType, usesMwa ? 'mwa' : 'privy'),
     ]);

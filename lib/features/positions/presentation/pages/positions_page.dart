@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/dream_spinner.dart';
 import '../../../navigation/providers/bottom_nav_providers.dart';
 import '../../providers/positions_provider.dart';
 import '../widgets/order_tile.dart';
@@ -32,9 +33,7 @@ class _Body extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (state.isLoading && state.positions.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      );
+      return const DreamSpinner();
     }
 
     if (state.error != null && state.positions.isEmpty) {
@@ -196,10 +195,7 @@ class _EmptyView extends ConsumerWidget {
           SizedBox(height: 6.h),
           Text(
             'Your positions will appear here\nonce you open a trade.',
-            style: TextStyle(
-              color: context.dreamColors.muted,
-              fontSize: 13.sp,
-            ),
+            style: TextStyle(color: context.dreamColors.muted, fontSize: 13.sp),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 20.h),

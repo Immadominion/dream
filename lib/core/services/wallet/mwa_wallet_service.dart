@@ -96,9 +96,9 @@ class MwaWalletService {
 
       // Authorize with the wallet
       final authResult = await client.authorize(
-        identityUri: Uri.parse('https://solana.com'),
+        identityUri: Uri.parse('https://trydream.fun'),
         identityName: 'Dream',
-        iconUri: Uri.parse('favicon.ico'),
+        iconUri: Uri.parse('favicon.png'),
         cluster: 'mainnet-beta',
       );
 

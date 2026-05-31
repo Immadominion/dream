@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import '../../core/constants/app_constants.dart';
 import '../models/api_response.dart';
@@ -31,17 +32,20 @@ class ApiService {
   }
 
   void _setupInterceptors() {
-    // Add pretty logger for development
-    _dio.interceptors.add(
-      PrettyDioLogger(
-        requestHeader: true,
-        requestBody: true,
-        responseBody: true,
-        responseHeader: false,
-        error: true,
-        compact: true,
-      ),
-    );
+    // Pretty logger — debug builds only. Logs request headers/bodies, which
+    // can contain secrets, so it must never run in release.
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: true,
+          requestBody: true,
+          responseBody: true,
+          responseHeader: false,
+          error: true,
+          compact: true,
+        ),
+      );
+    }
 
     // Add authentication interceptor
     _dio.interceptors.add(

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_constants.dart';
@@ -61,15 +62,18 @@ class ApiService {
       ),
     );
 
-    // Logging interceptor (only in debug mode)
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        requestHeader: false,
-        responseHeader: false,
-      ),
-    );
+    // Logging interceptor — debug builds only. Never log payloads or the
+    // Authorization header in release.
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          requestHeader: false,
+          responseHeader: false,
+        ),
+      );
+    }
   }
 
   /// Generic GET request

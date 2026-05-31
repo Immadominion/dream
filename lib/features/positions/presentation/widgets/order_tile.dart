@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/services/phoenix/phoenix_order_service.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../providers/positions_provider.dart';
 import '../../../../core/theme/dream_colors.dart';
 
@@ -56,6 +55,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
     final uri = Uri.parse('https://app.phoenix.trade/trade/$symbol-perp');
     // Capture before async gap to satisfy use_build_context_synchronously
     final messenger = ScaffoldMessenger.of(context);
+    final snackbarSurface = context.dreamColors.surface;
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
@@ -68,7 +68,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
             style: TextStyle(fontSize: 12.sp),
           ),
           duration: const Duration(seconds: 4),
-          backgroundColor: context.dreamColors.surface,
+          backgroundColor: snackbarSurface,
         ),
       );
     }
@@ -86,7 +86,10 @@ class _OrderTileState extends ConsumerState<OrderTile> {
         backgroundColor: context.dreamColors.surface,
         title: Text(
           'Cancel Order',
-          style: TextStyle(color: context.dreamColors.onSurface, fontSize: 16.sp),
+          style: TextStyle(
+            color: context.dreamColors.onSurface,
+            fontSize: 16.sp,
+          ),
         ),
         content: Text(
           'Cancel this conditional order?',
@@ -104,7 +107,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               'Cancel Order',
-              style: TextStyle(color: AppColors.bearish),
+              style: TextStyle(color: context.dreamColors.error),
             ),
           ),
         ],
@@ -155,7 +158,9 @@ class _OrderTileState extends ConsumerState<OrderTile> {
   Widget build(BuildContext context) {
     final order = widget.order;
     final isBuy = order.side == 'buy';
-    final sideColor = isBuy ? AppColors.bullish : AppColors.bearish;
+    final sideColor = isBuy
+        ? context.dreamColors.success
+        : context.dreamColors.error;
     final fillPct = order.size > 0
         ? (order.filledSize / order.size * 100).toStringAsFixed(0)
         : '0';
@@ -224,7 +229,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
                       padding: EdgeInsets.all(4.w),
                       child: const CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.bearish,
+                        color: Colors.white,
                       ),
                     )
                   : IconButton(
@@ -232,7 +237,7 @@ class _OrderTileState extends ConsumerState<OrderTile> {
                       icon: Icon(
                         Icons.close,
                         size: 16.sp,
-                        color: AppColors.bearish,
+                        color: context.dreamColors.error,
                       ),
                       onPressed: _cancelOrder,
                       tooltip: 'Cancel order',

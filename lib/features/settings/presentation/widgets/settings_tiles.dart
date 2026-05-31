@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/providers/solana/wallet_name_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/dream_colors.dart';
 
@@ -57,7 +59,7 @@ class _SettingsTile extends StatelessWidget {
 // Wallet address tile — display + copy
 // ---------------------------------------------------------------------------
 
-class SettingsWalletTile extends StatelessWidget {
+class SettingsWalletTile extends ConsumerWidget {
   final String walletAddress;
   const SettingsWalletTile({super.key, required this.walletAddress});
 
@@ -67,20 +69,44 @@ class SettingsWalletTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.dreamColors;
+    final resolvedDomain = ref.watch(walletNameProvider(walletAddress)).asData?.value;
     return _SettingsTile(
       icon: PhosphorIcons.wallet(),
       title: 'Wallet',
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            _truncated,
-            style: TextStyle(
-              color: c.muted,
-              fontSize: 12.sp,
-              fontFeatures: const [FontFeature.tabularFigures()],
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 170.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  resolvedDomain ?? _truncated,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: c.muted,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                if (resolvedDomain != null)
+                  Text(
+                    _truncated,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: c.mutedSecondary,
+                      fontSize: 10.sp,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+              ],
             ),
           ),
           SizedBox(width: 8.w),
@@ -145,7 +171,7 @@ class SettingsInfoTile extends StatelessWidget {
 // Flight builder fee tile — shows configured status + links to flight.phoenix
 // ---------------------------------------------------------------------------
 
-class SettingsFlightBuilderTile extends StatelessWidget {
+class SettingsFlightBuilderTile extends ConsumerWidget {
   const SettingsFlightBuilderTile({super.key});
 
   static const _flightUrl = 'https://flight.phoenix.trade';
@@ -161,9 +187,12 @@ class SettingsFlightBuilderTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.dreamColors;
     final authority = _authority;
+    final resolvedDomain = authority != null
+        ? ref.watch(walletNameProvider(authority)).asData?.value
+        : null;
     final configured = authority != null;
     final pda = AppConstants.phoenixBuilderPdaIndex;
     final sub = AppConstants.phoenixBuilderSubaccountIndex;
@@ -203,7 +232,7 @@ class SettingsFlightBuilderTile extends StatelessWidget {
                   SizedBox(height: 2.h),
                   Text(
                     configured
-                        ? '${_truncate(authority)} · PDA $pda · Sub $sub'
+                        ? '${resolvedDomain ?? _truncate(authority)} · PDA $pda · Sub $sub'
                         : 'Not configured — tap to register',
                     style: TextStyle(
                       color: configured ? c.muted : AppColors.bearish,

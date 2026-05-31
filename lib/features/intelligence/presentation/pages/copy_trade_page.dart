@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/providers/phoenix/phoenix_auth_provider.dart';
+import '../../../../core/providers/solana/wallet_name_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
 import '../../models/intelligence_models.dart';
@@ -21,20 +24,18 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
   final _addressController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(
-      () => ref.read(copyTradingProvider.notifier).loadDiscover(),
-    );
-  }
-
-  @override
   void dispose() {
     _addressController.dispose();
     super.dispose();
   }
 
   Future<void> _handleAddTrader() async {
+    final phoenixAuth = ref.read(phoenixAuthProvider);
+    if (phoenixAuth.isExternalWallet) {
+      _showEmbeddedWalletRequirementSnackbar();
+      return;
+    }
+
     final address = _addressController.text.trim();
     if (address.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,14 +70,28 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
     );
   }
 
+  void _showEmbeddedWalletRequirementSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Use Dream\'s embedded wallet to unlock copy trading automation.',
+        ),
+        backgroundColor: context.dreamColors.surfaceVariant,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(copyTradingProvider);
+    final phoenixAuth = ref.watch(phoenixAuthProvider);
+    final isExternalWallet = phoenixAuth.isExternalWallet;
 
     return RefreshIndicator(
       color: AppColors.primary,
       backgroundColor: context.dreamColors.surfaceVariant,
-      onRefresh: () => ref.read(copyTradingProvider.notifier).loadDiscover(),
+      onRefresh: () => ref.read(copyTradingProvider.notifier).refreshFollowed(),
       child: ListView(
         padding: EdgeInsets.fromLTRB(
           24.w,
@@ -86,10 +101,24 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
         ),
         children: [
           SizedBox(height: 12.h),
+          if (isExternalWallet) ...[
+            const _WalletEligibilityBanner(),
+            SizedBox(height: 20.h),
+          ],
+          // ── Path 1 — follow any Phoenix wallet you already know ──────────
           _AddressComposer(
             controller: _addressController,
             isLoading: state.isAddingLeader,
+            isDisabled: isExternalWallet,
             onSubmit: _handleAddTrader,
+          ),
+          SizedBox(height: 20.h),
+          // ── Path 2 — discover registered broadcasters ───────────────────
+          _BrowseBroadcastersCard(
+            isDisabled: isExternalWallet,
+            onTap: isExternalWallet
+                ? _showEmbeddedWalletRequirementSnackbar
+                : () => context.push('/broadcasters'),
           ),
           if (state.error != null) ...[
             SizedBox(height: 12.h),
@@ -112,43 +141,8 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
                 isLast: entry.key == state.following.length - 1,
               ),
             ),
-          SizedBox(height: 34.h),
-          _SectionLabel(
-            title: 'Verified Directory',
-            trailing: state.isLoadingDiscover
-                ? 'loading'
-                : '${state.discover.length}',
-          ),
-          SizedBox(height: 14.h),
-          if (state.isLoadingDiscover && state.discover.isEmpty)
-            const _LoadingDirectory()
-          else if (state.discover.isEmpty)
-            const _DirectoryNote()
-          else
-            ...state.discover.asMap().entries.map((entry) {
-              final leader = entry.value;
-              final isFollowing = state.following.any(
-                (followed) => followed.leader.address == leader.address,
-              );
-              return _DirectoryRow(
-                leader: leader,
-                isFollowing: isFollowing,
-                isLast: entry.key == state.discover.length - 1,
-                onFollow: isFollowing ? null : () => _showSettingsFor(leader),
-              );
-            }),
         ],
       ),
-    );
-  }
-
-  void _showSettingsFor(LeaderProfile leader) {
-    CopySettingsSheet.show(
-      context,
-      leader: leader,
-      onConfirm: (settings) {
-        ref.read(copyTradingProvider.notifier).followLeader(leader, settings);
-      },
     );
   }
 }
@@ -156,11 +150,13 @@ class _CopyTradePageState extends ConsumerState<CopyTradePage> {
 class _AddressComposer extends StatelessWidget {
   final TextEditingController controller;
   final bool isLoading;
+  final bool isDisabled;
   final VoidCallback onSubmit;
 
   const _AddressComposer({
     required this.controller,
     required this.isLoading,
+    required this.isDisabled,
     required this.onSubmit,
   });
 
@@ -181,7 +177,9 @@ class _AddressComposer extends StatelessWidget {
         ),
         SizedBox(height: 7.h),
         Text(
-          'Paste a Phoenix trader authority and set your copy-risk profile in the bottom sheet.',
+          isDisabled
+              ? 'Copy trading automation is reserved for Dream embedded wallets.'
+              : 'Paste a Phoenix trader authority and set your copy-risk profile in the bottom sheet.',
           style: TextStyle(
             color: context.dreamColors.mutedSecondary,
             fontSize: 12.sp,
@@ -195,13 +193,16 @@ class _AddressComposer extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: controller,
+                enabled: !isDisabled,
                 style: TextStyle(
                   color: context.dreamColors.onSurface,
                   fontSize: 13.sp,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Trader wallet address',
+                  hintText: isDisabled
+                      ? 'Embedded wallet required'
+                      : 'Trader wallet address',
                   hintStyle: TextStyle(
                     color: context.dreamColors.mutedSecondary,
                     fontSize: 12.sp,
@@ -221,7 +222,7 @@ class _AddressComposer extends StatelessWidget {
             ),
             SizedBox(width: 14.w),
             GestureDetector(
-              onTap: isLoading ? null : onSubmit,
+              onTap: isLoading || isDisabled ? null : onSubmit,
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: EdgeInsets.only(bottom: 6.h),
@@ -238,17 +239,25 @@ class _AddressComposer extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Verify',
+                            isDisabled ? 'Embedded only' : 'Follow',
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: isDisabled
+                                  ? context.dreamColors.mutedSecondary
+                                  : AppColors.primary,
                               fontSize: 13.sp,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           SizedBox(width: 5.w),
                           Icon(
-                            PhosphorIcons.arrowRight(PhosphorIconsStyle.bold),
-                            color: AppColors.primary,
+                            isDisabled
+                                ? PhosphorIcons.lock(PhosphorIconsStyle.bold)
+                                : PhosphorIcons.arrowRight(
+                                    PhosphorIconsStyle.bold,
+                                  ),
+                            color: isDisabled
+                                ? context.dreamColors.mutedSecondary
+                                : AppColors.primary,
                             size: 13.r,
                           ),
                         ],
@@ -314,6 +323,15 @@ class _FollowedRow extends ConsumerWidget {
     final leader = followed.leader;
     final isPaused = followed.isPaused;
     final statusColor = isPaused ? AppColors.warning : AppColors.success;
+    final liveOpenCount = followed.lastKnownPositions.length;
+    final resolvedDomain = ref.watch(walletNameProvider(leader.address)).asData?.value;
+    final title = leader.label ?? resolvedDomain ?? leader.displayLabel;
+    final secondaryIdentity = switch ((leader.label, resolvedDomain)) {
+      (String _, String domain) => domain,
+      (null, String _) => _short(leader.address),
+      (String _, null) => _short(leader.address),
+      (null, null) => null,
+    };
 
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 18.h),
@@ -337,7 +355,7 @@ class _FollowedRow extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            leader.displayLabel,
+                            title,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: context.dreamColors.onSurface,
@@ -361,40 +379,54 @@ class _FollowedRow extends ConsumerWidget {
                       ],
                     ),
                     SizedBox(height: 4.h),
-                    Text(
-                      _short(leader.address),
-                      style: TextStyle(
-                        color: context.dreamColors.mutedSecondary,
-                        fontSize: 11.sp,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Wrap(
-                      spacing: 12.w,
-                      runSpacing: 6.h,
+                    SizedBox(height: 7.h),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _InlineMeta(
-                          label: 'size',
-                          value: formatUsdc(followed.settings.copyUSDC),
-                        ),
-                        _InlineMeta(
-                          label: 'slippage',
-                          value:
-                              '${(followed.settings.maxSlippage * 100).toStringAsFixed(1)}%',
-                        ),
-                        _InlineMeta(
-                          label: 'open',
-                          value: '${leader.openPositions.length}',
-                        ),
-                        if (followed.gainSinceFollow != 0)
-                          _InlineMeta(
-                            label: 'since',
-                            value: formatPnl(followed.gainSinceFollow),
-                            valueColor: followed.gainSinceFollow >= 0
-                                ? AppColors.bullish
-                                : AppColors.bearish,
+                        if (secondaryIdentity != null) ...[
+                          Flexible(
+                            child: Text(
+                              secondaryIdentity,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: context.dreamColors.mutedSecondary,
+                                fontSize: 11.sp,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
                           ),
+                          SizedBox(width: 12.w),
+                        ],
+                        Expanded(
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 10.w,
+                            runSpacing: 4.h,
+                            children: [
+                              _InlineMeta(
+                                label: 'size',
+                                value: formatUsdc(followed.settings.copyUSDC),
+                              ),
+                              _InlineMeta(
+                                label: 'slip',
+                                value:
+                                    '${(followed.settings.maxSlippage * 100).toStringAsFixed(1)}%',
+                              ),
+                              _InlineMeta(
+                                label: 'open',
+                                value: '$liveOpenCount',
+                              ),
+                              if (followed.gainSinceFollow != 0)
+                                _InlineMeta(
+                                  label: 'since',
+                                  value: formatPnl(followed.gainSinceFollow),
+                                  valueColor: followed.gainSinceFollow >= 0
+                                      ? AppColors.bullish
+                                      : AppColors.bearish,
+                                ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -416,146 +448,7 @@ class _FollowedRow extends ConsumerWidget {
 
   String _short(String address) {
     if (address.length <= 10) return address;
-    return '${address.substring(0, 6)}…${address.substring(address.length - 6)}';
-  }
-}
-
-class _DirectoryRow extends StatelessWidget {
-  final LeaderProfile leader;
-  final bool isFollowing;
-  final bool isLast;
-  final VoidCallback? onFollow;
-
-  const _DirectoryRow({
-    required this.leader,
-    required this.isFollowing,
-    required this.isLast,
-    required this.onFollow,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (leader.isLoading) {
-      return Padding(
-        padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
-        child: const _DirectorySkeleton(),
-      );
-    }
-
-    final pnlColor = leader.pnl7d >= 0 ? AppColors.bullish : AppColors.bearish;
-    final marketSummary = leader.openPositions.isEmpty
-        ? 'No open positions'
-        : leader.openPositions
-              .take(2)
-              .map((p) => p.market.replaceAll('-PERP', ''))
-              .join(' · ');
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _AvatarChar(label: leader.displayLabel),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            leader.displayLabel,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: context.dreamColors.onSurface,
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        if (leader.hasPnlHistory)
-                          Text(
-                            formatPnl(leader.pnl7d),
-                            style: TextStyle(
-                              color: pnlColor,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w800,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                    SizedBox(height: 3.h),
-                    Text(
-                      marketSummary,
-                      style: TextStyle(
-                        color: context.dreamColors.mutedSecondary,
-                        fontSize: 11.sp,
-                      ),
-                    ),
-                    SizedBox(height: 6.h),
-                    Wrap(
-                      spacing: 12.w,
-                      runSpacing: 6.h,
-                      children: [
-                        _InlineMeta(
-                          label: 'win',
-                          value: leader.hasTradeStats
-                              ? '${(leader.winRate * 100).toStringAsFixed(0)}%'
-                              : '--',
-                        ),
-                        _InlineMeta(
-                          label: 'trades',
-                          value: leader.hasTradeStats
-                              ? '${leader.totalTrades}'
-                              : '--',
-                        ),
-                        _InlineMeta(
-                          label: 'equity',
-                          value: leader.equity > 0
-                              ? formatCompact(leader.equity)
-                              : '--',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 10.w),
-              GestureDetector(
-                onTap: onFollow,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 2.h),
-                  child: Text(
-                    isFollowing ? 'Following' : 'Follow',
-                    style: TextStyle(
-                      color: isFollowing
-                          ? context.dreamColors.mutedSecondary
-                          : AppColors.primary,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (!isLast) ...[
-            SizedBox(height: 14.h),
-            Container(
-              height: 1,
-              color: context.dreamColors.stroke.withValues(alpha: 0.24),
-            ),
-          ],
-        ],
-      ),
-    );
+    return '${address.substring(0, 4)}…${address.substring(address.length - 4)}';
   }
 }
 
@@ -577,7 +470,10 @@ class _InlineMeta extends StatelessWidget {
       children: [
         Text(
           '$label ',
-          style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 10.sp),
+          style: TextStyle(
+            color: context.dreamColors.mutedSecondary,
+            fontSize: 10.sp,
+          ),
         ),
         Text(
           value,
@@ -586,67 +482,6 @@ class _InlineMeta extends StatelessWidget {
             fontSize: 10.sp,
             fontWeight: FontWeight.w700,
             fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AvatarChar extends StatelessWidget {
-  final String label;
-  const _AvatarChar({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30.r,
-      height: 30.r,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.primary.withValues(alpha: 0.14),
-      ),
-      child: Text(
-        label.substring(0, 1).toUpperCase(),
-        style: TextStyle(
-          color: AppColors.primaryLight,
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _DirectorySkeleton extends StatelessWidget {
-  const _DirectorySkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 30.r,
-          height: 30.r,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: context.dreamColors.surface,
-          ),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 120.w,
-                height: 10.h,
-                color: context.dreamColors.surface,
-              ),
-              SizedBox(height: 6.h),
-              Container(width: 90.w, height: 9.h, color: context.dreamColors.surface),
-            ],
           ),
         ),
       ],
@@ -710,7 +545,7 @@ class _EmptyFollowing extends StatelessWidget {
         ),
         SizedBox(height: 6.h),
         Text(
-          'Verify a trader address above to start mirroring\nnew position changes automatically.',
+          'Follow a trader address above to start mirroring\nnew position changes instantly over websocket.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: context.dreamColors.mutedSecondary,
@@ -723,38 +558,127 @@ class _EmptyFollowing extends StatelessWidget {
   }
 }
 
-class _DirectoryNote extends StatelessWidget {
-  const _DirectoryNote();
+class _BrowseBroadcastersCard extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isDisabled;
+
+  const _BrowseBroadcastersCard({
+    required this.onTap,
+    this.isDisabled = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      'No verified trader directory available yet. Curated leaders will appear here after Phoenix account checks complete.',
-      style: TextStyle(
-        color: context.dreamColors.mutedSecondary,
-        fontSize: 12.sp,
-        height: 1.5,
+    final colors = context.dreamColors;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: colors.stroke),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34.r,
+              height: 34.r,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isDisabled
+                    ? colors.stroke.withValues(alpha: 0.14)
+                    : colors.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(9.r),
+              ),
+              child: Icon(
+                isDisabled
+                    ? PhosphorIcons.lock(PhosphorIconsStyle.bold)
+                    : PhosphorIcons.broadcast(PhosphorIconsStyle.bold),
+                size: 17.r,
+                color: isDisabled ? colors.mutedSecondary : colors.primary,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isDisabled
+                        ? 'Embedded wallet required'
+                        : 'Browse live broadcasters',
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  Text(
+                    isDisabled
+                        ? 'Switch to Dream\'s embedded wallet to enable copy automation'
+                        : 'Filter top earners, copiers & PnL',
+                    style: TextStyle(
+                      color: colors.muted,
+                      fontSize: 11.sp,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Icon(
+              PhosphorIcons.caretRight(PhosphorIconsStyle.bold),
+              size: 16.r,
+              color: colors.mutedSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _LoadingDirectory extends StatelessWidget {
-  const _LoadingDirectory();
+class _WalletEligibilityBanner extends StatelessWidget {
+  const _WalletEligibilityBanner();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 16.h),
-      child: Center(
-        child: SizedBox(
-          width: 18.r,
-          height: 18.r,
-          child: const CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.primary,
+    final colors = context.dreamColors;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        color: colors.surfaceVariant,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: colors.stroke),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            PhosphorIcons.info(PhosphorIconsStyle.bold),
+            size: 16.r,
+            color: colors.primary,
           ),
-        ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              'Copy trading automation is only available on Dream embedded '
+              'wallets. Sign in with email or social if you want the full '
+              'copy-trading feature set.',
+              style: TextStyle(
+                color: colors.muted,
+                fontSize: 11.sp,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

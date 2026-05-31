@@ -29,19 +29,21 @@ class AuthSessionManager {
   /// Save complete session to storage
   Future<void> saveSession(AuthSession session) async {
     try {
-      // Save full session as JSON
+      // Save full session as JSON in hardware-backed secure storage only.
+      // The session JSON and access token are sensitive and must never be
+      // written to plaintext SharedPreferences.
       final sessionJson = jsonEncode(session.toJson());
       await _secureStorage.write(key: _sessionKey, value: sessionJson);
-      await StorageService.setString(_sessionKey, sessionJson);
 
-      // Save critical fields separately for quick access
+      // Save access token separately for quick access (secure storage only).
       await _secureStorage.write(
         key: _userTokenKey,
         value: session.accessToken,
       );
-      await StorageService.saveUserToken(session.accessToken);
 
       if (session.user.walletAddress != null) {
+        // Wallet address is a public key (not secret); mirror to
+        // SharedPreferences so synchronous getters keep working.
         await _secureStorage.write(
           key: _walletAddressKey,
           value: session.user.walletAddress!,
@@ -94,7 +96,7 @@ class AuthSessionManager {
   /// Faster than loadSession() for quick authentication checks
   Future<bool> hasValidSession() async {
     try {
-      final sessionJson = StorageService.getString(_sessionKey);
+      final sessionJson = await _readSessionJson();
       if (sessionJson.isEmpty) return false;
 
       final sessionMap = jsonDecode(sessionJson) as Map<String, dynamic>;
@@ -188,9 +190,12 @@ class AuthSessionManager {
       return secureValue;
     }
 
+    // Migrate any session left in legacy plaintext storage, then wipe it.
     final legacyValue = StorageService.getString(_sessionKey);
     if (legacyValue.isNotEmpty) {
       await _secureStorage.write(key: _sessionKey, value: legacyValue);
+      await StorageService.setString(_sessionKey, '');
+      await StorageService.setString(_userTokenKey, '');
     }
     return legacyValue;
   }

@@ -64,6 +64,14 @@ class SettingsPage extends ConsumerWidget {
                   const SettingsFlightBuilderTile(),
                   SizedBox(height: 20.h),
 
+                  // Earn section — broadcaster revenue share
+                  _SectionLabel(label: 'Earn'),
+                  SizedBox(height: 6.h),
+                  _BroadcasterTile(
+                    onTap: () => context.push('/broadcaster-dashboard'),
+                  ),
+                  SizedBox(height: 20.h),
+
                   // Notifications section
                   _SectionLabel(label: 'Notifications'),
                   SizedBox(height: 6.h),
@@ -162,6 +170,60 @@ class _SectionLabel extends StatelessWidget {
           fontSize: 10.sp,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+class _BroadcasterTile extends StatelessWidget {
+  final VoidCallback onTap;
+  const _BroadcasterTile({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.dreamColors;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 1.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+        decoration: BoxDecoration(
+          color: c.surfaceVariant,
+          border: Border.all(color: c.stroke, width: 0.5),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Row(
+          children: [
+            Icon(PhosphorIcons.broadcast(), color: c.muted, size: 16.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Earn as broadcaster',
+                    style: TextStyle(
+                      color: c.onSurface,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'USDC share of fees when others copy you',
+                    style: TextStyle(color: c.mutedSecondary, fontSize: 11.sp),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              PhosphorIcons.caretRight(),
+              color: c.mutedSecondary,
+              size: 14.sp,
+            ),
+          ],
         ),
       ),
     );

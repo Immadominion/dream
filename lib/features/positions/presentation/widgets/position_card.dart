@@ -5,10 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/dream_colors.dart';
 import '../../../markets/providers/markets_provider.dart';
 import '../../../positions/providers/positions_provider.dart';
 import 'pnl_share_card.dart';
-import '../../../../core/theme/dream_colors.dart';
 
 // ---------------------------------------------------------------------------
 // Position card — live PnL, funding rate, partial close sheet
@@ -33,6 +33,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
   @override
   Widget build(BuildContext context) {
     final marketsState = ref.watch(marketsProvider);
+    final colors = context.dreamColors;
     final livePrice = marketsState.priceFor(widget.position.symbol);
     final markPrice = livePrice > 0 ? livePrice : widget.position.markPrice;
 
@@ -62,11 +63,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
         Container(
           margin: EdgeInsets.only(bottom: 8.h, top: 8.h),
           decoration: BoxDecoration(
-            color: context.dreamColors.surfaceVariant,
+            color: colors.surfaceVariant,
             borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: context.dreamColors.stroke.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: colors.stroke),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20.r),
@@ -96,7 +95,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                 Text(
                                   widget.position.symbol,
                                   style: TextStyle(
-                                    color: context.dreamColors.onSurface,
+                                    color: colors.onSurface,
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -116,7 +115,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                 widget.position.symbol,
                               ),
                               style: TextStyle(
-                                color: context.dreamColors.muted,
+                                color: colors.muted,
                                 fontSize: 10.sp,
                               ),
                             ),
@@ -166,7 +165,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                   duration: const Duration(milliseconds: 200),
                                   child: Icon(
                                     Icons.expand_more_rounded,
-                                    color: context.dreamColors.muted,
+                                    color: colors.mutedSecondary,
                                     size: 18.sp,
                                   ),
                                 ),
@@ -190,10 +189,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                             // Divider
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 14.w),
-                              child: Divider(
-                                color: context.dreamColors.stroke,
-                                height: 1,
-                              ),
+                              child: Divider(color: colors.stroke, height: 1),
                             ),
                             SizedBox(height: 8.h),
 
@@ -340,8 +336,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                             _showAddMarginSheet(context),
                                         style: OutlinedButton.styleFrom(
                                           side: BorderSide(
-                                            color: context.dreamColors.mutedSecondary
-                                                .withValues(alpha: 0.4),
+                                            color: colors.stroke,
                                           ),
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(50),
@@ -351,7 +346,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                         child: Text(
                                           'Add Margin',
                                           style: TextStyle(
-                                            color: context.dreamColors.muted,
+                                            color: colors.muted,
                                             fontSize: 11.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -435,7 +430,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.dreamColors.surface,
+      backgroundColor: AppColors.surfaceDark,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -447,7 +442,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.dreamColors.surface,
+      backgroundColor: AppColors.surfaceDark,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -459,7 +454,7 @@ class _PositionCardState extends ConsumerState<PositionCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.dreamColors.surface,
+      backgroundColor: AppColors.surfaceDark,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -602,7 +597,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                       height: 4.h,
                       margin: EdgeInsets.only(bottom: 16.h),
                       decoration: BoxDecoration(
-                        color: context.dreamColors.stroke,
+                        color: AppColors.borderDark,
                         borderRadius: BorderRadius.circular(2.r),
                       ),
                     ),
@@ -611,7 +606,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                   Text(
                     'Close ${widget.position.side.toUpperCase()} ${widget.position.symbol}',
                     style: TextStyle(
-                      color: context.dreamColors.onSurface,
+                      color: AppColors.textPrimaryDark,
                       fontSize: 17.sp,
                       fontWeight: FontWeight.w700,
                     ),
@@ -620,7 +615,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                   Text(
                     'Mark price · \$${widget.markPrice >= 1000 ? widget.markPrice.toStringAsFixed(0) : widget.markPrice.toStringAsFixed(2)}',
                     style: TextStyle(
-                      color: context.dreamColors.muted,
+                      color: AppColors.textSecondaryDark,
                       fontSize: 12.sp,
                     ),
                   ),
@@ -631,7 +626,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                   Text(
                     'Close Amount',
                     style: TextStyle(
-                      color: context.dreamColors.muted,
+                      color: AppColors.textSecondaryDark,
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500,
                     ),
@@ -654,7 +649,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                               decoration: BoxDecoration(
                                 color: sel
                                     ? AppColors.bearish.withValues(alpha: 0.15)
-                                    : context.dreamColors.surface,
+                                    : AppColors.surfaceDark,
                                 borderRadius: BorderRadius.circular(50),
                               ),
                               child: Text(
@@ -662,7 +657,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                                 style: TextStyle(
                                   color: sel
                                       ? AppColors.bearish
-                                      : context.dreamColors.muted,
+                                      : AppColors.textSecondaryDark,
                                   fontSize: 13.sp,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -686,22 +681,22 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
                     style: TextStyle(
-                      color: context.dreamColors.onSurface,
+                      color: AppColors.textPrimaryDark,
                       fontSize: 14.sp,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Custom size',
                       hintStyle: TextStyle(
-                        color: context.dreamColors.mutedSecondary,
+                        color: AppColors.textMutedDark,
                         fontSize: 13.sp,
                       ),
                       suffixText: base,
                       suffixStyle: TextStyle(
-                        color: context.dreamColors.muted,
+                        color: AppColors.textSecondaryDark,
                         fontSize: 13.sp,
                       ),
                       filled: true,
-                      fillColor: context.dreamColors.surfaceVariant,
+                      fillColor: AppColors.cardDark,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r),
                         borderSide: BorderSide.none,
@@ -731,7 +726,7 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                       vertical: 10.h,
                     ),
                     decoration: BoxDecoration(
-                      color: context.dreamColors.surface,
+                      color: AppColors.surfaceDark,
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Row(
@@ -966,7 +961,7 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                     Text(
                       'Edit TP / SL',
                       style: TextStyle(
-                        color: context.dreamColors.onSurface,
+                        color: AppColors.textPrimaryDark,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -975,7 +970,7 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                       onTap: () => Navigator.of(context).pop(),
                       child: Icon(
                         Icons.close,
-                        color: context.dreamColors.mutedSecondary,
+                        color: AppColors.textMutedDark,
                         size: 20.r,
                       ),
                     ),
@@ -985,7 +980,7 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                 Text(
                   '${pos.symbol}  •  ${pos.side.toUpperCase()}',
                   style: TextStyle(
-                    color: context.dreamColors.mutedSecondary,
+                    color: AppColors.textMutedDark,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -998,7 +993,7 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                     vertical: 8.h,
                   ),
                   decoration: BoxDecoration(
-                    color: context.dreamColors.surface,
+                    color: AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Row(
@@ -1010,7 +1005,7 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                       Container(
                         width: 1,
                         height: 28.h,
-                        color: context.dreamColors.stroke,
+                        color: AppColors.borderDark,
                       ),
                       _ContextItem(
                         label: 'Mark',
@@ -1019,12 +1014,12 @@ class _TpSlSheetState extends ConsumerState<_TpSlSheet> {
                       Container(
                         width: 1,
                         height: 28.h,
-                        color: context.dreamColors.stroke,
+                        color: AppColors.borderDark,
                       ),
                       _ContextItem(
                         label: 'Hint',
                         value: isLong ? 'TP ↑  SL ↓' : 'TP ↓  SL ↑',
-                        valueColor: context.dreamColors.muted,
+                        valueColor: AppColors.textSecondaryDark,
                       ),
                     ],
                   ),
@@ -1187,7 +1182,7 @@ class _AddMarginSheetState extends ConsumerState<_AddMarginSheet> {
                     Text(
                       'Add Margin',
                       style: TextStyle(
-                        color: context.dreamColors.onSurface,
+                        color: AppColors.textPrimaryDark,
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1196,7 +1191,7 @@ class _AddMarginSheetState extends ConsumerState<_AddMarginSheet> {
                       onTap: () => Navigator.of(context).pop(),
                       child: Icon(
                         Icons.close,
-                        color: context.dreamColors.mutedSecondary,
+                        color: AppColors.textMutedDark,
                         size: 20.r,
                       ),
                     ),
@@ -1206,7 +1201,7 @@ class _AddMarginSheetState extends ConsumerState<_AddMarginSheet> {
                 Text(
                   '${pos.symbol}  •  Current margin: \$${pos.collateral.toStringAsFixed(2)}  •  ${leverage.toStringAsFixed(1)}x',
                   style: TextStyle(
-                    color: context.dreamColors.mutedSecondary,
+                    color: AppColors.textMutedDark,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -1284,13 +1279,13 @@ class _ContextItem extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(color: context.dreamColors.mutedSecondary, fontSize: 10.sp),
+              style: TextStyle(color: AppColors.textMutedDark, fontSize: 10.sp),
             ),
             SizedBox(height: 2.h),
             Text(
               value,
               style: TextStyle(
-                color: valueColor ?? context.dreamColors.onSurface,
+                color: valueColor ?? AppColors.textPrimaryDark,
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
               ),
@@ -1376,7 +1371,7 @@ class _PriceInput extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: context.dreamColors.muted,
+            color: AppColors.textSecondaryDark,
             fontSize: 12.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -1385,15 +1380,15 @@ class _PriceInput extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: TextStyle(color: context.dreamColors.onSurface, fontSize: 14.sp),
+          style: TextStyle(color: AppColors.textPrimaryDark, fontSize: 14.sp),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-              color: context.dreamColors.mutedSecondary,
+              color: AppColors.textMutedDark,
               fontSize: 13.sp,
             ),
             filled: true,
-            fillColor: context.dreamColors.surfaceVariant,
+            fillColor: AppColors.cardDark,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
@@ -1437,7 +1432,7 @@ class _SummaryCol extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: context.dreamColors.muted,
+              color: AppColors.textSecondaryDark,
               fontSize: 10.sp,
             ),
           ),
@@ -1445,7 +1440,7 @@ class _SummaryCol extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? context.dreamColors.onSurface,
+              color: valueColor ?? AppColors.textPrimaryDark,
               fontSize: 12.sp,
               fontWeight: FontWeight.w600,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -1498,6 +1493,7 @@ class _Detail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.dreamColors;
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1505,7 +1501,7 @@ class _Detail extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: context.dreamColors.muted,
+              color: colors.mutedSecondary,
               fontSize: 10.sp,
             ),
           ),
@@ -1513,7 +1509,7 @@ class _Detail extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? context.dreamColors.onSurface,
+              color: valueColor ?? colors.onSurface,
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
               fontFeatures: const [FontFeature.tabularFigures()],

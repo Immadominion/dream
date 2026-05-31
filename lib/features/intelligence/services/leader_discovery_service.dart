@@ -1,10 +1,10 @@
-import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/models/phoenix/phoenix_trader_models.dart';
 import '../../../core/services/logger_service.dart';
 import '../models/intelligence_models.dart';
 
@@ -17,34 +17,56 @@ final leaderDiscoveryServiceProvider = Provider<LeaderDiscoveryService>((ref) {
 /// with live stats from the public Phoenix API (no auth needed).
 class LeaderDiscoveryService {
   final LoggerService _logger;
-  late final Dio _dio;
+  late final Dio _phoenixDio;
+  late final Dio _workerDio;
 
   LeaderDiscoveryService({required LoggerService logger}) : _logger = logger {
-    _dio = Dio(
+    _phoenixDio = Dio(
       BaseOptions(
         baseUrl: AppConstants.phoenixApiBaseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       ),
     );
+
+    _workerDio = Dio(
+      BaseOptions(
+        baseUrl: AppConstants.dreamServerUrl,
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 12),
+      ),
+    );
   }
 
-  /// Load curated list, then fetch stats for each address in parallel.
-  Future<List<LeaderProfile>> loadLeaders() async {
-    final curated = await _loadCuratedList();
-    if (curated.isEmpty) return [];
+  /// Load live broadcaster list from the worker, then enrich each address with
+  /// Phoenix trader stats.
+  Future<List<LeaderProfile>> loadLeaders({String sort = 'earnings'}) async {
+    final broadcasters = await _loadBroadcasters(sort: sort);
+    if (broadcasters.isEmpty) return [];
     // Fetch stats in parallel with a cap of 5 concurrent requests.
     final results = <LeaderProfile>[];
     const batchSize = 5;
-    for (var i = 0; i < curated.length; i += batchSize) {
-      final batch = curated.sublist(
+    for (var i = 0; i < broadcasters.length; i += batchSize) {
+      final batch = broadcasters.sublist(
         i,
-        (i + batchSize).clamp(0, curated.length),
+        (i + batchSize).clamp(0, broadcasters.length),
       );
       final fetched = await Future.wait(batch.map(_enrichLeader));
       results.addAll(fetched);
     }
-    results.sort((a, b) => b.pnl7d.compareTo(a.pnl7d));
+    results.sort((a, b) {
+      switch (sort) {
+        case 'pnl':
+          return b.pnl7d.compareTo(a.pnl7d);
+        case 'copiers':
+          final cmp = b.copierCount.compareTo(a.copierCount);
+          return cmp != 0 ? cmp : b.lifetimeUsd.compareTo(a.lifetimeUsd);
+        case 'earnings':
+        default:
+          final earningsCmp = b.lifetimeUsd.compareTo(a.lifetimeUsd);
+          return earningsCmp != 0 ? earningsCmp : b.pnl7d.compareTo(a.pnl7d);
+      }
+    });
     return results;
   }
 
@@ -63,23 +85,33 @@ class LeaderDiscoveryService {
     );
   }
 
-  Future<List<LeaderProfile>> _loadCuratedList() async {
+  Future<List<LeaderProfile>> _loadBroadcasters({
+    String sort = 'earnings',
+  }) async {
     try {
-      final raw = await rootBundle.loadString('assets/data/copy_traders.json');
-      final list = (jsonDecode(raw) as List<dynamic>)
+      final resp = await _workerDio.get(
+        '/v1/broadcasters',
+        queryParameters: {'limit': 50, 'sort': sort},
+      );
+      final data = resp.data as Map<String, dynamic>?;
+      final list = (data?['broadcasters'] as List<dynamic>? ?? [])
           .cast<Map<String, dynamic>>();
       return list
           .map(
             (j) => LeaderProfile(
               address: j['address'] as String,
-              label: j['label'] as String?,
+              label: j['displayName'] as String?,
               twitter: j['twitter'] as String?,
+              strategy: j['strategy'] as String?,
+              isBroadcaster: true,
+              copierCount: (j['copierCount'] as num?)?.toInt() ?? 0,
+              lifetimeUsd: (j['lifetimeUsd'] as num?)?.toDouble() ?? 0,
               isLoading: true,
             ),
           )
           .toList();
     } catch (e) {
-      _logger.error('Failed to load curated list: $e', tag: '[Intelligence]');
+      _logger.error('Failed to load broadcasters: $e', tag: '[Intelligence]');
       return [];
     }
   }
@@ -120,7 +152,7 @@ class LeaderDiscoveryService {
 
   Future<_PnlSnapshot> _fetchPnl7d(String authority) async {
     try {
-      final resp = await _dio.get(
+      final resp = await _phoenixDio.get(
         '/trader/$authority/pnl',
         queryParameters: {
           'resolution': '1d',
@@ -149,27 +181,42 @@ class LeaderDiscoveryService {
 
   Future<_TraderSnapshot> _fetchTraderState(String authority) async {
     try {
-      final resp = await _dio.get('/trader/$authority/state');
+      final resp = await _phoenixDio.get('/trader/$authority/state');
       final data = resp.data as Map<String, dynamic>?;
       if (data == null) return const _TraderSnapshot();
 
       final traders = data['traders'] as List<dynamic>? ?? [];
       if (traders.isEmpty) return const _TraderSnapshot();
 
-      final trader = traders.first as Map<String, dynamic>;
-      final positions = (trader['positions'] as List<dynamic>? ?? [])
-          .cast<Map<String, dynamic>>()
-          .map(LeaderPosition.fromJson)
-          .where((p) => p.size > 0)
+      final primaryTraderView = _selectPrimaryCrossTraderView(traders);
+      final mergedTraderView = _mergeTraderViews(
+        primaryTraderView: primaryTraderView,
+        traders: traders,
+      );
+      final traderState = PhoenixTraderState.fromApiJson(
+        mergedTraderView,
+        authority,
+      );
+      final positions = traderState.positions
+          .where((p) => p.sizeBase > 0)
+          .map(
+            (p) => LeaderPosition(
+              market: p.symbol,
+              side: p.side,
+              size: p.sizeBase,
+              entryPrice: p.entryPrice,
+              unrealizedPnl: p.unrealizedPnl,
+            ),
+          )
           .toList();
 
       return _TraderSnapshot(
         positions: positions,
-        collateral: _toDouble(trader['collateralBalance']),
-        equity: _toDouble(trader['portfolioValue']),
-        openNotional: positions.fold<double>(
+        collateral: traderState.collateral,
+        equity: traderState.equity,
+        openNotional: traderState.positions.fold<double>(
           0,
-          (sum, position) => sum + (position.size * position.entryPrice),
+          (sum, position) => sum + position.sizeUsd,
         ),
         isRegistered: true,
       );
@@ -180,7 +227,7 @@ class LeaderDiscoveryService {
 
   Future<_TradeStats> _fetchTradeHistory(String authority) async {
     try {
-      final resp = await _dio.get(
+      final resp = await _phoenixDio.get(
         '/trader/$authority/trades-history',
         queryParameters: {'limit': 50},
       );
@@ -256,5 +303,73 @@ double _toDouble(dynamic value) {
   if (value is int) return value.toDouble();
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value) ?? 0;
+  if (value is Map<String, dynamic>) {
+    final ui = value['ui'] ?? value['uiAmount'] ?? value['ui_amount'];
+    if (ui != null) {
+      return _toDouble(ui);
+    }
+
+    final rawValue = value['value'] ?? value['amount'];
+    final decimals = value['decimals'];
+    if (rawValue != null && decimals is num) {
+      return _toDouble(rawValue) / math.pow(10, decimals.toInt());
+    }
+  }
   return 0;
+}
+
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
+}
+
+Map<String, dynamic> _selectPrimaryCrossTraderView(List<dynamic> traders) {
+  final typedTraders = traders.whereType<Map<String, dynamic>>().toList();
+  if (typedTraders.isEmpty) {
+    throw StateError('Phoenix trader response contained no trader objects');
+  }
+
+  return typedTraders.firstWhere(
+    (trader) =>
+        _toInt(trader['traderPdaIndex']) == 0 &&
+        _toInt(trader['traderSubaccountIndex']) == 0,
+    orElse: () => typedTraders.firstWhere(
+      (trader) => _toInt(trader['traderSubaccountIndex']) == 0,
+      orElse: () => typedTraders.first,
+    ),
+  );
+}
+
+Map<String, dynamic> _mergeTraderViews({
+  required Map<String, dynamic> primaryTraderView,
+  required List<dynamic> traders,
+}) {
+  final typedTraders = traders.whereType<Map<String, dynamic>>().toList();
+  final merged = Map<String, dynamic>.from(primaryTraderView);
+  final mergedPositions = <dynamic>[];
+  final mergedLimitOrders = <String, List<dynamic>>{};
+  var totalUnrealizedPnl = 0.0;
+
+  for (final trader in typedTraders) {
+    mergedPositions.addAll((trader['positions'] as List<dynamic>?) ?? const []);
+
+    final limitOrders = Map<String, dynamic>.from(
+      (trader['limitOrders'] as Map?) ?? const {},
+    );
+    for (final entry in limitOrders.entries) {
+      mergedLimitOrders
+          .putIfAbsent(entry.key, () => <dynamic>[])
+          .addAll((entry.value as List<dynamic>?) ?? const []);
+    }
+
+    totalUnrealizedPnl += _toDouble(trader['unrealizedPnl']);
+  }
+
+  merged['positions'] = mergedPositions;
+  merged['limitOrders'] = mergedLimitOrders.map(
+    (symbol, orders) => MapEntry(symbol, List<dynamic>.from(orders)),
+  );
+  merged['unrealizedPnl'] = totalUnrealizedPnl;
+  return merged;
 }

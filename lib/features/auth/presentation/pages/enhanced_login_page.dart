@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -96,11 +94,7 @@ class _EnhancedLoginPageState extends ConsumerState<EnhancedLoginPage>
                   double.infinity,
                 );
                 final isKeyboardVisible = keyboardInset > 0;
-                // Reduce header gap on Android to accommodate Connect Wallet button
-                // Also reduce when email form is shown for better balance
-                final baseHeaderGap = Platform.isAndroid && !_showEmailForm
-                    ? 180.h
-                    : 220.h;
+                final baseHeaderGap = 220.h;
                 final adjustedHeaderGap =
                     (baseHeaderGap - (isKeyboardVisible ? 90.h : 0)).clamp(
                       60.h,
@@ -138,7 +132,6 @@ class _EnhancedLoginPageState extends ConsumerState<EnhancedLoginPage>
                                       onEmailSelected: _handleEmailSelected,
                                       onSocialSelected: (provider) =>
                                           _handlePrivySocialLogin(provider),
-                                      onWalletSelected: _handleWalletConnect,
                                     ),
                                     LoginEmailForm(
                                       isLoading: _isLoading,
@@ -154,6 +147,10 @@ class _EnhancedLoginPageState extends ConsumerState<EnhancedLoginPage>
                                     ),
                                   ],
                                 ),
+                                if (!_showEmailForm) ...[
+                                  SizedBox(height: 16.h),
+                                  const _EmbeddedWalletFeatureNote(),
+                                ],
                                 SizedBox(height: 24.h),
                               ],
                             ),
@@ -286,17 +283,6 @@ class _EnhancedLoginPageState extends ConsumerState<EnhancedLoginPage>
     }
   }
 
-  Future<void> _handleWalletConnect() async {
-    try {
-      await ref.read(clientAuthProvider.notifier).signInWithWallet();
-    } catch (_) {
-      _showErrorSnackbar('Wallet connection failed. Please try again.');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
   bool _isValidEmail(String email) {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     return emailRegex.hasMatch(email);
@@ -376,6 +362,45 @@ class _EnhancedLoginPageState extends ConsumerState<EnhancedLoginPage>
       target,
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOut,
+    );
+  }
+}
+
+class _EmbeddedWalletFeatureNote extends StatelessWidget {
+  const _EmbeddedWalletFeatureNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 18.r,
+            color: Colors.white.withValues(alpha: 0.92),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              'Email or social sign-in creates your Dream wallet and unlocks '
+              'the full Dream feature set, including automated features.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: 11.sp,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -8,6 +8,7 @@ class LeaderProfile {
   final String address;
   final String? label;
   final String? twitter;
+  final String? strategy;
   final double pnl7d;
   final bool hasPnlHistory;
   final double winRate;
@@ -19,12 +20,16 @@ class LeaderProfile {
   final DateTime? lastTradeAt;
   final List<LeaderPosition> openPositions;
   final bool isRegistered;
+  final bool isBroadcaster;
+  final int copierCount;
+  final double lifetimeUsd;
   final bool isLoading;
 
   const LeaderProfile({
     required this.address,
     this.label,
     this.twitter,
+    this.strategy,
     this.pnl7d = 0,
     this.hasPnlHistory = false,
     this.winRate = 0,
@@ -36,6 +41,9 @@ class LeaderProfile {
     this.lastTradeAt,
     this.openPositions = const [],
     this.isRegistered = false,
+    this.isBroadcaster = false,
+    this.copierCount = 0,
+    this.lifetimeUsd = 0,
     this.isLoading = false,
   });
 
@@ -47,6 +55,9 @@ class LeaderProfile {
       '${addr.substring(0, 4)}…${addr.substring(addr.length - 4)}';
 
   LeaderProfile copyWith({
+    String? label,
+    String? twitter,
+    String? strategy,
     double? pnl7d,
     bool? hasPnlHistory,
     double? winRate,
@@ -58,11 +69,15 @@ class LeaderProfile {
     DateTime? lastTradeAt,
     List<LeaderPosition>? openPositions,
     bool? isRegistered,
+    bool? isBroadcaster,
+    int? copierCount,
+    double? lifetimeUsd,
     bool? isLoading,
   }) => LeaderProfile(
     address: address,
-    label: label,
-    twitter: twitter,
+    label: label ?? this.label,
+    twitter: twitter ?? this.twitter,
+    strategy: strategy ?? this.strategy,
     pnl7d: pnl7d ?? this.pnl7d,
     hasPnlHistory: hasPnlHistory ?? this.hasPnlHistory,
     winRate: winRate ?? this.winRate,
@@ -74,6 +89,9 @@ class LeaderProfile {
     lastTradeAt: lastTradeAt ?? this.lastTradeAt,
     openPositions: openPositions ?? this.openPositions,
     isRegistered: isRegistered ?? this.isRegistered,
+    isBroadcaster: isBroadcaster ?? this.isBroadcaster,
+    copierCount: copierCount ?? this.copierCount,
+    lifetimeUsd: lifetimeUsd ?? this.lifetimeUsd,
     isLoading: isLoading ?? this.isLoading,
   );
 }
@@ -191,149 +209,8 @@ class FollowedLeader {
   );
 }
 
-class CopyTradingState {
-  final List<LeaderProfile> discover;
-  final List<FollowedLeader> following;
-  final bool isPolling;
-  final bool isLoadingDiscover;
-  final bool isAddingLeader;
-  final String? error;
-
-  const CopyTradingState({
-    this.discover = const [],
-    this.following = const [],
-    this.isPolling = false,
-    this.isLoadingDiscover = false,
-    this.isAddingLeader = false,
-    this.error,
-  });
-
-  CopyTradingState copyWith({
-    List<LeaderProfile>? discover,
-    List<FollowedLeader>? following,
-    bool? isPolling,
-    bool? isLoadingDiscover,
-    bool? isAddingLeader,
-    String? error,
-    bool clearError = false,
-  }) => CopyTradingState(
-    discover: discover ?? this.discover,
-    following: following ?? this.following,
-    isPolling: isPolling ?? this.isPolling,
-    isLoadingDiscover: isLoadingDiscover ?? this.isLoadingDiscover,
-    isAddingLeader: isAddingLeader ?? this.isAddingLeader,
-    error: clearError ? null : (error ?? this.error),
-  );
-}
-
-double _toDouble(dynamic value) {
-  if (value == null) return 0;
-  if (value is double) return value;
-  if (value is int) return value.toDouble();
-  if (value is num) return value.toDouble();
-  if (value is String) return double.tryParse(value) ?? 0;
-  return 0;
-}
-
 // ---------------------------------------------------------------------------
-// AI trading models
-// ---------------------------------------------------------------------------
-
-enum RiskMode { conservative, balanced, aggressive }
-
-enum BotAction { buy, sell, hold }
-
-class AIBotConfig {
-  final String market;
-  final double maxSizeUSDC;
-  final double maxLeverage;
-  final RiskMode riskMode;
-  final double stopLossPercentage;
-
-  const AIBotConfig({
-    this.market = 'blue_chips',
-    this.maxSizeUSDC = 50.0,
-    this.maxLeverage = 3.0,
-    this.riskMode = RiskMode.balanced,
-    this.stopLossPercentage = 5.0,
-  });
-
-  AIBotConfig copyWith({
-    String? market,
-    double? maxSizeUSDC,
-    double? maxLeverage,
-    RiskMode? riskMode,
-    double? stopLossPercentage,
-  }) => AIBotConfig(
-    market: market ?? this.market,
-    maxSizeUSDC: maxSizeUSDC ?? this.maxSizeUSDC,
-    maxLeverage: maxLeverage ?? this.maxLeverage,
-    riskMode: riskMode ?? this.riskMode,
-    stopLossPercentage: stopLossPercentage ?? this.stopLossPercentage,
-  );
-}
-
-class BotLogEntry {
-  final DateTime timestamp;
-  final BotAction action;
-  final String reason;
-  final double? executedSize;
-  final String? txSignature;
-
-  const BotLogEntry({
-    required this.timestamp,
-    required this.action,
-    required this.reason,
-    this.executedSize,
-    this.txSignature,
-  });
-}
-
-class AITradingState {
-  final bool isRunning;
-  final AIBotConfig config;
-  final List<BotLogEntry> log;
-  final double totalPnl;
-  final int aiCredits;
-  final bool isLoadingCredits;
-  final bool isBuying; // buying more credits
-  final String? error;
-
-  const AITradingState({
-    this.isRunning = false,
-    this.config = const AIBotConfig(),
-    this.log = const [],
-    this.totalPnl = 0,
-    this.aiCredits = 0,
-    this.isLoadingCredits = false,
-    this.isBuying = false,
-    this.error,
-  });
-
-  AITradingState copyWith({
-    bool? isRunning,
-    AIBotConfig? config,
-    List<BotLogEntry>? log,
-    double? totalPnl,
-    int? aiCredits,
-    bool? isLoadingCredits,
-    bool? isBuying,
-    String? error,
-    bool clearError = false,
-  }) => AITradingState(
-    isRunning: isRunning ?? this.isRunning,
-    config: config ?? this.config,
-    log: log ?? this.log,
-    totalPnl: totalPnl ?? this.totalPnl,
-    aiCredits: aiCredits ?? this.aiCredits,
-    isLoadingCredits: isLoadingCredits ?? this.isLoadingCredits,
-    isBuying: isBuying ?? this.isBuying,
-    error: clearError ? null : (error ?? this.error),
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Credit purchase tiers
+// Credit tiers — must match CREDIT_PACKS in dream-ai-worker.ts
 // ---------------------------------------------------------------------------
 
 class CreditTier {
@@ -352,4 +229,85 @@ class CreditTier {
     CreditTier(credits: 50, solPrice: 0.08, label: 'Trader'),
     CreditTier(credits: 200, solPrice: 0.25, label: 'Pro'),
   ];
+}
+
+class CopyTradingState {
+  final List<LeaderProfile> discover;
+  final List<FollowedLeader> following;
+  final LeaderProfile? myBroadcaster;
+  final bool isPolling;
+  final bool isLoadingDiscover;
+  final bool isLoadingBroadcaster;
+  final bool isRegisteringBroadcaster;
+  final bool isAddingLeader;
+  final String? error;
+
+  /// Copy-trade points remaining. One point is spent per mirrored position
+  /// open; closing a copied position is always free.
+  final int points;
+  final bool pointsLoaded;
+  final bool isLoadingCredits;
+  final bool isBuying;
+
+  const CopyTradingState({
+    this.discover = const [],
+    this.following = const [],
+    this.myBroadcaster,
+    this.isPolling = false,
+    this.isLoadingDiscover = false,
+    this.isLoadingBroadcaster = false,
+    this.isRegisteringBroadcaster = false,
+    this.isAddingLeader = false,
+    this.error,
+    this.points = 0,
+    this.pointsLoaded = false,
+    this.isLoadingCredits = false,
+    this.isBuying = false,
+  });
+
+  bool get hasPoints => points > 0;
+
+  CopyTradingState copyWith({
+    List<LeaderProfile>? discover,
+    List<FollowedLeader>? following,
+    LeaderProfile? myBroadcaster,
+    bool clearMyBroadcaster = false,
+    bool? isPolling,
+    bool? isLoadingDiscover,
+    bool? isLoadingBroadcaster,
+    bool? isRegisteringBroadcaster,
+    bool? isAddingLeader,
+    String? error,
+    bool clearError = false,
+    int? points,
+    bool? pointsLoaded,
+    bool? isLoadingCredits,
+    bool? isBuying,
+  }) => CopyTradingState(
+    discover: discover ?? this.discover,
+    following: following ?? this.following,
+    myBroadcaster: clearMyBroadcaster
+        ? null
+        : (myBroadcaster ?? this.myBroadcaster),
+    isPolling: isPolling ?? this.isPolling,
+    isLoadingDiscover: isLoadingDiscover ?? this.isLoadingDiscover,
+    isLoadingBroadcaster: isLoadingBroadcaster ?? this.isLoadingBroadcaster,
+    isRegisteringBroadcaster:
+        isRegisteringBroadcaster ?? this.isRegisteringBroadcaster,
+    isAddingLeader: isAddingLeader ?? this.isAddingLeader,
+    error: clearError ? null : (error ?? this.error),
+    points: points ?? this.points,
+    pointsLoaded: pointsLoaded ?? this.pointsLoaded,
+    isLoadingCredits: isLoadingCredits ?? this.isLoadingCredits,
+    isBuying: isBuying ?? this.isBuying,
+  );
+}
+
+double _toDouble(dynamic value) {
+  if (value == null) return 0;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0;
+  return 0;
 }

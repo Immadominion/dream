@@ -32,6 +32,7 @@ class PrivyWalletManager {
 
   final PrivySdkService _privySdk;
   final LoggerService _logger;
+  Future<void> _signQueue = Future.value();
 
   PrivyWalletManager(this._privySdk, this._logger);
 
@@ -68,42 +69,54 @@ class PrivyWalletManager {
     Uint8List transactionMessage,
   ) async {
     try {
-      _logger.info(
-        'Signing transaction (${transactionMessage.length} bytes)',
-        tag: 'WalletManager',
-      );
-
-      // Convert transaction bytes to base64 for Privy
-      final messageBase64 = base64Encode(transactionMessage);
-
-      final signatureResult = await _signMessageWithRetry(
-        wallet,
-        messageBase64,
-      );
-
-      if (signatureResult is privy.Success<String>) {
-        final signatureBase64 = signatureResult.value;
-        final signatureBytes = base64Decode(signatureBase64);
-
-        if (signatureBytes.length != 64) {
-          throw Exception(
-            'Invalid signature length: ${signatureBytes.length}. Expected 64 bytes',
-          );
-        }
-
-        _logger.info('Transaction signed successfully', tag: 'WalletManager');
-        return signatureBase64;
-      } else if (signatureResult is privy.Failure<String>) {
-        throw Exception(
-          'Privy signing failed: ${signatureResult.error.message}',
+      return await _serializeSigning(() async {
+        _logger.info(
+          'Signing transaction (${transactionMessage.length} bytes)',
+          tag: 'WalletManager',
         );
-      } else {
-        throw Exception('Unknown Privy response type');
-      }
+
+        final messageBase64 = base64Encode(transactionMessage);
+        final signatureResult = await _signMessageWithRetry(
+          wallet,
+          messageBase64,
+        );
+
+        if (signatureResult is privy.Success<String>) {
+          final signatureBase64 = signatureResult.value;
+          final signatureBytes = base64Decode(signatureBase64);
+
+          if (signatureBytes.length != 64) {
+            throw Exception(
+              'Invalid signature length: ${signatureBytes.length}. Expected 64 bytes',
+            );
+          }
+
+          _logger.info('Transaction signed successfully', tag: 'WalletManager');
+          return signatureBase64;
+        } else if (signatureResult is privy.Failure<String>) {
+          throw Exception(
+            'Privy signing failed: ${signatureResult.error.message}',
+          );
+        } else {
+          throw Exception('Unknown Privy response type');
+        }
+      });
     } catch (error) {
       _logger.error('Transaction signing failed', error: error);
       return null;
     }
+  }
+
+  Future<T> _serializeSigning<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _signQueue = _signQueue.catchError((_) {}).then((_) async {
+      try {
+        completer.complete(await action());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
   }
 
   /// Sign a pre-built Solana transaction message and return the signature
@@ -139,6 +152,79 @@ class PrivyWalletManager {
   Future<String?> getWalletAddress() async {
     final wallet = await getOrCreateWallet();
     return wallet?.address;
+  }
+
+  /// Returns the Privy wallet ID for the embedded wallet, required by the
+  /// server-side copy engine to sign on the user's behalf. Null when no
+  /// embedded wallet is available or the SDK did not surface an ID.
+  Future<String?> getWalletId() async {
+    final wallet = await getOrCreateWallet();
+    return wallet?.embeddedWallet.id;
+  }
+
+  /// Grants the always-on copy engine permission to transact from the embedded
+  /// wallet by attaching the server's key-quorum signer, scoped to the supplied
+  /// Phoenix-only [policyIds]. This is the on-device consent step the user
+  /// takes before server-side mirroring can run while the app is closed.
+  ///
+  /// Returns true on success. Server signing remains impossible until this
+  /// succeeds.
+  Future<bool> attachServerSigner({
+    required String signerId,
+    List<String> policyIds = const [],
+  }) async {
+    try {
+      final wallet = await getOrCreateWallet();
+      if (wallet == null) {
+        _logger.error('Cannot attach signer: no embedded wallet');
+        return false;
+      }
+
+      final result = await wallet.embeddedWallet.addSigner(
+        privy.SignerInput(
+          signerId: signerId,
+          policyIds: policyIds.isEmpty ? null : policyIds,
+        ),
+      );
+
+      if (result is privy.Success<void>) {
+        _logger.info('Server signer attached', tag: 'WalletManager');
+        return true;
+      }
+      if (result is privy.Failure<void>) {
+        _logger.error(
+          'Failed to attach server signer: ${result.error.message}',
+        );
+      }
+      return false;
+    } catch (error) {
+      _logger.error('Failed to attach server signer', error: error);
+      return false;
+    }
+  }
+
+  /// Revokes the server's signer from the embedded wallet, disabling all
+  /// always-on mirroring. Use when the user turns copy automation fully off.
+  Future<bool> detachServerSigner(String signerId) async {
+    try {
+      final wallet = await getOrCreateWallet();
+      if (wallet == null) return false;
+
+      final result = await wallet.embeddedWallet.removeSigner(signerId);
+      if (result is privy.Success<void>) {
+        _logger.info('Server signer detached', tag: 'WalletManager');
+        return true;
+      }
+      if (result is privy.Failure<void>) {
+        _logger.error(
+          'Failed to detach server signer: ${result.error.message}',
+        );
+      }
+      return false;
+    } catch (error) {
+      _logger.error('Failed to detach server signer', error: error);
+      return false;
+    }
   }
 
   Future<privy.Result<String>> _signMessageWithRetry(

@@ -15,7 +15,7 @@ import '../../../../core/theme/dream_colors.dart';
 // Bottom navigation bar for the primary mobile shell
 // ---------------------------------------------------------------------------
 
-/// Visual order of tabs in the pill: Markets → Intelligence → Positions.
+/// Visual order of tabs in the pill: Markets → Copy → Positions.
 /// Values are actual tab indices used by [bottomNavIndexProvider].
 const _kTabOrder = [0, 4, 2];
 
@@ -37,7 +37,7 @@ class _ShellBottomNavState extends ConsumerState<ShellBottomNav> {
   int _currentVisual() {
     final i = widget.currentIndex;
     if (i == 0 || i == 1) return 0; // Markets flow
-    if (i == 4) return 1; // Intelligence
+    if (i == 4) return 1; // Copy
     if (i == 2) return 2; // Positions
     return 0;
   }
@@ -159,11 +159,11 @@ class _ShellBottomNavState extends ConsumerState<ShellBottomNav> {
                             duration: const Duration(milliseconds: 260),
                             curve: Curves.easeOutCubic,
                             child: ShellNavItem(
-                              icon: PhosphorIcons.sparkle(),
-                              activeIcon: PhosphorIcons.sparkle(
+                              icon: PhosphorIcons.copy(),
+                              activeIcon: PhosphorIcons.copy(
                                 PhosphorIconsStyle.duotone,
                               ),
-                              label: 'Intelligence',
+                              label: 'Copy',
                               selected: effectiveVisual == 1,
                               onTap: () => ref
                                   .read(bottomNavIndexProvider.notifier)

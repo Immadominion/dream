@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../shared/widgets/dream_spinner.dart';
 
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/services/phoenix/phoenix_trader_service.dart';
@@ -92,12 +93,7 @@ class _AccountPnlChartSectionState
             border: Border.all(color: context.dreamColors.stroke),
           ),
           child: pnlAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 1.5,
-              ),
-            ),
+            loading: () => const DreamSpinner(size: 22),
             error: (_, _) => Center(
               child: Text(
                 'Failed to load PnL data',

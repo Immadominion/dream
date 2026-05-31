@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../shared/widgets/dream_spinner.dart';
 import '../constants/app_constants.dart';
 import '../services/logger_service.dart';
 import '../services/phoenix/phoenix_trader_service.dart';
@@ -9,6 +10,8 @@ import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/account/presentation/pages/activate_page.dart';
 import '../../features/navigation/presentation/widgets/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/intelligence/presentation/pages/broadcasters_page.dart';
+import '../../features/intelligence/presentation/pages/broadcaster_dashboard_page.dart';
 import '../../features/trade/presentation/pages/market_trade_page.dart';
 import '../../features/trade/providers/trade_state.dart';
 import '../providers/auth/client_auth_provider.dart';
@@ -80,6 +83,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.settings,
         name: 'settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+
+      // Live broadcasters directory (copy-trade discovery)
+      GoRoute(
+        path: '/broadcasters',
+        name: 'broadcasters',
+        builder: (context, state) => const BroadcastersPage(),
+      ),
+
+      // Broadcaster earnings dashboard (reached from Settings)
+      GoRoute(
+        path: '/broadcaster-dashboard',
+        name: 'broadcaster-dashboard',
+        builder: (context, state) => const BroadcasterDashboardPage(),
       ),
     ],
   );
@@ -201,7 +218,7 @@ class _SplashPageState extends ConsumerState<_SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold(body: DreamSpinner());
   }
 }
 

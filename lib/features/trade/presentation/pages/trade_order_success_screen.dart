@@ -55,7 +55,8 @@ class TradeOrderSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.dreamColors;
     final entryPrice = position?.entryPrice ?? trade.entryPrice;
-    final liquidationPrice = position?.liquidationPrice ?? trade.estimatedLiqPrice;
+    final liquidationPrice =
+        position?.liquidationPrice ?? trade.estimatedLiqPrice;
 
     return Scaffold(
       backgroundColor: c.background,
@@ -149,23 +150,47 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
                 child: Column(
                   children: [
-                    _Row(label: 'Size', value: '${trade.quantity.toStringAsFixed(4)} $_baseSymbol', c: c),
-                    _Divider(c: c),
-                    _Row(label: 'Collateral', value: formatUsdc(trade.collateralUsdc), c: c),
+                    _Row(
+                      label: 'Size',
+                      value:
+                          '${trade.quantity.toStringAsFixed(4)} $_baseSymbol',
+                      c: c,
+                    ),
                     _Divider(c: c),
                     _Row(
-                      label: trade.orderType == OrderType.market ? 'Entry price' : 'Limit price',
+                      label: 'Collateral',
+                      value: formatUsdc(trade.collateralUsdc),
+                      c: c,
+                    ),
+                    _Divider(c: c),
+                    _Row(
+                      label: trade.orderType == OrderType.market
+                          ? 'Entry price'
+                          : 'Limit price',
                       value: formatPrice(entryPrice),
                       c: c,
                     ),
                     _Divider(c: c),
-                    _Row(label: 'Notional', value: formatUsdc(trade.notionalUsdc), c: c),
+                    _Row(
+                      label: 'Notional',
+                      value: formatUsdc(trade.notionalUsdc),
+                      c: c,
+                    ),
                     if (liquidationPrice != null && liquidationPrice > 0) ...[
                       _Divider(c: c),
-                      _Row(label: 'Liq. price', value: formatPrice(liquidationPrice), c: c),
+                      _Row(
+                        label: 'Liq. price',
+                        value: formatPrice(liquidationPrice),
+                        c: c,
+                      ),
                     ],
                     _Divider(c: c),
-                    _Row(label: 'Tx', value: _txLabel, c: c, valueColor: c.muted),
+                    _Row(
+                      label: 'Tx',
+                      value: _txLabel,
+                      c: c,
+                      valueColor: c.muted,
+                    ),
                   ],
                 ),
               ),
@@ -190,7 +215,10 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                         ),
                         child: Text(
                           'Share setup',
-                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -211,7 +239,10 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                           ),
                           child: Text(
                             'View live',
-                            style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
@@ -235,7 +266,12 @@ class _Row extends StatelessWidget {
   final DreamColors c;
   final Color? valueColor;
 
-  const _Row({required this.label, required this.value, required this.c, this.valueColor});
+  const _Row({
+    required this.label,
+    required this.value,
+    required this.c,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -245,7 +281,11 @@ class _Row extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(color: c.muted, fontSize: 12.sp, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: c.muted,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           const Spacer(),
           Text(

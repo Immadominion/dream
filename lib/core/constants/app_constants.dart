@@ -97,6 +97,13 @@ class AppConstants {
     fallback: 'https://dream-ai.workers.dev',
   );
 
+  /// Always-on copy engine backend (dream-server). Hosts the server-side
+  /// orchestrator that mirrors leader trades while the app is closed.
+  static String get dreamServerUrl => dotenv.get(
+    'DREAM_SERVER_URL',
+    fallback: 'https://dream-server-production-65cf.up.railway.app',
+  );
+
   /// Treasury wallet address for AI credit purchases (SOL micropayments).
   /// Set DREAM_TREASURY_ADDRESS in .env — must be a valid Solana base58 pubkey.
   static String get dreamTreasuryAddress =>

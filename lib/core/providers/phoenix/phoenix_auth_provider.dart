@@ -35,12 +35,24 @@ enum PhoenixAuthStatus {
   error,
 }
 
+enum PhoenixWalletMode {
+  unknown,
+  embedded,
+  external,
+}
+
 class PhoenixAuthState {
   final PhoenixAuthStatus status;
   final PhoenixSession? session;
   final String? error;
+  final PhoenixWalletMode walletMode;
 
-  const PhoenixAuthState({required this.status, this.session, this.error});
+  const PhoenixAuthState({
+    required this.status,
+    this.session,
+    this.error,
+    this.walletMode = PhoenixWalletMode.unknown,
+  });
 
   /// `true` when a valid access token is available for API calls
   bool get isAuthenticated => status == PhoenixAuthStatus.authenticated;
@@ -51,10 +63,17 @@ class PhoenixAuthState {
   /// `true` when the user must reconnect their wallet (MWA refresh expired)
   bool get needsReauth => status == PhoenixAuthStatus.reauthRequired;
 
+  /// `true` when the user authenticated through an external MWA wallet.
+  bool get isExternalWallet => walletMode == PhoenixWalletMode.external;
+
+  /// `true` when the user is using Dream's embedded wallet.
+  bool get isEmbeddedWallet => walletMode == PhoenixWalletMode.embedded;
+
   PhoenixAuthState copyWith({
     PhoenixAuthStatus? status,
     PhoenixSession? session,
     String? error,
+    PhoenixWalletMode? walletMode,
     bool clearSession = false,
     bool clearError = false,
   }) {
@@ -62,12 +81,14 @@ class PhoenixAuthState {
       status: status ?? this.status,
       session: clearSession ? null : (session ?? this.session),
       error: clearError ? null : (error ?? this.error),
+      walletMode: walletMode ?? this.walletMode,
     );
   }
 
   @override
   String toString() =>
-      'PhoenixAuthState(status=$status, hasToken=${session != null})';
+      'PhoenixAuthState(status=$status, walletMode=$walletMode, '
+      'hasToken=${session != null})';
 }
 
 // =============================================================================
@@ -164,7 +185,10 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
   /// Clear the Phoenix session (call alongside app-level sign-out).
   Future<void> signOut() async {
     await _authService.clearStoredSession();
-    state = const PhoenixAuthState(status: PhoenixAuthStatus.unauthenticated);
+    state = const PhoenixAuthState(
+      status: PhoenixAuthStatus.unauthenticated,
+      walletMode: PhoenixWalletMode.unknown,
+    );
     _logger.info('Phoenix session cleared', tag: 'PhoenixAuthProvider');
   }
 
@@ -199,12 +223,14 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
   }) async {
     state = state.copyWith(status: PhoenixAuthStatus.loading, clearError: true);
     var usesMwa = false;
+    var walletMode = PhoenixWalletMode.unknown;
 
     try {
       // If not forcing a fresh auth, try stored/refreshed session first
       if (!forceRefresh) {
         final stored = await _authService.getStoredSession();
         if (stored != null) {
+          walletMode = _walletModeFor(walletAddress);
           _logger.info(
             'Phoenix session restored from storage',
             tag: 'PhoenixAuthProvider',
@@ -212,6 +238,7 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
           state = state.copyWith(
             status: PhoenixAuthStatus.authenticated,
             session: stored,
+            walletMode: walletMode,
           );
           return;
         }
@@ -219,6 +246,9 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
 
       // Need to sign with the wallet — determine type
       usesMwa = _detectWalletType(walletAddress);
+      walletMode = usesMwa
+          ? PhoenixWalletMode.external
+          : PhoenixWalletMode.embedded;
 
       _logger.info(
         'Authenticating with Phoenix [mwa=$usesMwa]',
@@ -233,13 +263,12 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
       state = state.copyWith(
         status: PhoenixAuthStatus.authenticated,
         session: session,
+        walletMode: walletMode,
       );
 
       // Analytics — track new users (no-op if already reported for this wallet)
       unawaited(
-        ref
-            .read(telegramAnalyticsProvider)
-            .trackNewUser(walletAddress),
+        ref.read(telegramAnalyticsProvider).trackNewUser(walletAddress),
       );
     } on PhoenixAuthException catch (e) {
       _logger.error(
@@ -256,6 +285,7 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
             : PhoenixAuthStatus.error,
         error: e.message,
         clearSession: true,
+        walletMode: walletMode,
       );
     } catch (e, st) {
       _logger.error(
@@ -268,8 +298,15 @@ class PhoenixAuthNotifier extends Notifier<PhoenixAuthState> {
         status: PhoenixAuthStatus.error,
         error: e.toString(),
         clearSession: true,
+        walletMode: walletMode,
       );
     }
+  }
+
+  PhoenixWalletMode _walletModeFor(String walletAddress) {
+    return _detectWalletType(walletAddress)
+        ? PhoenixWalletMode.external
+        : PhoenixWalletMode.embedded;
   }
 
   /// Determine whether signing should go through MWA or Privy embedded wallet.

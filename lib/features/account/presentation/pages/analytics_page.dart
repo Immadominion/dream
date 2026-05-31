@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../shared/widgets/dream_spinner.dart';
 
 import '../../../../core/models/phoenix/phoenix_realtime_models.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -41,9 +42,7 @@ class AnalyticsPage extends ConsumerWidget {
             _TopBar(title: 'Portfolio', onBack: () => Navigator.pop(context)),
             Expanded(
               child: tradesAsync.when(
-                loading: () => Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
+                loading: () => const DreamSpinner(),
                 error: (err, st) => _MessageState(
                   icon: PhosphorIcons.warningCircle(PhosphorIconsStyle.bold),
                   title: 'Analytics unavailable',

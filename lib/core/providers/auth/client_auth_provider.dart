@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:privy_flutter/privy_flutter.dart' as privy;
 
@@ -7,7 +5,6 @@ import '../../../shared/models/user.dart';
 import '../../services/auth/session_manager.dart';
 import '../../services/logger_service.dart';
 import '../../services/privy_sdk_service.dart';
-import '../../services/wallet/mwa_wallet_service.dart';
 import '../../services/wallet/privy_wallet_manager.dart';
 import 'auth_state_data.dart';
 
@@ -19,7 +16,6 @@ export 'auth_state_data.dart';
 class ClientAuthNotifier extends Notifier<AuthStateData> {
   late final PrivySdkService _privySdk;
   late final PrivyWalletManager _walletManager;
-  late final MwaWalletService _mwaService;
   late final AuthSessionManager _sessionManager;
   late final LoggerService _logger;
 
@@ -27,7 +23,6 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
   AuthStateData build() {
     _privySdk = ref.watch(privySdkServiceProvider);
     _walletManager = ref.watch(privyWalletManagerProvider);
-    _mwaService = ref.watch(mwaWalletServiceProvider);
     _logger = ref.watch(loggerServiceProvider);
     _sessionManager = AuthSessionManager(_logger);
 
@@ -194,87 +189,6 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
       state = state.copyWith(state: AuthState.authenticated, session: session);
     } catch (error) {
       _logger.error('OTP verification failed', error: error);
-      state = state.copyWith(state: AuthState.error, error: error.toString());
-    }
-  }
-
-  /// Sign in with external wallet via MWA + SIWS (Android only)
-  Future<void> signInWithWallet() async {
-    if (!_mwaService.isAvailable) {
-      state = state.copyWith(
-        state: AuthState.error,
-        error: 'Wallet connection is only available on Android',
-      );
-      return;
-    }
-
-    state = state.copyWith(state: AuthState.loading);
-
-    try {
-      _logger.info('Starting wallet sign-in via MWA + SIWS', tag: 'ClientAuth');
-
-      // Step 1: Connect wallet via MWA
-      final connectionResult = await _mwaService.connectWallet();
-      if (!connectionResult.success) {
-        throw Exception(connectionResult.error ?? 'Failed to connect wallet');
-      }
-
-      final walletAddress = connectionResult.publicKey!;
-      final accountLabel = connectionResult.accountLabel;
-
-      _logger.info(
-        'Wallet connected: $walletAddress ($accountLabel)',
-        tag: 'ClientAuth',
-      );
-
-      // Step 2: Generate SIWS message from Privy
-      final messageResult = await _privySdk.generateSiwsMessage(walletAddress);
-      if (!messageResult.success) {
-        throw Exception(
-          messageResult.error ?? 'Failed to generate SIWS message',
-        );
-      }
-
-      final siwsMessage = messageResult.message!;
-
-      // Step 3: Sign the message via MWA
-      final signResult = await _mwaService.signMessage(siwsMessage);
-      if (!signResult.success) {
-        throw Exception(signResult.error ?? 'Failed to sign message');
-      }
-
-      // Convert signature to base64 for Privy
-      final signatureBase64 = base64Encode(signResult.signature!);
-
-      // Step 4: Login with SIWS via Privy
-      final privyResult = await _privySdk.loginWithSiws(
-        message: siwsMessage,
-        signatureBase64: signatureBase64,
-        walletAddress: walletAddress,
-        walletClientType: accountLabel,
-      );
-
-      if (!privyResult.success) {
-        throw Exception(privyResult.error ?? 'SIWS login failed');
-      }
-
-      // Step 5: Get Privy user
-      final privyUser = await _privySdk.getCurrentUser();
-      if (privyUser == null) {
-        throw Exception('No user after SIWS login');
-      }
-
-      // Step 6: Create session (use connected wallet address)
-      final session = await _createLocalSession(privyUser, walletAddress);
-
-      // Step 7: Save session
-      await _sessionManager.saveSession(session);
-
-      _logger.info('Wallet sign-in complete', tag: 'ClientAuth');
-      state = state.copyWith(state: AuthState.authenticated, session: session);
-    } catch (error) {
-      _logger.error('Wallet sign-in failed', error: error);
-      _mwaService.disconnect();
       state = state.copyWith(state: AuthState.error, error: error.toString());
     }
   }

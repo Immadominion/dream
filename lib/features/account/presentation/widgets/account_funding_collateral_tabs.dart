@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/dream_spinner.dart';
 import 'account_history_providers.dart';
 import 'account_history_shared.dart';
 import '../../../../core/theme/dream_colors.dart';
@@ -27,12 +28,7 @@ class AccountFundingHistoryTab extends ConsumerWidget {
     }
 
     return historyAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 1.5,
-          color: AppColors.primary,
-        ),
-      ),
+      loading: () => const DreamSpinner(),
       error: (e, _) => RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: context.dreamColors.surface,
@@ -179,12 +175,7 @@ class AccountCollateralHistoryTab extends ConsumerWidget {
     }
 
     return historyAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(
-          strokeWidth: 1.5,
-          color: AppColors.primary,
-        ),
-      ),
+      loading: () => const DreamSpinner(),
       error: (e, _) => RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: context.dreamColors.surface,

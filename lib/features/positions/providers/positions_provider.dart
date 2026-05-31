@@ -121,10 +121,12 @@ class PositionsNotifier extends Notifier<PositionsState> {
 
         // Analytics
         unawaited(
-          ref.read(telegramAnalyticsProvider).trackPositionClosed(
-            symbol: position.symbol,
-            side: position.side,
-          ),
+          ref
+              .read(telegramAnalyticsProvider)
+              .trackPositionClosed(
+                symbol: position.symbol,
+                side: position.side,
+              ),
         );
 
         return null;
@@ -193,10 +195,9 @@ class PositionsNotifier extends Notifier<PositionsState> {
 
         // Analytics
         unawaited(
-          ref.read(telegramAnalyticsProvider).trackCollateralDeposit(
-            walletAddress,
-            amountUsdc,
-          ),
+          ref
+              .read(telegramAnalyticsProvider)
+              .trackCollateralDeposit(walletAddress, amountUsdc),
         );
 
         return null;
@@ -209,6 +210,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
 
   void _subscribeWs(String authority) {
     final ws = ref.read(phoenixWebSocketServiceProvider);
+    ws.connect();
     ws.subscribeTraderState(authority);
 
     _wsSub?.cancel();

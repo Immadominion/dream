@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../core/services/secure_storage_service.dart';
+
 /// Service for managing local storage using Hive and SharedPreferences
 class StorageService {
   static SharedPreferences? _prefs;
@@ -38,6 +40,10 @@ class StorageService {
 
   static Future<bool> setString(String key, String value) async {
     return await _prefs?.setString(key, value) ?? false;
+  }
+
+  static Future<bool> remove(String key) async {
+    return await _prefs?.remove(key) ?? false;
   }
 
   static Future<bool> setInt(String key, int value) async {
@@ -141,9 +147,12 @@ class StorageService {
   static Future<void> saveWalletAddress(String address) =>
       setString(walletAddressKey, address);
 
-  static String get privyAccessToken => getString(privyAccessTokenKey);
+  /// Privy access token — sensitive credential, kept in hardware-backed
+  /// secure storage (never plaintext SharedPreferences).
+  static Future<String?> getPrivyAccessToken() =>
+      SecureStorageService.read(privyAccessTokenKey);
   static Future<void> savePrivyAccessToken(String token) =>
-      setString(privyAccessTokenKey, token);
+      SecureStorageService.write(privyAccessTokenKey, token);
 
   static bool get notificationsEnabled =>
       getBool(notificationsEnabledKey, defaultValue: true);

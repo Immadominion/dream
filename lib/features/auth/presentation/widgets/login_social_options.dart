@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -12,19 +10,16 @@ class LoginSocialOptions extends StatelessWidget {
     required this.isLoading,
     required this.onEmailSelected,
     required this.onSocialSelected,
-    this.onWalletSelected,
   });
 
   final bool isLoading;
   final VoidCallback onEmailSelected;
   final ValueChanged<LoginMethod> onSocialSelected;
-  final VoidCallback? onWalletSelected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final buttons = _buildButtonData();
-    final showWalletConnect = Platform.isAndroid && onWalletSelected != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -42,21 +37,6 @@ class LoginSocialOptions extends StatelessWidget {
           ),
           child: Text('Continue with email', style: TextStyle(fontSize: 14.sp)),
         ),
-        // Connect Wallet button - Android only
-        if (showWalletConnect) ...[
-          SizedBox(height: 16.h),
-          OutlinedButton.icon(
-            onPressed: isLoading ? null : onWalletSelected,
-            label: Text('Connect Wallet', style: TextStyle(fontSize: 14.sp)),
-            style: OutlinedButton.styleFrom(
-              minimumSize: Size.fromHeight(52.h),
-              side: BorderSide(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-              ),
-              shape: const StadiumBorder(),
-            ),
-          ),
-        ],
         SizedBox(height: 28.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,

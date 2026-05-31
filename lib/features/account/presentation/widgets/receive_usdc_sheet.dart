@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/providers/solana/wallet_name_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/dream_colors.dart';
 
@@ -11,7 +13,7 @@ import '../../../../core/theme/dream_colors.dart';
 ///
 /// Shows the wallet address used to receive Solana USDC before depositing it
 /// into Phoenix collateral.
-class ReceiveUsdcSheet extends StatelessWidget {
+class ReceiveUsdcSheet extends ConsumerWidget {
   final String walletAddress;
   const ReceiveUsdcSheet({super.key, required this.walletAddress});
 
@@ -56,7 +58,8 @@ class ReceiveUsdcSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolvedDomain = ref.watch(walletNameProvider(walletAddress)).asData?.value;
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
@@ -145,14 +148,25 @@ class ReceiveUsdcSheet extends StatelessWidget {
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            _shortAddress,
+                            resolvedDomain ?? _shortAddress,
                             style: TextStyle(
                               color: context.dreamColors.onSurface,
                               fontSize: 13.sp,
-                              fontFamily: 'monospace',
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                          if (resolvedDomain != null) ...[
+                            SizedBox(height: 2.h),
+                            Text(
+                              _shortAddress,
+                              style: TextStyle(
+                                color: context.dreamColors.mutedSecondary,
+                                fontSize: 11.sp,
+                                fontFamily: 'monospace',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

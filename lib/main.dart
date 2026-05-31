@@ -122,18 +122,20 @@ class DreamApp extends ConsumerWidget {
             builder: (context, child) {
               // Read brightness from the already-resolved theme so the
               // status-bar icons update in the same frame as the theme flip.
-              final isDark =
-                  Theme.of(context).brightness == Brightness.dark;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
               return AnnotatedRegion<SystemUiOverlayStyle>(
                 value: SystemUiOverlayStyle(
                   statusBarColor: Colors.transparent,
-                  statusBarIconBrightness:
-                      isDark ? Brightness.light : Brightness.dark,
-                  statusBarBrightness:
-                      isDark ? Brightness.dark : Brightness.light,
+                  statusBarIconBrightness: isDark
+                      ? Brightness.light
+                      : Brightness.dark,
+                  statusBarBrightness: isDark
+                      ? Brightness.dark
+                      : Brightness.light,
                   systemNavigationBarColor: Colors.transparent,
-                  systemNavigationBarIconBrightness:
-                      isDark ? Brightness.light : Brightness.dark,
+                  systemNavigationBarIconBrightness: isDark
+                      ? Brightness.light
+                      : Brightness.dark,
                 ),
                 child: MediaQuery(
                   data: MediaQuery.of(context).copyWith(
