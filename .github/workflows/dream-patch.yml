@@ -1,0 +1,76 @@
+name: Dream — Shorebird Patch (OTA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Target platform"
+        required: true
+        default: android
+        type: choice
+        options:
+          - android
+          - ios
+      release_version:
+        description: "Release version to patch (e.g. 1.0.0+1). Leave blank for latest."
+        required: false
+        default: ""
+
+jobs:
+  patch:
+    name: Push OTA patch (${{ github.event.inputs.platform }})
+    runs-on: ${{ github.event.inputs.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java (Android only)
+        if: ${{ github.event.inputs.platform == 'android' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+
+      - name: Install Shorebird CLI
+        uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Create .env
+        run: echo "${{ secrets.DREAM_ENV }}" > .env
+
+      # ── Android ──────────────────────────────────────────────────────────────
+      - name: Shorebird patch (Android)
+        if: ${{ github.event.inputs.platform == 'android' }}
+        run: |
+          VERSION="${{ github.event.inputs.release_version }}"
+          if [ -z "$VERSION" ]; then
+            shorebird patch android --release-version latest
+          else
+            shorebird patch android --release-version "$VERSION"
+          fi
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+
+      # ── iOS ──────────────────────────────────────────────────────────────────
+      - name: Shorebird patch (iOS)
+        if: ${{ github.event.inputs.platform == 'ios' }}
+        run: |
+          VERSION="${{ github.event.inputs.release_version }}"
+          if [ -z "$VERSION" ]; then
+            shorebird patch ios --release-version latest
+          else
+            shorebird patch ios --release-version "$VERSION"
+          fi
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
