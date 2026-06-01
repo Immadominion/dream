@@ -33,18 +33,24 @@ function getWebhookSecret(req: Request) {
   );
 }
 
+function normalizeSharedSecret(value: string | null) {
+  return value?.replace(/\s+/g, '') ?? '';
+}
+
+function normalizeBearerSecret(value: string | null) {
+  if (!value) return '';
+  const trimmed = value.trim();
+  const withoutBearer = trimmed.toLowerCase().startsWith('bearer ')
+    ? trimmed.slice('Bearer '.length)
+    : trimmed;
+  return normalizeSharedSecret(withoutBearer);
+}
+
 function matchesWebhookSecret(provided: string | null, expected: string) {
-  if (!provided) return false;
-  if (provided === expected) return true;
-
-  const providedBearer = provided.startsWith('Bearer ')
-    ? provided.slice('Bearer '.length)
-    : provided;
-  const expectedBearer = expected.startsWith('Bearer ')
-    ? expected.slice('Bearer '.length)
-    : expected;
-
-  return providedBearer === expectedBearer;
+  const normalizedProvided = normalizeBearerSecret(provided);
+  const normalizedExpected = normalizeBearerSecret(expected);
+  if (!normalizedProvided || !normalizedExpected) return false;
+  return normalizedProvided === normalizedExpected;
 }
 
 function findWatchedWallets(
@@ -130,8 +136,8 @@ function normalizeEvents(
         category: 'system',
         title: isUsdc ? 'USDC received' : 'Token received',
         body: isUsdc
-            ? `${amount.toFixed(2)} USDC arrived in your Dream wallet.`
-            : `Incoming token transfer detected in your Dream wallet.`,
+          ? `${amount.toFixed(2)} USDC arrived in your Dream wallet.`
+          : `Incoming token transfer detected in your Dream wallet.`,
         symbol: null,
         channels: ['push', 'email'],
         payload: tx,
@@ -150,8 +156,8 @@ function normalizeEvents(
         category: 'system',
         title: isUsdc ? 'USDC sent' : 'Token sent',
         body: isUsdc
-            ? `${amount.toFixed(2)} USDC left your Dream wallet.`
-            : `Outgoing token transfer detected in your Dream wallet.`,
+          ? `${amount.toFixed(2)} USDC left your Dream wallet.`
+          : `Outgoing token transfer detected in your Dream wallet.`,
         symbol: null,
         channels: ['push'],
         payload: tx,

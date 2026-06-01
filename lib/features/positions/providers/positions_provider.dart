@@ -428,7 +428,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
         category: AppNotifCategory.trade,
         title: title,
         body: body,
-        eventId: _positionEventId('open', pos),
+        eventId: _positionEventId('open', pos, DateTime.now()),
       ),
     );
   }
@@ -452,7 +452,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
         category: AppNotifCategory.trade,
         title: title,
         body: body,
-        eventId: _positionEventId('close', pos),
+        eventId: _positionEventId('close', pos, DateTime.now()),
       ),
     );
   }
@@ -549,8 +549,11 @@ class PositionsNotifier extends Notifier<PositionsState> {
   String _positionKey(PhoenixPosition pos) =>
       '${pos.symbol}:${pos.side}:${pos.entryPrice.toStringAsFixed(6)}:${pos.sizeBase.toStringAsFixed(6)}';
 
-  String _positionEventId(String action, PhoenixPosition pos) =>
-      'phoenix:$action:${_positionKey(pos)}';
+  String _positionEventId(
+    String action,
+    PhoenixPosition pos,
+    DateTime firedAt,
+  ) => 'phoenix:$action:${_positionKey(pos)}:${firedAt.millisecondsSinceEpoch}';
 
   String _riskPositionId(PhoenixPosition pos) =>
       '${pos.symbol}:${pos.side}:${pos.liquidationPrice.toStringAsFixed(6)}';

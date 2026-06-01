@@ -70,6 +70,10 @@ function getOriginInstallationId(event: NotificationEventRow) {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function normalizeSharedSecret(value: string | null) {
+  return value?.replace(/\s+/g, '') ?? '';
+}
+
 async function getFcmAccessToken() {
   const rawServiceAccount = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON');
   if (!rawServiceAccount) return null;
@@ -167,9 +171,9 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const dispatchSecret = Deno.env.get('NOTIFICATION_DISPATCH_SECRET');
+  const dispatchSecret = normalizeSharedSecret(Deno.env.get('NOTIFICATION_DISPATCH_SECRET'));
   if (dispatchSecret) {
-    const provided = req.headers.get('x-webhook-secret');
+    const provided = normalizeSharedSecret(req.headers.get('x-webhook-secret'));
     if (provided !== dispatchSecret) {
       return jsonResponse({ error: 'Unauthorized' }, { status: 401 });
     }
