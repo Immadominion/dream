@@ -145,7 +145,9 @@ class PhoenixWebSocketService {
     if (_disposed || _connected) return;
     if (_connectFuture != null) return _connectFuture!;
 
-    final channel = WebSocketChannel.connect(Uri.parse(AppConstants.phoenixWsUrl));
+    final channel = WebSocketChannel.connect(
+      Uri.parse(AppConstants.phoenixWsUrl),
+    );
     _channel = channel;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
@@ -154,9 +156,9 @@ class PhoenixWebSocketService {
     try {
       await _connectFuture;
     } finally {
-      if (identical(_channel, channel)) {
-        _connectFuture = null;
-      }
+      // Always clear — prevents a stale resolved future from blocking
+      // subsequent connect() calls and _scheduleReconnect() guards.
+      _connectFuture = null;
     }
   }
 
@@ -171,7 +173,10 @@ class PhoenixWebSocketService {
       }
 
       if (!identical(_channel, channel)) {
+        // A newer connection superseded us — clean up and let the newer one
+        // handle things. If nobody is connected, schedule a reconnect.
         await channel.sink.close();
+        if (!_connected && !_disposed) _scheduleReconnect();
         return;
       }
 
@@ -215,7 +220,12 @@ class PhoenixWebSocketService {
       _startHeartbeat();
     } catch (e, stackTrace) {
       if (!identical(_channel, channel)) return;
-      _logger.error('WS connect failed', error: e, stackTrace: stackTrace, tag: 'WS');
+      _logger.error(
+        'WS connect failed',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'WS',
+      );
       _connected = false;
       _channel = null;
       await _channelSubscription?.cancel();
@@ -242,6 +252,41 @@ class PhoenixWebSocketService {
     _tradesController.close();
     _connectionStatusController.close();
     _logger.info('Phoenix WS disconnected', tag: 'WS');
+  }
+
+  /// Called when the app returns to the foreground.
+  ///
+  /// Mobile OSes silently drop TCP connections while the app is suspended, so
+  /// the heartbeat's 40-second detection window is too slow.  This method
+  /// immediately tears down any stale socket and reconnects, resetting the
+  /// backoff counter so the first attempt is instant.
+  Future<void> forceReconnectIfNeeded() async {
+    if (_disposed) return;
+
+    // If we received data recently the connection is still healthy — skip.
+    final lastMsg = _lastMessageAt;
+    if (_connected &&
+        lastMsg != null &&
+        DateTime.now().difference(lastMsg) < const Duration(seconds: 45)) {
+      return;
+    }
+
+    _logger.info('Force-reconnecting Phoenix WS on app resume', tag: 'WS');
+
+    // Tear down stale state without setting _disposed.
+    _connected = false;
+    _reconnectAttempts = 0; // reset backoff for immediate first attempt
+    _stopHeartbeat();
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _connectFuture = null;
+
+    await _channelSubscription?.cancel();
+    _channelSubscription = null;
+    await _channel?.sink.close();
+    _channel = null;
+
+    await connect();
   }
 
   // ---------------------------------------------------------------------------
@@ -440,6 +485,7 @@ class PhoenixWebSocketService {
     _connected = false;
     _stopHeartbeat();
     _channel = null;
+    _channelSubscription?.cancel();
     _channelSubscription = null;
     _logger.warning('Phoenix WS disconnected', tag: 'WS');
     if (!_connectionStatusController.isClosed) {
@@ -453,8 +499,14 @@ class PhoenixWebSocketService {
     _connected = false;
     _stopHeartbeat();
     _channel = null;
+    _channelSubscription?.cancel();
     _channelSubscription = null;
-    _logger.error('Phoenix WS error', error: error, stackTrace: stackTrace, tag: 'WS');
+    _logger.error(
+      'Phoenix WS error',
+      error: error,
+      stackTrace: stackTrace,
+      tag: 'WS',
+    );
     if (!_connectionStatusController.isClosed) {
       _connectionStatusController.add(false);
     }
@@ -517,7 +569,10 @@ class PhoenixWebSocketService {
   }
 
   void _scheduleReconnect() {
-    if (_disposed || _connected || _connectFuture != null || _reconnectTimer != null) {
+    if (_disposed ||
+        _connected ||
+        _connectFuture != null ||
+        _reconnectTimer != null) {
       return;
     }
     _reconnectAttempts++;

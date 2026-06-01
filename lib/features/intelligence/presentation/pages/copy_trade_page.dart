@@ -324,7 +324,10 @@ class _FollowedRow extends ConsumerWidget {
     final isPaused = followed.isPaused;
     final statusColor = isPaused ? AppColors.warning : AppColors.success;
     final liveOpenCount = followed.lastKnownPositions.length;
-    final resolvedDomain = ref.watch(walletNameProvider(leader.address)).asData?.value;
+    final resolvedDomain = ref
+        .watch(walletNameProvider(leader.address))
+        .asData
+        ?.value;
     final title = leader.label ?? resolvedDomain ?? leader.displayLabel;
     final secondaryIdentity = switch ((leader.label, resolvedDomain)) {
       (String _, String domain) => domain,
@@ -391,7 +394,9 @@ class _FollowedRow extends ConsumerWidget {
                               style: TextStyle(
                                 color: context.dreamColors.mutedSecondary,
                                 fontSize: 11.sp,
-                                fontFeatures: const [FontFeature.tabularFigures()],
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
                           ),
@@ -545,7 +550,7 @@ class _EmptyFollowing extends StatelessWidget {
         ),
         SizedBox(height: 6.h),
         Text(
-          'Follow a trader address above to start mirroring\nnew position changes instantly over websocket.',
+          'Follow a trader address above to start mirroring\nnew position changes automatically as leader activity refreshes live.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: context.dreamColors.mutedSecondary,
@@ -562,10 +567,7 @@ class _BrowseBroadcastersCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDisabled;
 
-  const _BrowseBroadcastersCard({
-    required this.onTap,
-    this.isDisabled = false,
-  });
+  const _BrowseBroadcastersCard({required this.onTap, this.isDisabled = false});
 
   @override
   Widget build(BuildContext context) {

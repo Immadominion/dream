@@ -47,8 +47,6 @@ class CopySettingsSheet extends ConsumerStatefulWidget {
 }
 
 class _CopySettingsSheetState extends ConsumerState<CopySettingsSheet> {
-  static const _quickAmounts = [25.0, 50.0, 100.0, 250.0];
-
   late double _copyUSDC;
   late double _slippage;
   late double _stopLoss;
@@ -69,13 +67,6 @@ class _CopySettingsSheetState extends ConsumerState<CopySettingsSheet> {
     _usdcController.dispose();
     _usdcFocus.dispose();
     super.dispose();
-  }
-
-  void _setAmount(double amount) {
-    HapticFeedback.selectionClick();
-    setState(() => _copyUSDC = amount);
-    _usdcController.text = amount.toStringAsFixed(0);
-    _usdcFocus.unfocus();
   }
 
   void _confirm() {
@@ -110,7 +101,7 @@ class _CopySettingsSheetState extends ConsumerState<CopySettingsSheet> {
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.fromLTRB(
               20.w,
-              0,
+              8.h,
               20.w,
               MediaQuery.of(context).viewInsets.bottom + 16.h,
             ),
@@ -119,13 +110,13 @@ class _CopySettingsSheetState extends ConsumerState<CopySettingsSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _DragHandle(),
-                SizedBox(height: 18.h),
+                SizedBox(height: 14.h),
                 _LeaderIdentity(leader: leader, domain: domain),
                 if (_hasStats(leader)) ...[
-                  SizedBox(height: 18.h),
+                  SizedBox(height: 10.h),
                   _StatStrip(leader: leader),
                 ],
-                SizedBox(height: 24.h),
+                SizedBox(height: 20.h),
                 _FieldLabel(
                   'Amount per copied trade',
                   hint: 'USDC committed each time they open',
@@ -141,22 +132,7 @@ class _CopySettingsSheetState extends ConsumerState<CopySettingsSheet> {
                     }
                   },
                 ),
-                SizedBox(height: 10.h),
-                Row(
-                  children: [
-                    for (final amount in _quickAmounts) ...[
-                      Expanded(
-                        child: _AmountChip(
-                          label: '\$${amount.toStringAsFixed(0)}',
-                          selected: _copyUSDC == amount,
-                          onTap: () => _setAmount(amount),
-                        ),
-                      ),
-                      if (amount != _quickAmounts.last) SizedBox(width: 8.w),
-                    ],
-                  ],
-                ),
-                SizedBox(height: 26.h),
+                SizedBox(height: 22.h),
                 _SliderRow(
                   label: 'Max slippage',
                   value: '${(_slippage * 100).toStringAsFixed(1)}%',
@@ -219,13 +195,13 @@ class _LeaderIdentity extends StatelessWidget {
     final title = leader.label ?? domain ?? leader.displayLabel;
     final subtitle = switch ((leader.label, domain)) {
       (String _, String d) => d,
-      _ => _short(leader.address),
+      (String _, null) => _short(leader.address),
+      (null, String _) => _short(leader.address),
+      _ => null,
     };
 
     return Row(
       children: [
-        _Avatar(seed: leader.address, label: title),
-        SizedBox(width: 13.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,21 +211,23 @@ class _LeaderIdentity extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: colors.onSurface,
-                  fontSize: 18.sp,
+                  fontSize: 17.sp,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
                 ),
               ),
-              SizedBox(height: 3.h),
-              Text(
-                subtitle,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.mutedSecondary,
-                  fontSize: 12.sp,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              if (subtitle != null) ...[
+                SizedBox(height: 3.h),
+                Text(
+                  subtitle,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.mutedSecondary,
+                    fontSize: 12.sp,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -261,46 +239,6 @@ class _LeaderIdentity extends StatelessWidget {
   String _short(String address) {
     if (address.length <= 10) return address;
     return '${address.substring(0, 4)}…${address.substring(address.length - 4)}';
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  final String seed;
-  final String label;
-
-  const _Avatar({required this.seed, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final hash = seed.codeUnits.fold<int>(0, (a, b) => a + b);
-    final hue = (hash * 37) % 360;
-    final c1 = HSLColor.fromAHSL(1, hue.toDouble(), 0.6, 0.55).toColor();
-    final c2 = HSLColor.fromAHSL(1, (hue + 40) % 360, 0.6, 0.45).toColor();
-    final initial = label.isNotEmpty
-        ? label.characters.first.toUpperCase()
-        : '?';
-
-    return Container(
-      width: 46.r,
-      height: 46.r,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [c1, c2],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14.r),
-      ),
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 19.sp,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
   }
 }
 
@@ -344,12 +282,11 @@ class _StatStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.dreamColors;
     final items = <Widget>[];
 
     if (leader.hasPnlHistory) {
       items.add(
-        _Stat(
+        _InlineStat(
           label: '7d PnL',
           value: formatPnl(leader.pnl7d),
           valueColor: leader.pnl7d >= 0 ? AppColors.bullish : AppColors.bearish,
@@ -358,69 +295,52 @@ class _StatStrip extends StatelessWidget {
     }
     if (leader.winRate > 0) {
       final pct = leader.winRate <= 1 ? leader.winRate * 100 : leader.winRate;
-      items.add(_Stat(label: 'Win rate', value: '${pct.toStringAsFixed(0)}%'));
+      items.add(_InlineStat(label: 'Win', value: '${pct.toStringAsFixed(0)}%'));
     }
     if (leader.copierCount > 0) {
-      items.add(_Stat(label: 'Copiers', value: '${leader.copierCount}'));
+      items.add(_InlineStat(label: 'Copiers', value: '${leader.copierCount}'));
     }
 
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 4.w),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: colors.stroke.withValues(alpha: 0.4)),
-          bottom: BorderSide(color: colors.stroke.withValues(alpha: 0.4)),
-        ),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < items.length; i++) ...[
-            Expanded(child: items[i]),
-            if (i != items.length - 1)
-              Container(
-                width: 1,
-                height: 26.h,
-                color: colors.stroke.withValues(alpha: 0.4),
-              ),
-          ],
-        ],
-      ),
-    );
+    return Wrap(spacing: 12.w, runSpacing: 6.h, children: items);
   }
 }
 
-class _Stat extends StatelessWidget {
+class _InlineStat extends StatelessWidget {
   final String label;
   final String value;
   final Color? valueColor;
 
-  const _Stat({required this.label, required this.value, this.valueColor});
+  const _InlineStat({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colors = context.dreamColors;
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor ?? colors.onSurface,
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w800,
-            fontFeatures: const [FontFeature.tabularFigures()],
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '$label ',
+            style: TextStyle(
+              color: colors.mutedSecondary,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        SizedBox(height: 3.h),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            color: colors.mutedSecondary,
-            fontSize: 9.sp,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              color: valueColor ?? colors.onSurface,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -473,7 +393,7 @@ class _AmountField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.dreamColors;
     return Container(
-      height: 58.h,
+      height: 54.h,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
         color: colors.surfaceVariant,
@@ -519,6 +439,11 @@ class _AmountField extends StatelessWidget {
                   fontSize: 22.sp,
                   fontWeight: FontWeight.w600,
                 ),
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -532,53 +457,6 @@ class _AmountField extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AmountChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _AmountChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.dreamColors;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOutCubic,
-        height: 38.h,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.14)
-              : colors.surfaceVariant,
-          borderRadius: BorderRadius.circular(11.r),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary.withValues(alpha: 0.8)
-                : colors.stroke.withValues(alpha: 0.6),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppColors.primary : colors.muted,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w700,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
       ),
     );
   }
@@ -690,7 +568,7 @@ class _ConfirmButton extends StatelessWidget {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14.r),
+            borderRadius: BorderRadius.circular(50.r),
           ),
           elevation: 0,
         ),

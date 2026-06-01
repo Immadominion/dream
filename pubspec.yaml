@@ -68,6 +68,7 @@ dependencies:
   ed25519_hd_key: ^2.2.0
   bip39: ^1.0.6
   solana_mobile_client: ^0.1.2 # Mobile Wallet Adapter for Android
+  tld_parser: ^0.1.0 # AllDomains ANS Protocol — multi-TLD wallet name resolution
 
   # Privy SDK (Web3 Auth)
   webview_flutter: ^4.4.2

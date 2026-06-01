@@ -1613,6 +1613,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.10.1"
+  tld_parser:
+    dependency: "direct main"
+    description:
+      name: tld_parser
+      sha256: f65e5d69f04554f839278c6b67aae5877550e2908ef413d5386e77888c6fad10
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
   typed_data:
     dependency: transitive
     description:

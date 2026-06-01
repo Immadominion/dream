@@ -19,6 +19,7 @@ type NotificationEventRow = {
 };
 
 type NotificationDeviceRow = {
+  installation_id: string;
   wallet_address: string;
   fcm_token: string;
   push_enabled: boolean;
@@ -62,6 +63,11 @@ function shouldSendEmail(event: NotificationEventRow) {
     'wallet_usdc_sent',
     'position_liquidation_risk',
   ].includes(event.event_type);
+}
+
+function getOriginInstallationId(event: NotificationEventRow) {
+  const value = event.payload?.originInstallationId;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
 async function getFcmAccessToken() {
@@ -215,13 +221,32 @@ Deno.serve(async (req) => {
       ) {
         const { data: devices, error: deviceError } = await supabase
           .from('notification_devices')
-          .select('wallet_address, fcm_token, push_enabled')
+          .select('installation_id, wallet_address, fcm_token, push_enabled')
           .eq('wallet_address', event.wallet_address)
           .eq('push_enabled', true);
         if (deviceError) throw deviceError;
 
+        const originInstallationId = getOriginInstallationId(event);
+
         for (const device of (devices ?? []) as NotificationDeviceRow[]) {
           try {
+            if (
+              originInstallationId != null &&
+              device.installation_id === originInstallationId
+            ) {
+              skippedCount += 1;
+              await supabase.from('notification_deliveries').upsert({
+                event_id: event.id,
+                channel: 'push',
+                destination: device.fcm_token,
+                provider: 'fcm',
+                status: 'skipped',
+                attempts: 0,
+                error_text: 'Skipped origin installation',
+              }, { onConflict: 'event_id,channel,destination' });
+              continue;
+            }
+
             if (!fcmAccessToken) {
               skippedCount += 1;
               await supabase.from('notification_deliveries').upsert({
@@ -322,16 +347,16 @@ Deno.serve(async (req) => {
           error_text: !categoryEnabled
             ? 'Notification category disabled by user preference'
             : !(preference?.email_enabled ?? false)
-            ? 'Email notifications disabled by user preference'
-            : 'Email suppressed for this event type',
+              ? 'Email notifications disabled by user preference'
+              : 'Email suppressed for this event type',
         }, { onConflict: 'event_id,channel,destination' });
       }
 
       const nextStatus = successCount > 0
         ? 'sent'
         : skippedCount > 0
-        ? 'skipped'
-        : 'failed';
+          ? 'skipped'
+          : 'failed';
 
       await supabase
         .from('notification_events')

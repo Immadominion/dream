@@ -192,15 +192,42 @@ class PrivyWalletManager {
         return true;
       }
       if (result is privy.Failure<void>) {
-        _logger.error(
-          'Failed to attach server signer: ${result.error.message}',
-        );
+        final message = result.error.message;
+        // Privy rejects re-adding a signer that is already on the wallet with a
+        // "Duplicate signer(s)" 400. That means the signer is ALREADY attached,
+        // so server signing is enabled — treat it as success and let the caller
+        // persist the consent key so it stops retrying.
+        if (_isAlreadyAttachedError(message)) {
+          _logger.info(
+            'Server signer already attached (Privy reported duplicate)',
+            tag: 'WalletManager',
+          );
+          return true;
+        }
+        _logger.error('Failed to attach server signer: $message');
       }
       return false;
     } catch (error) {
+      if (_isAlreadyAttachedError(error.toString())) {
+        _logger.info(
+          'Server signer already attached (duplicate on add)',
+          tag: 'WalletManager',
+        );
+        return true;
+      }
       _logger.error('Failed to attach server signer', error: error);
       return false;
     }
+  }
+
+  /// True when Privy rejects an `addSigner` because the signer is already
+  /// present on the wallet. This is a benign, idempotent outcome — the signer
+  /// is attached, so the consent step should be considered complete.
+  bool _isAlreadyAttachedError(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('duplicate signer') ||
+        lower.contains('already been added') ||
+        lower.contains('already added');
   }
 
   /// Revokes the server's signer from the embedded wallet, disabling all

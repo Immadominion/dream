@@ -10,6 +10,7 @@ import '../navigation/trade_share_link.dart';
 import '../providers/auth/client_auth_provider.dart';
 import '../services/logger_service.dart';
 import '../services/phoenix/phoenix_trader_service.dart';
+import '../services/phoenix/phoenix_websocket_service.dart';
 import '../../features/navigation/providers/bottom_nav_providers.dart';
 import '../../shared/models/user.dart';
 
@@ -122,6 +123,9 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       case AppLifecycleState.resumed:
         // App came back to foreground, refresh session
         _refreshSessionOnResume();
+        // Immediately reconnect WS — the OS silently drops TCP connections
+        // while suspended, which would leave the reconnecting banner stuck.
+        _reconnectWebSocket();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -148,6 +152,11 @@ class _SessionManagerState extends ConsumerState<SessionManager>
   void _pauseSessionManagement() {
     _sessionTimer?.cancel();
     _refreshTimer?.cancel();
+  }
+
+  void _reconnectWebSocket() {
+    final ws = ref.read(phoenixWebSocketServiceProvider);
+    ws.forceReconnectIfNeeded().ignore();
   }
 
   void _refreshSessionOnResume() {

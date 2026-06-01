@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/providers/auth/client_auth_provider.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/phoenix/phoenix_auth_service.dart';
+import '../../../core/services/phoenix/phoenix_websocket_service.dart';
 import '../../../core/services/wallet/privy_wallet_manager.dart';
 import '../models/intelligence_models.dart';
 import '../services/ai_proxy_service.dart';
@@ -29,13 +31,22 @@ final copyTradingProvider =
 /// executes mirrors continuously regardless of whether the app is running.
 class CopyTradingNotifier extends Notifier<CopyTradingState> {
   static const _followedKey = 'intelligence_followed_leaders';
-  static const _signerAttachedKey = 'copy_signer_attached';
+  static const _legacySignerAttachedKey = 'copy_signer_attached';
+  static const _signerAttachedKeyPrefix = 'copy_signer_attached_v2';
+  static const _refreshFallbackInterval = Duration(seconds: 8);
   static const _embeddedWalletOnlyMessage =
       'Copy trading automation is only available with Dream embedded wallets. '
       'Sign in with email or social to use it.';
 
+  StreamSubscription<TraderStateMessage>? _wsSub;
+  Timer? _wsRefreshDebounce;
+  Timer? _pollTimer;
+  Set<String> _watchedAuthorities = <String>{};
+
   @override
   CopyTradingState build() {
+    ref.onDispose(_dispose);
+
     // Fast first paint from the local cache, then reconcile with the server.
     Future.microtask(_loadFollowed);
     Future.microtask(_syncFromServer);
@@ -103,7 +114,10 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       state = state.copyWith(points: newBalance, isBuying: false);
       ref
           .read(loggerServiceProvider)
-          .info('Credits purchased (tx: $txSig) → $newBalance', tag: '[Credits]');
+          .info(
+            'Credits purchased (tx: $txSig) → $newBalance',
+            tag: '[Credits]',
+          );
     } catch (e) {
       state = state.copyWith(isBuying: false, error: e.toString());
     }
@@ -159,9 +173,7 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
         isLoadingBroadcaster: false,
       );
     } catch (_) {
-      state = state.copyWith(
-        isLoadingBroadcaster: false,
-      );
+      state = state.copyWith(isLoadingBroadcaster: false);
     }
   }
 
@@ -244,22 +256,29 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
 
     final privyWalletId = await privyWallet.getWalletId();
     if (privyWalletId == null || privyWalletId.isEmpty) {
-      state = state.copyWith(error: 'No embedded wallet available to delegate.');
+      state = state.copyWith(
+        error: 'No embedded wallet available to delegate.',
+      );
+      return null;
+    }
+
+    final signerConfig = await engine.fetchSignerConfig(walletAddress);
+    if (!signerConfig.isConfigured) {
+      state = state.copyWith(
+        error: 'Copy trading is not available yet. Please try again later.',
+      );
       return null;
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final alreadyAttached = prefs.getBool(_signerAttachedKey) ?? false;
+    final attachedKey = _signerAttachmentKey(
+      walletAddress: walletAddress,
+      signerId: signerConfig.signerId,
+      policyIds: signerConfig.policyIds,
+    );
+    final alreadyAttached = prefs.getBool(attachedKey) ?? false;
 
     if (!alreadyAttached) {
-      final signerConfig = await engine.fetchSignerConfig(walletAddress);
-      if (!signerConfig.isConfigured) {
-        state = state.copyWith(
-          error: 'Copy trading is not available yet. Please try again later.',
-        );
-        return null;
-      }
-
       final attached = await privyWallet.attachServerSigner(
         signerId: signerConfig.signerId,
         policyIds: signerConfig.policyIds,
@@ -270,7 +289,8 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
         );
         return null;
       }
-      await prefs.setBool(_signerAttachedKey, true);
+      await prefs.remove(_legacySignerAttachedKey);
+      await prefs.setBool(attachedKey, true);
       logger.info('Server signer attached on-device', tag: '[CopyTrade]');
     }
 
@@ -324,6 +344,7 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
         following: [...state.following, followed],
         isAddingLeader: false,
       );
+      _syncLeaderRealtime();
       await _persistFollowed();
 
       ref
@@ -335,8 +356,10 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
     } catch (e) {
       ref
           .read(loggerServiceProvider)
-          .error('Failed to enable copy of ${leader.address}: $e',
-              tag: '[CopyTrade]');
+          .error(
+            'Failed to enable copy of ${leader.address}: $e',
+            tag: '[CopyTrade]',
+          );
       state = state.copyWith(
         isAddingLeader: false,
         error: 'Could not start copying — please try again.',
@@ -398,6 +421,7 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
           .where((f) => f.leader.address != leaderAddress)
           .toList(),
     );
+    _syncLeaderRealtime();
     await _persistFollowed();
 
     if (walletAddress.isNotEmpty) {
@@ -408,10 +432,13 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       } catch (e) {
         ref
             .read(loggerServiceProvider)
-            .error('Failed to disable copy of $leaderAddress: $e',
-                tag: '[CopyTrade]');
+            .error(
+              'Failed to disable copy of $leaderAddress: $e',
+              tag: '[CopyTrade]',
+            );
         // Restore the optimistic removal so the UI matches the server.
         state = state.copyWith(following: previous);
+        _syncLeaderRealtime();
         await _persistFollowed();
         state = state.copyWith(
           error: 'Could not stop copying — please try again.',
@@ -432,6 +459,7 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
           )
           .toList(),
     );
+    _syncLeaderRealtime();
     await _persistFollowed();
     if (walletAddress.isEmpty) return;
 
@@ -457,9 +485,12 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
     } catch (e) {
       ref
           .read(loggerServiceProvider)
-          .error('Failed to ${paused ? 'pause' : 'resume'} $leaderAddress: $e',
-              tag: '[CopyTrade]');
+          .error(
+            'Failed to ${paused ? 'pause' : 'resume'} $leaderAddress: $e',
+            tag: '[CopyTrade]',
+          );
       state = state.copyWith(following: previous);
+      _syncLeaderRealtime();
       await _persistFollowed();
       state = state.copyWith(error: 'Could not update copying — try again.');
     }
@@ -502,8 +533,10 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
     } catch (e) {
       ref
           .read(loggerServiceProvider)
-          .error('Failed to update settings for $leaderAddress: $e',
-              tag: '[CopyTrade]');
+          .error(
+            'Failed to update settings for $leaderAddress: $e',
+            tag: '[CopyTrade]',
+          );
       state = state.copyWith(following: previous);
       await _persistFollowed();
       state = state.copyWith(error: 'Could not update settings — try again.');
@@ -523,9 +556,7 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       final engine = ref.read(copyEngineServiceProvider);
       final subscriptions = await engine.fetchSubscriptions(walletAddress);
 
-      final byAddress = {
-        for (final f in state.following) f.leader.address: f,
-      };
+      final byAddress = {for (final f in state.following) f.leader.address: f};
 
       final reconciled = <FollowedLeader>[];
       for (final sub in subscriptions) {
@@ -540,22 +571,26 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
                     followedAt: DateTime.now(),
                     lastKnownPositions: profile.openPositions,
                   ))
-              .copyWith(
-                settings: sub.settings,
-                isPaused: !sub.isActive,
-              ),
+              .copyWith(settings: sub.settings, isPaused: !sub.isActive),
         );
       }
 
       state = state.copyWith(following: reconciled);
+      _syncLeaderRealtime();
       await _persistFollowed();
       await _loadPointsFromServer();
+      if (subscriptions.any((sub) => sub.isActive) &&
+          !_isExternalWalletSignIn()) {
+        Future.microtask(() => _ensureServerSigner(walletAddress));
+      }
       Future.microtask(_refreshFollowingProfiles);
     } catch (e) {
       ref
           .read(loggerServiceProvider)
-          .error('Failed to sync copy state from server: $e',
-              tag: '[CopyTrade]');
+          .error(
+            'Failed to sync copy state from server: $e',
+            tag: '[CopyTrade]',
+          );
       // Fall back to loading points so the UI still shows a balance.
       await _loadPointsFromServer();
     }
@@ -612,6 +647,7 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
       }
 
       state = state.copyWith(following: cleaned);
+      _syncLeaderRealtime();
       if (cleaned.length != followed.length) {
         await _persistFollowed();
       }
@@ -623,29 +659,107 @@ class CopyTradingNotifier extends Notifier<CopyTradingState> {
     }
   }
 
+  String _signerAttachmentKey({
+    required String walletAddress,
+    required String signerId,
+    required List<String> policyIds,
+  }) {
+    final normalizedPolicies = [...policyIds]..sort();
+    final policyKey = normalizedPolicies.join(',');
+    return '$_signerAttachedKeyPrefix:$walletAddress:$signerId:$policyKey';
+  }
+
   /// Public refresh used by pull-to-refresh on the copy page.
   Future<void> refreshFollowed() => _refreshFollowingProfiles();
 
   Future<void> _refreshFollowingProfiles() async {
-    if (state.following.isEmpty) return;
+    if (state.following.isEmpty || state.isPolling) return;
+
+    state = state.copyWith(isPolling: true);
     final service = ref.read(leaderDiscoveryServiceProvider);
     final refreshed = <FollowedLeader>[];
-    for (final followed in state.following) {
-      try {
-        final profile = await service.fetchLeaderProfile(
-          followed.leader.address,
-          label: followed.leader.label,
-        );
-        refreshed.add(
-          followed.copyWith(
-            leader: profile,
-            lastKnownPositions: profile.openPositions,
-          ),
-        );
-      } catch (_) {
-        refreshed.add(followed);
+    try {
+      for (final followed in state.following) {
+        try {
+          final profile = await service.fetchLeaderProfile(
+            followed.leader.address,
+            label: followed.leader.label,
+          );
+          refreshed.add(
+            followed.copyWith(
+              leader: profile,
+              lastKnownPositions: profile.openPositions,
+            ),
+          );
+        } catch (_) {
+          refreshed.add(followed);
+        }
       }
+
+      state = state.copyWith(following: refreshed, isPolling: false);
+      _syncLeaderRealtime();
+    } catch (_) {
+      state = state.copyWith(isPolling: false);
     }
-    state = state.copyWith(following: refreshed);
+  }
+
+  void _syncLeaderRealtime() {
+    final authorities = state.following
+        .map((followed) => followed.leader.address)
+        .where((address) => address.isNotEmpty)
+        .toSet();
+
+    final ws = ref.read(phoenixWebSocketServiceProvider);
+    for (final authority in _watchedAuthorities.difference(authorities)) {
+      ws.unsubscribeTraderState(authority);
+    }
+
+    if (authorities.isEmpty) {
+      _watchedAuthorities = <String>{};
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      _wsSub?.cancel();
+      _wsSub = null;
+      _wsRefreshDebounce?.cancel();
+      _wsRefreshDebounce = null;
+      return;
+    }
+
+    unawaited(ws.connect());
+
+    for (final authority in authorities.difference(_watchedAuthorities)) {
+      ws.subscribeTraderState(authority);
+    }
+    _watchedAuthorities = authorities;
+
+    _wsSub ??= ws.traderStateStream.listen((message) {
+      final authority = message.raw['authority'] as String?;
+      if (authority == null || !_watchedAuthorities.contains(authority)) {
+        return;
+      }
+      _scheduleRealtimeRefresh();
+    });
+
+    _pollTimer ??= Timer.periodic(_refreshFallbackInterval, (_) {
+      unawaited(_refreshFollowingProfiles());
+    });
+  }
+
+  void _scheduleRealtimeRefresh() {
+    _wsRefreshDebounce?.cancel();
+    _wsRefreshDebounce = Timer(const Duration(milliseconds: 250), () {
+      unawaited(_refreshFollowingProfiles());
+    });
+  }
+
+  void _dispose() {
+    final ws = ref.read(phoenixWebSocketServiceProvider);
+    for (final authority in _watchedAuthorities) {
+      ws.unsubscribeTraderState(authority);
+    }
+    _watchedAuthorities = <String>{};
+    _wsSub?.cancel();
+    _wsRefreshDebounce?.cancel();
+    _pollTimer?.cancel();
   }
 }

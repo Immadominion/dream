@@ -81,7 +81,10 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                     bottomRight: Radius.circular(_isExpanded ? 0 : 20.r),
                   ),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 14.h,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -312,7 +315,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                             ),
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(50),
+                                            borderRadius: BorderRadius.circular(
+                                              50,
+                                            ),
                                           ),
                                           padding: EdgeInsets.zero,
                                         ),
@@ -339,7 +344,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                             color: colors.stroke,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(50),
+                                            borderRadius: BorderRadius.circular(
+                                              50,
+                                            ),
                                           ),
                                           padding: EdgeInsets.zero,
                                         ),
@@ -368,7 +375,9 @@ class _PositionCardState extends ConsumerState<PositionCard> {
                                             ),
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(50),
+                                            borderRadius: BorderRadius.circular(
+                                              50,
+                                            ),
                                           ),
                                           padding: EdgeInsets.zero,
                                         ),
@@ -508,6 +517,11 @@ class _PositionCardState extends ConsumerState<PositionCard> {
 // Partial close bottom sheet
 // ---------------------------------------------------------------------------
 
+/// Exit intents available from the close sheet. Close (reduce/flatten) and
+/// Reverse (flatten + open the opposite side) are grouped because they are the
+/// same family of action — exiting the current position.
+enum _ExitMode { close, reverse }
+
 class _ClosePositionSheet extends ConsumerStatefulWidget {
   final PhoenixPosition position;
   final double markPrice;
@@ -522,10 +536,16 @@ class _ClosePositionSheet extends ConsumerStatefulWidget {
 class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
   static const _presets = [25, 50, 75, 100];
 
+  _ExitMode _mode = _ExitMode.close;
   int _pct = 100;
   bool _useCustom = false;
   final _customCtrl = TextEditingController();
   bool _closing = false;
+  bool _reversing = false;
+
+  bool get _busy => _closing || _reversing;
+
+  String get _oppositeSide => widget.position.side == 'long' ? 'short' : 'long';
 
   @override
   void dispose() {
@@ -547,6 +567,36 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
   double get _estimatedPnl {
     final dir = widget.position.side == 'long' ? 1.0 : -1.0;
     return (widget.markPrice - widget.position.entryPrice) * _closeSize * dir;
+  }
+
+  Future<void> _submitReverse() async {
+    if (_busy) return;
+    setState(() => _reversing = true);
+    final error = await ref
+        .read(positionsProvider.notifier)
+        .reversePosition(widget.position);
+    if (!mounted) return;
+    setState(() => _reversing = false);
+    if (error != null) {
+      // Capture the messenger before any navigation so it stays valid.
+      final messenger = ScaffoldMessenger.of(context);
+      // If the close leg succeeded (error starts with "Closed your ..."),
+      // the position no longer exists — dismiss the sheet immediately so
+      // the user isn't left staring at stale data.
+      if (error.startsWith('Closed your')) {
+        Navigator.of(context).pop();
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppColors.bearish,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    } else {
+      HapticFeedback.mediumImpact();
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _submit() async {
@@ -603,195 +653,461 @@ class _ClosePositionSheetState extends ConsumerState<_ClosePositionSheet> {
                     ),
                   ),
 
-                  Text(
-                    'Close ${widget.position.side.toUpperCase()} ${widget.position.symbol}',
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  // Shared header — position identity + live mark
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              (widget.position.side == 'long'
+                                      ? AppColors.bullish
+                                      : AppColors.bearish)
+                                  .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Text(
+                          widget.position.side.toUpperCase(),
+                          style: TextStyle(
+                            color: widget.position.side == 'long'
+                                ? AppColors.bullish
+                                : AppColors.bearish,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        widget.position.symbol,
+                        style: TextStyle(
+                          color: AppColors.textPrimaryDark,
+                          fontSize: 17.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '\$${widget.markPrice >= 1000 ? widget.markPrice.toStringAsFixed(0) : widget.markPrice.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    'Mark price · \$${widget.markPrice >= 1000 ? widget.markPrice.toStringAsFixed(0) : widget.markPrice.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 12.sp,
-                    ),
+
+                  SizedBox(height: 16.h),
+
+                  // Intent selector — Close and Reverse are the same family
+                  // (both exit the current side), so they live together here
+                  // instead of as a separate action button.
+                  _ExitModeSelector(
+                    mode: _mode,
+                    enabled: !_busy,
+                    onChanged: (m) => setState(() => _mode = m),
                   ),
 
                   SizedBox(height: 20.h),
 
-                  // Percentage presets
-                  Text(
-                    'Close Amount',
-                    style: TextStyle(
-                      color: AppColors.textSecondaryDark,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500,
+                  if (_mode == _ExitMode.close) ...[
+                    // Percentage presets
+                    Text(
+                      'Close Amount',
+                      style: TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Row(
-                    children: _presets.map((p) {
-                      final sel = !_useCustom && _pct == p;
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: p == 100 ? 0 : 8.w),
-                          child: GestureDetector(
-                            onTap: () => setState(() {
-                              _pct = p;
-                              _useCustom = false;
-                            }),
-                            child: Container(
-                              height: 38.h,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: sel
-                                    ? AppColors.bearish.withValues(alpha: 0.15)
-                                    : AppColors.surfaceDark,
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: Text(
-                                '$p%',
-                                style: TextStyle(
+                    SizedBox(height: 8.h),
+                    Row(
+                      children: _presets.map((p) {
+                        final sel = !_useCustom && _pct == p;
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(right: p == 100 ? 0 : 8.w),
+                            child: GestureDetector(
+                              onTap: () => setState(() {
+                                _pct = p;
+                                _useCustom = false;
+                              }),
+                              child: Container(
+                                height: 38.h,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
                                   color: sel
-                                      ? AppColors.bearish
-                                      : AppColors.textSecondaryDark,
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w600,
+                                      ? AppColors.bearish.withValues(
+                                          alpha: 0.15,
+                                        )
+                                      : AppColors.surfaceDark,
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: Text(
+                                  '$p%',
+                                  style: TextStyle(
+                                    color: sel
+                                        ? AppColors.bearish
+                                        : AppColors.textSecondaryDark,
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
+                        );
+                      }).toList(),
+                    ),
+
+                    SizedBox(height: 12.h),
+
+                    // Custom size input
+                    TextField(
+                      controller: _customCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                      ],
+                      style: TextStyle(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 14.sp,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Custom size',
+                        hintStyle: TextStyle(
+                          color: AppColors.textMutedDark,
+                          fontSize: 13.sp,
                         ),
-                      );
-                    }).toList(),
-                  ),
-
-                  SizedBox(height: 12.h),
-
-                  // Custom size input
-                  TextField(
-                    controller: _customCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                        suffixText: base,
+                        suffixStyle: TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 13.sp,
+                        ),
+                        filled: true,
+                        fillColor: AppColors.cardDark,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 10.h,
+                        ),
+                      ),
+                      onChanged: (_) => setState(() => _useCustom = true),
                     ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                    ],
-                    style: TextStyle(
-                      color: AppColors.textPrimaryDark,
-                      fontSize: 14.sp,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Custom size',
-                      hintStyle: TextStyle(
-                        color: AppColors.textMutedDark,
-                        fontSize: 13.sp,
-                      ),
-                      suffixText: base,
-                      suffixStyle: TextStyle(
-                        color: AppColors.textSecondaryDark,
-                        fontSize: 13.sp,
-                      ),
-                      filled: true,
-                      fillColor: AppColors.cardDark,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
+
+                    SizedBox(height: 14.h),
+
+                    // Summary row
+                    Container(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 12.w,
                         vertical: 10.h,
                       ),
-                    ),
-                    onChanged: (_) => setState(() => _useCustom = true),
-                  ),
-
-                  SizedBox(height: 14.h),
-
-                  // Summary row
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 10.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Row(
-                      children: [
-                        _SummaryCol(
-                          label: 'Close Size',
-                          value: '${_closeSize.toStringAsFixed(4)} $base',
-                        ),
-                        _SummaryCol(
-                          label: 'Notional',
-                          value:
-                              '\$${(_closeSize * widget.markPrice).toStringAsFixed(2)}',
-                        ),
-                        _SummaryCol(
-                          label: 'Est. P&L',
-                          value:
-                              '${pnl >= 0 ? '+' : ''}\$${pnl.abs().toStringAsFixed(2)}',
-                          valueColor: pnlColor,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 20.h),
-
-                  // Confirm
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48.h,
-                    child: ElevatedButton(
-                      onPressed: (_closing || _closeSize <= 0) ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.bearish,
-                        disabledBackgroundColor: AppColors.bearish.withValues(
-                          alpha: 0.3,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDark,
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
-                      child: _closing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              _useCustom
-                                  ? 'Close ${_closeSize.toStringAsFixed(4)} $base at Market'
-                                  : 'Close $_pct% at Market',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                      child: Row(
+                        children: [
+                          _SummaryCol(
+                            label: 'Close Size',
+                            value: '${_closeSize.toStringAsFixed(4)} $base',
+                          ),
+                          _SummaryCol(
+                            label: 'Notional',
+                            value:
+                                '\$${(_closeSize * widget.markPrice).toStringAsFixed(2)}',
+                          ),
+                          _SummaryCol(
+                            label: 'Est. P&L',
+                            value:
+                                '${pnl >= 0 ? '+' : ''}\$${pnl.abs().toStringAsFixed(2)}',
+                            valueColor: pnlColor,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    SizedBox(height: 20.h),
+
+                    // Confirm
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48.h,
+                      child: ElevatedButton(
+                        onPressed: (_busy || _closeSize <= 0) ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.bearish,
+                          disabledBackgroundColor: AppColors.bearish.withValues(
+                            alpha: 0.3,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                        ),
+                        child: _closing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                _useCustom
+                                    ? 'Close ${_closeSize.toStringAsFixed(4)} $base at Market'
+                                    : 'Close $_pct% at Market',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ] else ...[
+                    _ReversePanel(
+                      position: widget.position,
+                      markPrice: widget.markPrice,
+                    ),
+                    SizedBox(height: 20.h),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48.h,
+                      child: ElevatedButton(
+                        onPressed: _busy ? null : _submitReverse,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _oppositeSide == 'long'
+                              ? AppColors.bullish
+                              : AppColors.bearish,
+                          disabledBackgroundColor:
+                              (_oppositeSide == 'long'
+                                      ? AppColors.bullish
+                                      : AppColors.bearish)
+                                  .withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                        ),
+                        child: _reversing
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Reverse to ${_oppositeSide.toUpperCase()}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Exit-mode selector (Close | Reverse)
+// ---------------------------------------------------------------------------
+
+class _ExitModeSelector extends StatelessWidget {
+  final _ExitMode mode;
+  final bool enabled;
+  final ValueChanged<_ExitMode> onChanged;
+
+  const _ExitModeSelector({
+    required this.mode,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40.h,
+      padding: EdgeInsets.all(3.r),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Row(
+        children: [
+          _segment('Close', _ExitMode.close),
+          _segment('Reverse', _ExitMode.reverse),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(String label, _ExitMode value) {
+    final selected = mode == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: enabled && !selected ? () => onChanged(value) : null,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? AppColors.cardDark : Colors.transparent,
+            borderRadius: BorderRadius.circular(50),
+            border: selected ? Border.all(color: AppColors.borderDark) : null,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textSecondaryDark,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reverse panel — shows the flip the user is about to make
+// ---------------------------------------------------------------------------
+
+class _ReversePanel extends StatelessWidget {
+  final PhoenixPosition position;
+  final double markPrice;
+
+  const _ReversePanel({required this.position, required this.markPrice});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = position.symbol.split('-').first;
+    final isLong = position.side == 'long';
+    final curColor = isLong ? AppColors.bullish : AppColors.bearish;
+    final newColor = isLong ? AppColors.bearish : AppColors.bullish;
+    final newSide = isLong ? 'SHORT' : 'LONG';
+    final sizeStr = '${position.sizeBase.toStringAsFixed(4)} $base';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Directional flip — current side morphs into the opposite side
+        Row(
+          children: [
+            Expanded(child: _sideChip(position.side.toUpperCase(), curColor)),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10.w),
+              child: Icon(
+                Icons.arrow_forward_rounded,
+                color: AppColors.textMutedDark,
+                size: 18.sp,
+              ),
+            ),
+            Expanded(child: _sideChip(newSide, newColor)),
+          ],
+        ),
+        SizedBox(height: 14.h),
+
+        // What stays the same — size and collateral carry over
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Row(
+            children: [
+              _SummaryCol(
+                label: 'New Side',
+                value: newSide,
+                valueColor: newColor,
+              ),
+              _SummaryCol(label: 'Size', value: sizeStr),
+              _SummaryCol(
+                label: 'Collateral',
+                value: '\$${position.collateral.toStringAsFixed(2)}',
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 10.h),
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 13.sp,
+              color: AppColors.textMutedDark,
+            ),
+            SizedBox(width: 6.w),
+            Expanded(
+              child: Text(
+                'Closes your ${position.side.toUpperCase()} and opens an equal '
+                '$newSide at market. Runs as two orders, so fills may differ '
+                'slightly from the mark.',
+                style: TextStyle(
+                  color: AppColors.textMutedDark,
+                  fontSize: 11.sp,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _sideChip(String label, Color color) {
+    return Container(
+      height: 44.h,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 14.sp,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
         ),
       ),
     );
@@ -1500,10 +1816,7 @@ class _Detail extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
-              color: colors.mutedSecondary,
-              fontSize: 10.sp,
-            ),
+            style: TextStyle(color: colors.mutedSecondary, fontSize: 10.sp),
           ),
           SizedBox(height: 2.h),
           Text(

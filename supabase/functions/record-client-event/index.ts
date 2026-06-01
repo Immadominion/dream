@@ -12,6 +12,7 @@ type ClientEventPayload = {
   title: string;
   body: string;
   symbol?: string | null;
+  originInstallationId?: string | null;
   channels?: string[];
   payload?: Record<string, unknown>;
   timestampMs: number;
@@ -43,6 +44,7 @@ function buildExpectedMessage(payload: ClientEventPayload) {
     `symbol:${sanitizeSignedField(payload.symbol)}`,
     `title:${sanitizeSignedField(payload.title)}`,
     `body:${sanitizeSignedField(payload.body)}`,
+    `originInstallation:${sanitizeSignedField(payload.originInstallationId)}`,
     `channels:${normalizeChannels(payload.channels).join(',')}`,
     `timestampMs:${payload.timestampMs}`,
   ].join('\n');
@@ -111,7 +113,10 @@ Deno.serve(async (req) => {
       body: payload.body,
       symbol: payload.symbol ?? null,
       channels: normalizeChannels(payload.channels),
-      payload: payload.payload ?? {},
+      payload: {
+        ...(payload.payload ?? {}),
+        originInstallationId: sanitizeSignedField(payload.originInstallationId) || null,
+      },
     };
 
     const { error: eventError } = await supabase

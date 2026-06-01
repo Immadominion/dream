@@ -56,6 +56,9 @@ class PositionsNotifier extends Notifier<PositionsState> {
 
   StreamSubscription<TraderStateMessage>? _wsSub;
   Timer? _wsRefreshDebounce;
+  Timer? _pollTimer;
+
+  static const _pollInterval = Duration(seconds: 10);
 
   // Tracks which positions have already emitted a liq-risk warning.
   final Set<String> _liqWarnedPositionIds = {};
@@ -134,6 +137,97 @@ class PositionsNotifier extends Notifier<PositionsState> {
       return result.error ?? 'Close position failed';
     } catch (e) {
       return 'Close position failed: $e';
+    }
+  }
+
+  /// Reverse a position: fully close the current side, then open an equal
+  /// position on the opposite side using the same collateral (so leverage and
+  /// notional are preserved). Isolated Phoenix accounts hold a single position,
+  /// so this runs as two sequential market orders — close, then re-open the
+  /// flipped side once the close settles.
+  ///
+  /// Returns null on success, or an error message string on failure.
+  Future<String?> reversePosition(PhoenixPosition position) async {
+    final walletAddress = ref.read(clientAuthProvider).walletAddress;
+    if (walletAddress == null) return 'No wallet connected';
+
+    final sizeBase = position.sizeBase;
+    final collateral = position.collateral;
+    if (sizeBase <= 0) return 'Position has no size to reverse';
+
+    final orderService = ref.read(phoenixOrderServiceProvider);
+    final newSide = position.side == 'long' ? 'sell' : 'buy';
+
+    try {
+      // Leg 1 — close the current position fully. Collateral returns to the
+      // cross/parent account so it can fund the flipped side.
+      final closeResult = await orderService.closePosition(
+        authority: walletAddress,
+        symbol: position.symbol,
+        positionSide: position.side,
+        sizeBase: sizeBase,
+      );
+      if (!closeResult.success) {
+        return closeResult.error ?? 'Reverse failed while closing';
+      }
+
+      // Let the on-chain close settle before re-opening on the isolated account.
+      await Future.delayed(const Duration(seconds: 3));
+
+      // Re-fetch trader state so we know the actual available margin returned
+      // from the close (which may differ from position.collateral due to
+      // realized PnL, funding and taker fees charged at settlement time).
+      await refresh();
+      final freshAvailable = state.traderState?.availableMargin ?? 0.0;
+
+      // Budget for leg 2:
+      //   • Use the fresh available margin (accurate post-close figure).
+      //   • Cap at 101% of original collateral — the extra 1% covers the
+      //     taker fee that Phoenix deducts from effective collateral before
+      //     comparing against the initial-margin requirement. Without this
+      //     buffer the trade bounces with InsufficientFunds even though the
+      //     numbers look nearly equal.
+      //   • Never exceed what is actually available (prevents over-commit
+      //     when the account already had a larger free balance).
+      final budget = freshAvailable.clamp(0.0, collateral * 1.01);
+      final collateralMicro = (budget * 1e6).floor();
+
+      if (collateralMicro <= 0) {
+        return 'Closed your ${position.side.toUpperCase()} but your account '
+            'has no available margin to open the reverse side. '
+            'Please deposit funds and re-enter manually.';
+      }
+
+      // Leg 2 — open the opposite side with the same size and collateral.
+      final openResult = await orderService.placeMarketOrder(
+        authority: walletAddress,
+        symbol: position.symbol,
+        side: newSide,
+        quantity: sizeBase,
+        transferAmountUsdc: collateralMicro,
+      );
+
+      if (!openResult.success) {
+        // The close succeeded but the flip leg failed — surface a clear message
+        // so the user knows they are now flat (not stuck in the old side).
+        await Future.delayed(const Duration(seconds: 2));
+        await refresh();
+        return 'Closed your ${position.side.toUpperCase()} but could not open the '
+            '${newSide == 'buy' ? 'LONG' : 'SHORT'}: ${openResult.error ?? 'order failed'}';
+      }
+
+      await Future.delayed(const Duration(seconds: 2));
+      await refresh();
+
+      unawaited(
+        ref
+            .read(telegramAnalyticsProvider)
+            .trackPositionClosed(symbol: position.symbol, side: position.side),
+      );
+
+      return null;
+    } catch (e) {
+      return 'Reverse failed: $e';
     }
   }
 
@@ -224,6 +318,13 @@ class PositionsNotifier extends Notifier<PositionsState> {
 
       _scheduleWsRefresh(authority);
     });
+
+    // Fallback polling: refreshes every 10 s so copy-engine positions and
+    // any missed WS updates appear without requiring app restart.
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(_pollInterval, (_) {
+      unawaited(_syncTraderState(authority, showLoading: false));
+    });
   }
 
   Future<void> _syncTraderState(
@@ -281,6 +382,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
   void _dispose() {
     _wsSub?.cancel();
     _wsRefreshDebounce?.cancel();
+    _pollTimer?.cancel();
   }
 
   void _detectAndNotifyPositionTransitions(

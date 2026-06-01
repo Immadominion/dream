@@ -162,7 +162,6 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: context.dreamColors.onSurface,
-                fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -202,7 +201,7 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14.r),
+                        borderRadius: BorderRadius.circular(50.r),
                       ),
                     ),
                   ),
@@ -218,7 +217,7 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
                       side: BorderSide(color: context.dreamColors.stroke),
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14.r),
+                        borderRadius: BorderRadius.circular(50.r),
                       ),
                     ),
                   ),
@@ -321,53 +320,23 @@ class _TradeReceiptCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.dreamColors.onSurface.withValues(
-                              alpha: 0.08,
-                            ),
-                            borderRadius: BorderRadius.circular(999.r),
-                            border: Border.all(
-                              color: context.dreamColors.onSurface.withValues(
-                                alpha: 0.08,
-                              ),
-                            ),
-                          ),
-                          child: Text(
-                            data.cardLabel,
-                            style: TextStyle(
-                              color: context.dreamColors.onSurface,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.6,
-                            ),
+                        Text(
+                          data.cardLabel,
+                          style: TextStyle(
+                            color: context.dreamColors.onSurface,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
                           ),
                         ),
                         const Spacer(),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: data.sideColor.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(999.r),
-                            border: Border.all(
-                              color: data.sideColor.withValues(alpha: 0.32),
-                            ),
-                          ),
-                          child: Text(
-                            '${data.sideLabel} ${data.leverageLabel}',
-                            style: TextStyle(
-                              color: data.sideColor,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.4,
-                            ),
+                        Text(
+                          '${data.sideLabel} ${data.leverageLabel}',
+                          style: TextStyle(
+                            color: data.sideColor,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.4,
                           ),
                         ),
                       ],
@@ -377,7 +346,7 @@ class _TradeReceiptCard extends StatelessWidget {
                       data.displaySymbol,
                       style: TextStyle(
                         color: context.dreamColors.onSurface,
-                        fontSize: 28.sp,
+                        fontSize: 18.sp,
                         fontWeight: FontWeight.w800,
                         height: 1,
                       ),
@@ -387,7 +356,7 @@ class _TradeReceiptCard extends StatelessWidget {
                       data.headline,
                       style: TextStyle(
                         color: data.headlineColor(context),
-                        fontSize: 32.sp,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.w800,
                         height: 1,
                       ),
@@ -397,11 +366,11 @@ class _TradeReceiptCard extends StatelessWidget {
                       data.subheadline,
                       style: TextStyle(
                         color: context.dreamColors.muted,
-                        fontSize: 13.sp,
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(height: 18.h),
+                    SizedBox(height: 8.h),
                     Expanded(
                       child: Row(
                         children: [
@@ -412,7 +381,7 @@ class _TradeReceiptCard extends StatelessWidget {
                                   label: data.primaryMetricLabel,
                                   value: data.primaryMetricValue,
                                 ),
-                                SizedBox(height: 10.h),
+                                // SizedBox(height: 10.h),
                                 _ReceiptMetric(
                                   label: 'Collateral',
                                   value: formatUsdc(data.collateralUsdc),
@@ -420,7 +389,6 @@ class _TradeReceiptCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          SizedBox(width: 10.w),
                           Expanded(
                             child: Column(
                               children: [
@@ -428,7 +396,7 @@ class _TradeReceiptCard extends StatelessWidget {
                                   label: data.secondaryMetricLabel,
                                   value: data.secondaryMetricValue,
                                 ),
-                                SizedBox(height: 10.h),
+                                // SizedBox(height: 10.h),
                                 _ReceiptMetric(
                                   label: 'Liq. Price',
                                   value: data.liquidationText,
@@ -566,7 +534,7 @@ class _TradeReceiptData {
   Color get glowColor => hasLivePnl
       ? (isProfit ? AppColors.success : AppColors.error)
       : AppColors.primary;
-  String get cardLabel => hasLivePnl ? 'LIVE P&L' : 'TRADE RECEIPT';
+  String get cardLabel => hasLivePnl ? 'LIVE P&L' : 'DREAM RECEIPT';
 
   String get headline => hasLivePnl
       ? formatPnl(position!.unrealizedPnl)
@@ -596,7 +564,7 @@ class _TradeReceiptData {
 
   String get sheetSubtitle => hasLivePnl
       ? 'Share the setup and the live P&L from your open trade.'
-      : 'Share the setup and an open-app link instead of a raw transaction line.';
+      : 'Share the setup link';
 
   String get shareText {
     final direction =

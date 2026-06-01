@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:privy_flutter/privy_flutter.dart' as privy;
 
 import '../../../shared/models/user.dart';
+import '../../../shared/services/storage_service.dart';
 import '../../services/auth/session_manager.dart';
 import '../../services/logger_service.dart';
 import '../../services/privy_sdk_service.dart';
@@ -69,6 +72,8 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
           return;
         }
 
+        // Persist the flag so onboarding is never shown again on restart.
+        unawaited(StorageService.setFirstLaunchComplete());
         state = state.copyWith(
           state: AuthState.authenticated,
           session: restoredSession,
@@ -79,6 +84,8 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
 
       // Valid session found
       _logger.info('Valid session restored', tag: 'ClientAuth');
+      // Persist the flag so onboarding is never shown again on restart.
+      unawaited(StorageService.setFirstLaunchComplete());
       state = state.copyWith(
         state: AuthState.authenticated,
         session: session,
@@ -126,6 +133,7 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
       await _sessionManager.saveSession(session);
 
       _logger.info('OAuth sign-in complete', tag: 'ClientAuth');
+      unawaited(StorageService.setFirstLaunchComplete());
       state = state.copyWith(state: AuthState.authenticated, session: session);
     } catch (error) {
       _logger.error('OAuth sign-in failed', error: error);
@@ -186,6 +194,7 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
       await _sessionManager.saveSession(session);
 
       _logger.info('Email OTP sign-in complete', tag: 'ClientAuth');
+      unawaited(StorageService.setFirstLaunchComplete());
       state = state.copyWith(state: AuthState.authenticated, session: session);
     } catch (error) {
       _logger.error('OTP verification failed', error: error);

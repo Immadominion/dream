@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:rive/rive.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -91,14 +92,17 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                     ),
                     builder: (context, riveState) {
                       if (riveState is RiveLoaded) {
-                        return RiveWidget(
-                          controller: riveState.controller,
-                          fit: Fit.contain,
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(50.r),
+                          child: RiveWidget(
+                            controller: riveState.controller,
+                            fit: Fit.fill,
+                          ),
                         );
                       }
                       if (riveState is RiveFailed) {
-                        return Icon(
-                          Icons.check_circle_rounded,
+                        return PhosphorIcon(
+                          PhosphorIcons.checkCircle(),
                           color: AppColors.success,
                           size: 68.sp,
                         );

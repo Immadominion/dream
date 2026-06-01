@@ -17,16 +17,16 @@ import '../notification_service.dart';
 import '../wallet/mwa_wallet_service.dart';
 import '../wallet/privy_wallet_manager.dart';
 
-final remoteNotificationServiceProvider = Provider<RemoteNotificationService>(
-  (ref) {
-    return RemoteNotificationService(
-      logger: ref.watch(loggerServiceProvider),
-      notificationService: ref.watch(notificationServiceProvider),
-      privyWalletManager: ref.watch(privyWalletManagerProvider),
-      mwaWalletService: ref.watch(mwaWalletServiceProvider),
-    );
-  },
-);
+final remoteNotificationServiceProvider = Provider<RemoteNotificationService>((
+  ref,
+) {
+  return RemoteNotificationService(
+    logger: ref.watch(loggerServiceProvider),
+    notificationService: ref.watch(notificationServiceProvider),
+    privyWalletManager: ref.watch(privyWalletManagerProvider),
+    mwaWalletService: ref.watch(mwaWalletServiceProvider),
+  );
+});
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -89,10 +89,13 @@ class RemoteNotificationService {
     if (_initialized) return;
 
     try {
+      // Foreground messages are rendered through NotificationService below.
+      // If iOS also presents the remote FCM alert directly, users see two
+      // banners for the same event.
       await _messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
+        alert: false,
+        badge: false,
+        sound: false,
       );
     } catch (error) {
       _logger.warning(
@@ -125,7 +128,10 @@ class RemoteNotificationService {
     }
 
     _initialized = true;
-    _logger.info('Remote notification runtime ready', tag: 'RemoteNotifications');
+    _logger.info(
+      'Remote notification runtime ready',
+      tag: 'RemoteNotifications',
+    );
   }
 
   Future<bool> syncCurrentDevice({
@@ -144,14 +150,20 @@ class RemoteNotificationService {
       return false;
     }
 
-    final notificationsEnabled =
+    var notificationsEnabled =
         await _notificationService.areNotificationsEnabled;
     if (!notificationsEnabled) {
-      _logger.info(
-        'OS notifications disabled; skipping device registration',
-        tag: 'RemoteNotifications',
-      );
-      return false;
+      // Attempt to request the OS permission on the spot (e.g. the user
+      // skipped the prompt earlier or revoked it). If the user denies again
+      // we still skip registration gracefully.
+      notificationsEnabled = await _notificationService.requestPermission();
+      if (!notificationsEnabled) {
+        _logger.info(
+          'OS notifications disabled; skipping device registration',
+          tag: 'RemoteNotifications',
+        );
+        return false;
+      }
     }
 
     final deviceToken = await _messaging.getToken();
@@ -172,7 +184,8 @@ class RemoteNotificationService {
       final syncedAt = cached?['syncedAt'] as int? ?? 0;
       final cachedToken = cached?['deviceToken'] as String?;
       final cachedInstallation = cached?['installationId'] as String?;
-      final recentlySynced = nowMs - syncedAt < const Duration(hours: 6).inMilliseconds;
+      final recentlySynced =
+          nowMs - syncedAt < const Duration(hours: 6).inMilliseconds;
 
       if (recentlySynced &&
           cachedToken == deviceToken &&
@@ -257,6 +270,8 @@ class RemoteNotificationService {
       return false;
     }
 
+    final installationId = await _getInstallationId();
+
     final requestPayload = <String, dynamic>{
       'walletAddress': walletAddress,
       'eventId': eventId,
@@ -265,6 +280,7 @@ class RemoteNotificationService {
       'title': title,
       'body': body,
       'symbol': symbol,
+      'originInstallationId': installationId,
       'channels': normalizedChannels,
       'timestampMs': DateTime.now().millisecondsSinceEpoch,
     };
@@ -288,7 +304,7 @@ class RemoteNotificationService {
         AppConstants.supabaseRecordClientEventFunction,
         body: {
           ...requestPayload,
-          'payload': payload,
+          'payload': {...payload, 'originInstallationId': installationId},
           'message': signingMessage,
           'signatureBase64': signatureBase64,
         },
@@ -306,15 +322,18 @@ class RemoteNotificationService {
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    final title = message.notification?.title ?? _stringOrNull(message.data['title']);
-    final body = message.notification?.body ?? _stringOrNull(message.data['body']);
+    final title =
+        message.notification?.title ?? _stringOrNull(message.data['title']);
+    final body =
+        message.notification?.body ?? _stringOrNull(message.data['body']);
     if (title == null || body == null) return;
 
     await _notificationService.showGenericNotification(
       category: _parseCategory(_stringOrNull(message.data['category'])),
       title: title,
       body: body,
-      payload: _stringOrNull(message.data['symbol']) ??
+      payload:
+          _stringOrNull(message.data['symbol']) ??
           _stringOrNull(message.data['payload']),
     );
   }
@@ -330,7 +349,8 @@ class RemoteNotificationService {
     if (message.data.isEmpty && message.notification == null) return null;
 
     return NotificationTapPayload(
-      symbol: _stringOrNull(message.data['symbol']) ??
+      symbol:
+          _stringOrNull(message.data['symbol']) ??
           _stringOrNull(message.data['payload']),
       route: _stringOrNull(message.data['route']),
       eventId: _stringOrNull(message.data['event_id']),
@@ -361,6 +381,7 @@ class RemoteNotificationService {
       'symbol:${_sanitizeSignedField(payload['symbol']?.toString())}',
       'title:${_sanitizeSignedField(payload['title']?.toString())}',
       'body:${_sanitizeSignedField(payload['body']?.toString())}',
+      'originInstallation:${_sanitizeSignedField(payload['originInstallationId']?.toString())}',
       'channels:${(payload['channels'] as List<dynamic>).join(',')}',
       'timestampMs:${payload['timestampMs']}',
     ].join('\n');
@@ -386,12 +407,13 @@ class RemoteNotificationService {
   }
 
   List<String> _normalizeChannels(List<String> channels) {
-    final normalized = channels
-        .map((channel) => channel.trim().toLowerCase())
-        .where((channel) => channel == 'push' || channel == 'email')
-        .toSet()
-        .toList()
-      ..sort();
+    final normalized =
+        channels
+            .map((channel) => channel.trim().toLowerCase())
+            .where((channel) => channel == 'push' || channel == 'email')
+            .toSet()
+            .toList()
+          ..sort();
     return normalized;
   }
 
