@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../shared/services/storage_service.dart';
 
 /// Notifier for onboarding page index (Riverpod 3.x)
@@ -310,9 +311,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     // Mark onboarding as completed
     await StorageService.setFirstLaunchComplete();
 
-    // Navigate to login screen
+    // Hand back to the splash router, which routes to login or straight to
+    // home depending on whether a session was already restored. This avoids
+    // dumping an already-authenticated user onto the login screen.
     if (mounted) {
-      context.go('/enhanced-login');
+      context.go(AppRoutes.splash);
     }
   }
 }

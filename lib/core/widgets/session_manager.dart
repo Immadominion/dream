@@ -188,6 +188,9 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       final router = ref.read(appRouterProvider);
       final path = router.routeInformationProvider.value.uri.path;
 
+      // Never override the onboarding flow.
+      if (path == AppRoutes.onboarding) return;
+
       if (!traderState.isRegistered) {
         if (path != '/activate') {
           _logger.info(
@@ -259,6 +262,17 @@ class _SessionManagerState extends ConsumerState<SessionManager>
           '[SessionManager] Auth state changed: ${previous?.state} → ${next.state}',
         );
       }
+
+      // During the first-launch onboarding flow, let onboarding own navigation
+      // entirely. Auth resolving to (un)authenticated must NOT yank the user
+      // off the onboarding screen — that race was causing onboarding to be
+      // skipped on every fresh launch.
+      final currentPath =
+          ref.read(appRouterProvider).routeInformationProvider.value.uri.path;
+      if (currentPath == AppRoutes.onboarding) {
+        return;
+      }
+
       // Redirect to login when user signs out
       if (next.state == AuthState.unauthenticated &&
           previous?.state != AuthState.unauthenticated) {

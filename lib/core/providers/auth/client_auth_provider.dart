@@ -72,8 +72,10 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
           return;
         }
 
-        // Persist the flag so onboarding is never shown again on restart.
-        unawaited(StorageService.setFirstLaunchComplete());
+        // NOTE: do NOT mark first-launch complete here. Restoring a session
+        // (e.g. from a persisted Privy/Keychain token) must not suppress the
+        // onboarding screen — onboarding owns that flag and sets it only when
+        // the user actually finishes/skips it.
         state = state.copyWith(
           state: AuthState.authenticated,
           session: restoredSession,
@@ -84,8 +86,7 @@ class ClientAuthNotifier extends Notifier<AuthStateData> {
 
       // Valid session found
       _logger.info('Valid session restored', tag: 'ClientAuth');
-      // Persist the flag so onboarding is never shown again on restart.
-      unawaited(StorageService.setFirstLaunchComplete());
+      // NOTE: do NOT mark first-launch complete here (see restore path above).
       state = state.copyWith(
         state: AuthState.authenticated,
         session: session,
