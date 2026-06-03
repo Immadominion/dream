@@ -48,6 +48,7 @@ class TradeNotifier extends Notifier<TradeState> {
       submitError: null,
       lastTxSignature: null,
       lastSubmittedTrade: null,
+      clearTpSl: true,
     );
     _subscribeToMarket(symbol);
   }
@@ -257,13 +258,13 @@ class TradeNotifier extends Notifier<TradeState> {
     final takerFeeBps = _currentTakerFeeBps();
     final slippageBps = _currentSlippageBps();
     final finalQty = livePrice > 0
-      ? _calcQuantity(
-        state.sizeUsdc,
-        state.leverage,
-        livePrice,
-        takerFeeBps,
-        slippageBps,
-        )
+        ? _calcQuantity(
+            state.sizeUsdc,
+            state.leverage,
+            livePrice,
+            takerFeeBps,
+            slippageBps,
+          )
         : state.quantity;
 
     if (finalQty <= 0) {
@@ -274,10 +275,37 @@ class TradeNotifier extends Notifier<TradeState> {
       return false;
     }
 
+    // Snap to lot boundary — Phoenix rejects sub-lot quantities with
+    // "zero base lots" error. We snap down so the quantity is always a whole
+    // number of lots (e.g. BNB baseLotsDecimals=2 → min 0.01 BNB).
+    final market = ref
+        .read(marketsProvider)
+        .markets
+        .where((m) => m.symbol == state.symbol)
+        .firstOrNull;
+    final snappedQty = market != null ? market.snapToLot(finalQty) : finalQty;
+
+    if (snappedQty <= 0) {
+      final minLot = market?.minLotSize ?? 0;
+      final minUsd = livePrice > 0 ? minLot * livePrice : 0;
+      final baseAsset = state.symbol.split('-').first;
+      state = state.copyWith(
+        submitError: minUsd > 0
+            ? 'Minimum order for $baseAsset is '
+                '${minLot.toStringAsFixed(market!.baseLotsDecimals)} '
+                '(~\$${minUsd.toStringAsFixed(2)}). Increase your size.'
+            : 'Order size is below the minimum. Increase your size.',
+        isSubmitting: false,
+      );
+      return false;
+    }
+
     state = state.copyWith(isSubmitting: true, submitError: null);
 
     final orderService = ref.read(phoenixOrderServiceProvider);
-    final entryPrice = state.orderType == OrderType.market ? livePrice : state.price;
+    final entryPrice = state.orderType == OrderType.market
+        ? livePrice
+        : state.price;
     final notionalUsdc = tradeNotionalUsdc(
       collateralUsdc: state.sizeUsdc,
       leverage: state.leverage,
@@ -296,7 +324,7 @@ class TradeNotifier extends Notifier<TradeState> {
         authority: walletAddress,
         symbol: state.symbol,
         side: state.side == OrderSide.buy ? 'buy' : 'sell',
-        quantity: finalQty,
+        quantity: snappedQty,
         transferAmountUsdc: collateralMicro,
         stopLossPrice: sl,
         takeProfitPrice: tp,
@@ -308,7 +336,7 @@ class TradeNotifier extends Notifier<TradeState> {
         symbol: state.symbol,
         side: state.side == OrderSide.buy ? 'buy' : 'sell',
         price: state.price,
-        quantity: finalQty,
+        quantity: snappedQty,
         transferAmountUsdc: collateralMicro,
         stopLossPrice: sl,
         takeProfitPrice: tp,
@@ -322,7 +350,7 @@ class TradeNotifier extends Notifier<TradeState> {
         side: state.side,
         orderType: state.orderType,
         leverage: state.leverage,
-        quantity: finalQty,
+        quantity: snappedQty,
         collateralUsdc: state.sizeUsdc,
         notionalUsdc: notionalUsdc,
         entryPrice: entryPrice,
@@ -341,16 +369,20 @@ class TradeNotifier extends Notifier<TradeState> {
 
       // Analytics
       unawaited(
-        ref.read(telegramAnalyticsProvider).trackOrderPlaced(
-          symbol: state.symbol,
-          side: state.side == OrderSide.buy ? 'buy' : 'sell',
-          orderType: state.orderType == OrderType.market ? 'market' : 'limit',
-          sizeUsdc: state.sizeUsdc,
-          leverage: state.leverage.toDouble(),
-          notionalUsdc: notionalUsdc,
-          entryPrice: entryPrice,
-          txSignature: result.txSignature ?? '',
-        ),
+        ref
+            .read(telegramAnalyticsProvider)
+            .trackOrderPlaced(
+              symbol: state.symbol,
+              side: state.side == OrderSide.buy ? 'buy' : 'sell',
+              orderType: state.orderType == OrderType.market
+                  ? 'market'
+                  : 'limit',
+              sizeUsdc: state.sizeUsdc,
+              leverage: state.leverage.toDouble(),
+              notionalUsdc: notionalUsdc,
+              entryPrice: entryPrice,
+              txSignature: result.txSignature ?? '',
+            ),
       );
     } else {
       state = state.copyWith(
@@ -377,13 +409,13 @@ class TradeNotifier extends Notifier<TradeState> {
           final newPrice = m.snapshot.markPrice;
           // Recalculate quantity if user has already set a USDC size
           final newQty = state.sizeUsdc > 0 && newPrice > 0
-          ? _calcQuantity(
-            state.sizeUsdc,
-            state.leverage,
-            newPrice,
-            _currentTakerFeeBps(),
-            _currentSlippageBps(),
-          )
+              ? _calcQuantity(
+                  state.sizeUsdc,
+                  state.leverage,
+                  newPrice,
+                  _currentTakerFeeBps(),
+                  _currentSlippageBps(),
+                )
               : state.quantity;
           final newLiqPrice = state.sizeUsdc > 0
               ? _calcLiqPrice(newPrice, state.leverage, state.side)

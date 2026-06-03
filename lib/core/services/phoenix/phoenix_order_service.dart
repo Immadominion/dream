@@ -128,6 +128,7 @@ class PhoenixOrderService {
     required String side, // 'buy' | 'sell'
     required double quantity,
     int transferAmountUsdc = 0,
+    bool isReduceOnly = false,
     double? stopLossPrice,
     double? takeProfitPrice,
     int slippageBps = 50,
@@ -145,6 +146,7 @@ class PhoenixOrderService {
         'symbol': apiSymbol,
         'side': side,
         'quantity': quantity,
+        if (isReduceOnly) 'isReduceOnly': true,
         if (transferAmountUsdc > 0) 'transferAmount': transferAmountUsdc,
         if (AppConstants.phoenixBuilderAuthority.isNotEmpty)
           'flightBuilderAuthority': AppConstants.phoenixBuilderAuthority,
@@ -193,6 +195,7 @@ class PhoenixOrderService {
       symbol: symbol,
       side: closeSide,
       quantity: sizeBase,
+      isReduceOnly: true,
     );
   }
 
@@ -433,6 +436,14 @@ class PhoenixOrderService {
     if (message.contains('RegisterTrader') &&
         message.contains('insufficient lamports')) {
       return 'Your wallet needs a small amount of SOL (~0.003 SOL) to open a Phoenix account for the first time. Add SOL and try again.';
+    }
+
+    // Zero base lots — order size too small for this market
+    if ((message.toLowerCase().contains('zero') &&
+            message.toLowerCase().contains('lot')) ||
+        message.toLowerCase().contains('zerobaselots') ||
+        message.toLowerCase().contains('zero base lots')) {
+      return 'Order size is below the minimum for this market. Try a larger amount.';
     }
 
     // Phoenix collateral shortfall

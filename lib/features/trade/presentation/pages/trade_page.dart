@@ -113,6 +113,8 @@ class _PhoneLayoutState extends ConsumerState<_PhoneLayout>
     WidgetsBinding.instance.addObserver(this);
     // Read persisted preference synchronously (SharedPreferences already loaded)
     _chartVisible = ref.read(uiPreferencesProvider).tradeChartVisible;
+    // Clear any stale error from previous trade submission attempts
+    ref.read(tradeProvider.notifier).setSubmitError(null);
     WidgetsBinding.instance.addPostFrameCallback((_) => _syncKeyboardInset());
   }
 

@@ -92,6 +92,14 @@ class TradeTpSlSectionState extends ConsumerState<TradeTpSlSection> {
     final notifier = ref.read(tradeProvider.notifier);
     final isLong = s.side == OrderSide.buy;
 
+    // Clear TP/SL controllers when symbol changes
+    ref.listen<TradeState>(tradeProvider, (prev, next) {
+      if (prev != null && prev.symbol != next.symbol) {
+        _slCtrl.clear();
+        _tpCtrl.clear();
+      }
+    });
+
     if (s.tpSlEnabled) _syncControllers(s);
 
     final errors = s.tpSlEnabled ? _validate(s) : (tp: null, sl: null);

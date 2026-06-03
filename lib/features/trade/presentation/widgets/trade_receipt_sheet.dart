@@ -130,113 +130,151 @@ class _TradeReceiptSheetState extends State<TradeReceiptSheet> {
   }
 
   Future<void> _openSolscan() async {
-    if (_data.txSignature.isEmpty) return;
-    final uri = Uri.parse('https://solscan.io/tx/${_data.txSignature}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (_data.txSignature.isEmpty) {
+      _showError('No transaction signature available');
+      return;
     }
+    try {
+      final uri = Uri.parse('https://solscan.io/tx/${_data.txSignature}');
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        _showError('Unable to open Solscan link');
+      }
+    } catch (e) {
+      _showError('Failed to open Solscan: ${e.toString()}');
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.w),
+        backgroundColor: AppColors.error,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: context.dreamColors.stroke,
-                  borderRadius: BorderRadius.circular(2.r),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: context.dreamColors.stroke,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 14.h),
-            Text(
-              'Trade Receipt',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.dreamColors.onSurface,
-                fontWeight: FontWeight.w700,
+              SizedBox(height: 14.h),
+              Text(
+                'Trade Receipt',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.dreamColors.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              _data.sheetSubtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.dreamColors.muted,
-                fontSize: 12.sp,
+              SizedBox(height: 6.h),
+              Text(
+                _data.sheetSubtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.dreamColors.muted,
+                  fontSize: 12.sp,
+                ),
               ),
-            ),
-            SizedBox(height: 18.h),
-            RepaintBoundary(
-              key: _receiptKey,
-              child: _TradeReceiptCard(data: _data),
-            ),
-            SizedBox(height: 18.h),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isSharing ? null : _shareReceipt,
-                    icon: _isSharing
-                        ? SizedBox(
-                            width: 16.w,
-                            height: 16.w,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Icon(PhosphorIcons.shareNetwork(), size: 18.sp),
-                    label: Text(_isSharing ? 'Sharing…' : 'Share'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50.r),
+              SizedBox(height: 18.h),
+              RepaintBoundary(
+                key: _receiptKey,
+                child: _TradeReceiptCard(data: _data),
+              ),
+              SizedBox(height: 18.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isSharing ? null : _shareReceipt,
+                      icon: _isSharing
+                          ? SizedBox(
+                              width: 16.w,
+                              height: 16.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Icon(PhosphorIcons.shareNetwork(), size: 18.sp),
+                      label: Text(_isSharing ? 'Sharing…' : 'Share'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50.r),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _copyLink,
-                    icon: Icon(PhosphorIcons.copy(), size: 18.sp),
-                    label: const Text('Copy Link'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.dreamColors.onSurface,
-                      side: BorderSide(color: context.dreamColors.stroke),
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50.r),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _copyLink,
+                      icon: Icon(PhosphorIcons.copy(), size: 18.sp),
+                      label: const Text('Copy Link'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: context.dreamColors.onSurface,
+                        side: BorderSide(color: context.dreamColors.stroke),
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50.r),
+                        ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+              if (_data.txSignature.isNotEmpty) ...[
+                SizedBox(height: 6.h),
+                TextButton.icon(
+                  onPressed: _openSolscan,
+                  icon: Icon(PhosphorIcons.arrowSquareOut(), size: 18.sp),
+                  label: const Text('View on Solscan'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.dreamColors.muted,
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                  ),
+                ),
+              ] else ...[
+                SizedBox(height: 6.h),
+                TextButton.icon(
+                  onPressed: null,
+                  icon: Icon(PhosphorIcons.arrowSquareOut(), size: 18.sp),
+                  label: const Text('Transaction pending...'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.dreamColors.mutedSecondary,
+                    disabledForegroundColor: context.dreamColors.mutedSecondary,
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
                   ),
                 ),
               ],
-            ),
-            if (_data.txSignature.isNotEmpty) ...[
-              SizedBox(height: 6.h),
-              TextButton.icon(
-                onPressed: _openSolscan,
-                icon: Icon(PhosphorIcons.arrowSquareOut(), size: 18.sp),
-                label: const Text('View on Solscan'),
-                style: TextButton.styleFrom(
-                  foregroundColor: context.dreamColors.muted,
-                  padding: EdgeInsets.symmetric(vertical: 8.h),
-                ),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -350,6 +388,8 @@ class _TradeReceiptCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         height: 1,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 8.h),
                     Text(
@@ -360,6 +400,8 @@ class _TradeReceiptCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         height: 1,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 6.h),
                     Text(
@@ -369,6 +411,8 @@ class _TradeReceiptCard extends StatelessWidget {
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     SizedBox(height: 8.h),
                     Expanded(
@@ -417,15 +461,21 @@ class _TradeReceiptCard extends StatelessWidget {
                               color: context.dreamColors.mutedSecondary,
                               fontSize: 10.sp,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         SizedBox(width: 12.w),
-                        Text(
-                          data.deepLinkLabel,
-                          style: TextStyle(
-                            color: context.dreamColors.muted,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w600,
+                        Flexible(
+                          child: Text(
+                            data.deepLinkLabel,
+                            style: TextStyle(
+                              color: context.dreamColors.muted,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -470,6 +520,8 @@ class _ReceiptMetric extends StatelessWidget {
                 color: context.dreamColors.mutedSecondary,
                 fontSize: 10.sp,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 4.h),
             Text(
@@ -479,6 +531,8 @@ class _ReceiptMetric extends StatelessWidget {
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w700,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

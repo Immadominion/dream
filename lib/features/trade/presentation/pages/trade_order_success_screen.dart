@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:rive/rive.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/models/phoenix/phoenix_models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format_utils.dart';
+import '../../../../core/widgets/web_view_page.dart';
 import '../../providers/trade_state.dart';
 import '../widgets/trade_receipt_sheet.dart';
 import '../../../../core/theme/dream_colors.dart';
@@ -40,12 +40,13 @@ class TradeOrderSuccessScreen extends StatelessWidget {
     return '${trade.txSignature.substring(0, 6)}...${trade.txSignature.substring(trade.txSignature.length - 6)}';
   }
 
-  Future<void> _openSolscan() async {
+  Future<void> _openSolscan(BuildContext context) async {
     if (trade.txSignature.isEmpty) return;
-    final uri = Uri.parse('https://solscan.io/tx/${trade.txSignature}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    await WebViewPage.open(
+      context,
+      url: 'https://solscan.io/tx/${trade.txSignature}',
+      title: 'View on Solscan',
+    );
   }
 
   void _openSharePreview(BuildContext context) {
@@ -233,7 +234,7 @@ class TradeOrderSuccessScreen extends StatelessWidget {
                       child: SizedBox(
                         height: 48.h,
                         child: OutlinedButton(
-                          onPressed: _openSolscan,
+                            onPressed: () => _openSolscan(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: c.onSurface,
                             side: BorderSide(color: c.stroke),

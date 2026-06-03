@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:equatable/equatable.dart';
 
 /// Market configuration from GET /exchange/market/{symbol}
@@ -11,11 +13,28 @@ class PhoenixMarket extends Equatable {
   final double minOrderSizeUsd;
   final bool isActive;
   final bool isIsolatedOnly;
+  /// Number of decimal places for a base lot. Phoenix converts quantity to
+  /// integer lots via floor(quantity × 10^baseLotsDecimals). A value of 2
+  /// means the minimum tradeable size is 0.01 base tokens.
+  final int baseLotsDecimals;
 
   /// True for real-world-asset commodity markets that have after-hours trading.
   /// Shown with a moon icon on the market list (GOLD, SILVER, COPPER, WTIOIL).
   static const _commodityAssets = {'GOLD', 'SILVER', 'COPPER', 'WTIOIL'};
   bool get isCommodity => _commodityAssets.contains(baseAsset.toUpperCase());
+
+  /// Minimum tradeable quantity in base asset units.
+  /// e.g. baseLotsDecimals=2 → minLotSize=0.01 BNB
+  double get minLotSize =>
+      baseLotsDecimals > 0 ? 1.0 / math.pow(10, baseLotsDecimals) : 1.0;
+
+  /// Snap [quantity] down to the nearest lot boundary.
+  /// Returns 0 if the quantity is below one full lot.
+  double snapToLot(double quantity) {
+    if (baseLotsDecimals <= 0) return quantity;
+    final lots = (quantity / minLotSize).floor();
+    return lots * minLotSize;
+  }
 
   const PhoenixMarket({
     required this.symbol,
@@ -27,6 +46,7 @@ class PhoenixMarket extends Equatable {
     required this.minOrderSizeUsd,
     required this.isActive,
     this.isIsolatedOnly = false,
+    this.baseLotsDecimals = 0,
   });
 
   factory PhoenixMarket.fromJson(Map<String, dynamic> json) {
@@ -50,6 +70,7 @@ class PhoenixMarket extends Equatable {
           json['isActive'] as bool? ??
           ((json['marketStatus'] as String?) == 'active'),
       isIsolatedOnly: json['isolatedOnly'] as bool? ?? false,
+      baseLotsDecimals: (json['baseLotsDecimals'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -81,6 +102,7 @@ class PhoenixMarket extends Equatable {
       minOrderSizeUsd: 1.0,
       isActive: status == 'active' || status == 'postOnly',
       isIsolatedOnly: json['isolatedOnly'] as bool? ?? false,
+      baseLotsDecimals: (json['baseLotsDecimals'] as num?)?.toInt() ?? 0,
     );
   }
 

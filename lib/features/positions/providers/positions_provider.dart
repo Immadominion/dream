@@ -13,6 +13,7 @@ import '../../../core/services/phoenix/phoenix_order_service.dart';
 import '../../../core/services/phoenix/phoenix_trader_service.dart';
 import '../../../core/services/phoenix/phoenix_websocket_service.dart';
 import '../../../shared/services/storage_service.dart';
+import '../../markets/providers/markets_provider.dart';
 
 // ---------------------------------------------------------------------------
 // State
@@ -107,6 +108,17 @@ class PositionsNotifier extends Notifier<PositionsState> {
         ? sizeBase.clamp(0.0, position.sizeBase)
         : position.sizeBase;
 
+    // Snap to lot boundary — Phoenix rejects sub-lot quantities.
+    final market = ref
+        .read(marketsProvider)
+        .markets
+        .where((m) => m.symbol == position.symbol)
+        .firstOrNull;
+    final snappedSize = market != null ? market.snapToLot(closeSize) : closeSize;
+    if (snappedSize <= 0) {
+      return 'Position size is below the minimum tradeable lot for this market.';
+    }
+
     try {
       final result = await ref
           .read(phoenixOrderServiceProvider)
@@ -114,7 +126,7 @@ class PositionsNotifier extends Notifier<PositionsState> {
             authority: walletAddress,
             symbol: position.symbol,
             positionSide: position.side,
-            sizeBase: closeSize,
+            sizeBase: snappedSize,
           );
 
       if (result.success) {
@@ -171,41 +183,66 @@ class PositionsNotifier extends Notifier<PositionsState> {
         return closeResult.error ?? 'Reverse failed while closing';
       }
 
-      // Let the on-chain close settle before re-opening on the isolated account.
-      await Future.delayed(const Duration(seconds: 3));
+        // Smart settlement polling: Phoenix needs time to settle the closed
+      // position's collateral back into the parent account. The on-chain
+      // settlement can lag up to ~10s. Poll in increasing steps — stop early
+      // once we see ≥50% of the original collateral available again.
+      const settlementPolls = [2, 4, 4, 5]; // seconds per poll step
+      double freshAvailable = 0.0;
+      for (final delaySec in settlementPolls) {
+        await Future.delayed(Duration(seconds: delaySec));
+        await refresh();
+        freshAvailable = state.traderState?.availableMargin ?? 0.0;
+        if (freshAvailable >= collateral * 0.5) break;
+      }
 
-      // Re-fetch trader state so we know the actual available margin returned
-      // from the close (which may differ from position.collateral due to
-      // realized PnL, funding and taker fees charged at settlement time).
-      await refresh();
-      final freshAvailable = state.traderState?.availableMargin ?? 0.0;
-
-      // Budget for leg 2:
-      //   • Use the fresh available margin (accurate post-close figure).
-      //   • Cap at 101% of original collateral — the extra 1% covers the
-      //     taker fee that Phoenix deducts from effective collateral before
-      //     comparing against the initial-margin requirement. Without this
-      //     buffer the trade bounces with InsufficientFunds even though the
-      //     numbers look nearly equal.
-      //   • Never exceed what is actually available (prevents over-commit
-      //     when the account already had a larger free balance).
-      final budget = freshAvailable.clamp(0.0, collateral * 1.01);
+      // Budget for Leg 2:
+      //   • Take 95% of fresh available — Phoenix's on-chain max_withdrawable
+      //     can be ~5% lower than what the REST API reports as availableMargin
+      //     due to settlement lag, causing InsufficientFunds even when the
+      //     numbers look close enough.
+      //   • Cap at 101% of original collateral to cover the taker fee Phoenix
+      //     deducts from effective collateral before comparing against margin
+      //     requirements.
+      //   • Never over-commit what is actually available.
+      final budget = (freshAvailable * 0.95).clamp(0.0, collateral * 1.01);
       final collateralMicro = (budget * 1e6).floor();
 
       if (collateralMicro <= 0) {
-        return 'Closed your ${position.side.toUpperCase()} but your account '
-            'has no available margin to open the reverse side. '
-            'Please deposit funds and re-enter manually.';
+        return 'Closed your ${position.side.toUpperCase()} position, but no '
+            'margin is available yet to open the reverse side. '
+            'Please wait a moment and re-enter manually.';
       }
 
       // Leg 2 — open the opposite side with the same size and collateral.
-      final openResult = await orderService.placeMarketOrder(
+      OrderResult openResult = await orderService.placeMarketOrder(
         authority: walletAddress,
         symbol: position.symbol,
         side: newSide,
         quantity: sizeBase,
         transferAmountUsdc: collateralMicro,
       );
+
+      // If InsufficientFunds on first attempt (edge case: API still slightly
+      // ahead of on-chain state), wait one more cycle and retry with 90% of
+      // whatever margin has settled by then.
+      if (!openResult.success && _isInsufficientFundsError(openResult.error)) {
+        await Future.delayed(const Duration(seconds: 5));
+        await refresh();
+        final retryAvailable = state.traderState?.availableMargin ?? 0.0;
+        final retryBudget =
+            (retryAvailable * 0.90).clamp(0.0, collateral * 1.01);
+        final retryMicro = (retryBudget * 1e6).floor();
+        if (retryMicro > 0) {
+          openResult = await orderService.placeMarketOrder(
+            authority: walletAddress,
+            symbol: position.symbol,
+            side: newSide,
+            quantity: sizeBase,
+            transferAmountUsdc: retryMicro,
+          );
+        }
+      }
 
       if (!openResult.success) {
         // The close succeeded but the flip leg failed — surface a clear message
@@ -383,6 +420,16 @@ class PositionsNotifier extends Notifier<PositionsState> {
     _wsSub?.cancel();
     _wsRefreshDebounce?.cancel();
     _pollTimer?.cancel();
+  }
+
+  /// Returns true when the error string indicates Phoenix rejected the order
+  /// due to insufficient collateral in the parent account.
+  bool _isInsufficientFundsError(String? error) {
+    if (error == null) return false;
+    final lower = error.toLowerCase();
+    return lower.contains('insufficient') ||
+        lower.contains('insufficientfunds') ||
+        lower.contains('insufficient funds');
   }
 
   void _detectAndNotifyPositionTransitions(

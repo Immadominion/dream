@@ -40,7 +40,7 @@ dependencies:
 
   # UI/UX
   google_fonts: ^7.0.0
-  phosphor_flutter: ^2.0.1
+  phosphor_flutter: any
   lottie: ^3.3.2
   flutter_animate: ^4.2.0+1
   flutter_screenutil: ^5.9.3
@@ -122,6 +122,12 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+# Local patch: phosphor_flutter 2.1.0 extends IconData which became `final`
+# in newer Flutter SDK versions. This override uses Dart 3 extension types.
+dependency_overrides:
+  phosphor_flutter:
+    path: ./local_packages/phosphor_flutter
 
 # The following section is specific to Flutter packages.
 flutter:
