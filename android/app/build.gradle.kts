@@ -6,6 +6,10 @@ plugins {
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
     // END: FlutterFire Configuration
+    // Required so the app's own Kotlin sources (e.g. MainActivity.kt) are
+    // compiled. Removing this while android.builtInKotlin=false dropped
+    // MainActivity from the APK -> ClassNotFoundException crash on launch.
+    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
