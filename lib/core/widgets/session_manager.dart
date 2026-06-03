@@ -188,8 +188,8 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       final router = ref.read(appRouterProvider);
       final path = router.routeInformationProvider.value.uri.path;
 
-      // Never override the onboarding flow.
-      if (path == AppRoutes.onboarding) return;
+      // Never override the splash/onboarding entry flow.
+      if (path == AppRoutes.splash || path == AppRoutes.onboarding) return;
 
       if (!traderState.isRegistered) {
         if (path != '/activate') {
@@ -254,6 +254,15 @@ class _SessionManagerState extends ConsumerState<SessionManager>
     }
   }
 
+  /// True while the app is on the splash or onboarding route — the entry
+  /// flow that owns its own navigation. The auth listener must not redirect
+  /// during this window or it races (and skips) onboarding on cold start.
+  bool _isOnEntryRoute() {
+    final path =
+        ref.read(appRouterProvider).routeInformationProvider.value.uri.path;
+    return path == AppRoutes.splash || path == AppRoutes.onboarding;
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthStateData>(clientAuthProvider, (previous, next) {
@@ -263,13 +272,15 @@ class _SessionManagerState extends ConsumerState<SessionManager>
         );
       }
 
-      // During the first-launch onboarding flow, let onboarding own navigation
-      // entirely. Auth resolving to (un)authenticated must NOT yank the user
-      // off the onboarding screen — that race was causing onboarding to be
-      // skipped on every fresh launch.
-      final currentPath =
-          ref.read(appRouterProvider).routeInformationProvider.value.uri.path;
-      if (currentPath == AppRoutes.onboarding) {
+      // The splash and onboarding routes own ALL initial routing. The auth
+      // listener must NOT redirect while the app is still on one of these
+      // entry routes: on a cold start, auth resolves while we are still on
+      // the splash route (before it has navigated to onboarding), so a
+      // redirect here would skip onboarding entirely. Only react to auth
+      // changes once the user is actually inside the app (sign-out,
+      // post-login activation). Re-checked inside the post-frame callbacks
+      // in case the route changes between now and when they run.
+      if (_isOnEntryRoute()) {
         return;
       }
 
@@ -279,6 +290,7 @@ class _SessionManagerState extends ConsumerState<SessionManager>
         final router = ref.read(appRouterProvider);
         ref.read(bottomNavIndexProvider.notifier).reset();
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_isOnEntryRoute()) return;
           router.go('/enhanced-login');
         });
       }
@@ -288,6 +300,7 @@ class _SessionManagerState extends ConsumerState<SessionManager>
           previous?.state != AuthState.authenticated) {
         ref.read(bottomNavIndexProvider.notifier).reset();
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_isOnEntryRoute()) return;
           _enforceActivationGate();
         });
       }
