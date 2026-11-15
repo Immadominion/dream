@@ -139,22 +139,35 @@ report moderation still needs a human watching Telegram.
 
 ## 5. Launch checklist
 
-1. **Domain:** point `api.trydream.fun` at the Railway service; set
-   `PUBLIC_BASE_URL=https://api.trydream.fun`. Coin metadata URIs are written
-   on-chain permanently — do this *before* the first launch.
-2. **Coin image:** host a permanent image; set `DREAM_COIN_IMAGE_URL`.
-3. **Partner key:** generate offline (`solana-keygen new -o dream-partner.json`),
-   fund ~0.05 SOL. It is the fee claimer for Dream's share — keep it off servers.
-4. **Config:** `SOLANA_RPC_URL=<mainnet> PARTNER_KEYPAIR_PATH=… npm run dbc:create-config`
-   (dry run), then `-- --execute`; set the printed `DREAM_DBC_CONFIG`.
-5. **Server env:** `COPY_ENGINE_ENABLED=false` (default). Deploy — migration
-   `0002_dreams_v2` applies on boot.
-6. **Links:** serve `/d/:id` on trydream.fun (preview + "open in app") and
-   `/.well-known/assetlinks.json` for App Link verification.
-7. **App:** bump version, build release, submit to the dApp Store.
-8. **Smoke test on a Seeker with both Privy and MWA wallets** — MWA signs
-   transactions via `signMessage` (same as existing trading code); confirm
-   Phantom/Solflare/Seed Vault accept it.
+Status as of 2026-11-15:
+
+- [x] Server V2 deployed to Railway production (migration `0002` applied,
+      copy engine off, `DREAM_SESSION_SECRET` / `ADMIN_API_TOKEN` set — the
+      admin token is in `~/.config/dream/admin-token` on the dev Mac).
+- [x] Rate limiting verified in production against spoofed `X-Forwarded-For`
+      (Railway sends `<client>, <edge>` → `TRUSTED_PROXY_HOPS=2`).
+- [x] `api.trydream.fun` added as a Railway custom domain.
+- [ ] **DNS at Namecheap**: add `CNAME api → o56qqaxo.up.railway.app` and the
+      `TXT _railway-verify.api` record shown in Railway → dream-server →
+      Settings → Networking. (Coin metadata URIs depend on this domain.)
+- [x] Landing: `/d/:id` dream pages + `/.well-known/assetlinks.json` on the
+      `dream-v2` branch of dream-landing — **merge to `main` to go live**.
+- [x] Firebase Analytics events for the Dreams and perps funnels.
+- [x] Release APK 2.0.0+4 built and signed with the dApp Store key.
+- [ ] Shorebird release (needs `shorebird login`), if OTA patches are wanted.
+- [ ] **Mainnet coin config**: fund the partner wallet
+      `6r9vgcuomDn4QZ8Le6UFkp9j282fMxCychEYTtbSXTvE` with ~0.05 SOL
+      (keypair: `~/.config/solana/dream-partner.json`, keep offline), then run
+      `npm run dbc:create-config` (dry run) and `-- --execute`, and set
+      `DREAM_DBC_CONFIG` on Railway. Until then, coin launches are disabled;
+      posting and funding work.
+- [ ] Coin image at `https://trydream.fun/coin.png` (`DREAM_COIN_IMAGE_URL`).
+- [ ] Seeker smoke test with Privy **and** MWA (Phantom/Solflare) — sign in,
+      fund a dream, launch/buy/sell/claim on a small amount.
+- [ ] Submit 2.0.0 in the Solana dApp Store publisher portal.
+- [ ] Railway config-as-code (`railway.toml`) is honoured only until
+      **2026-12-01** — move build/start/healthcheck/restart settings into the
+      service settings (and consider Railpack; Nixpacks is deprecated).
 
 ## 6. Open items / risks
 
