@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/auth/client_auth_provider.dart';
+import '../../../../core/services/analytics/product_analytics.dart';
 import '../../../../core/theme/dream_colors.dart';
 import '../../../../shared/widgets/dream_buttons.dart';
 import '../../../../shared/widgets/dream_display.dart';
@@ -26,6 +29,7 @@ class DreamDetailPage extends ConsumerStatefulWidget {
 
 class _DreamDetailPageState extends ConsumerState<DreamDetailPage> {
   String get dreamId => widget.dreamId;
+  bool _viewLogged = false;
 
   @override
   void initState() {
@@ -35,6 +39,20 @@ class _DreamDetailPageState extends ConsumerState<DreamDetailPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(dreamActionsProvider).retryPendingContributions();
     });
+    // Log one view per page open once the dream has loaded.
+    ref.listenManual(dreamDetailProvider(widget.dreamId), (_, next) {
+      final d = next.value?.dream;
+      if (d == null || _viewLogged) return;
+      _viewLogged = true;
+      final me = ref.read(clientAuthProvider).walletAddress;
+      unawaited(
+        ProductAnalytics.dreamViewed(
+          dreamId: d.id,
+          hasCoin: d.coin != null,
+          isOwner: me != null && me == d.ownerWallet,
+        ),
+      );
+    }, fireImmediately: true);
   }
 
   @override
@@ -448,6 +466,7 @@ class _Menu extends ConsumerWidget {
         try {
           switch (action) {
             case 'share':
+              unawaited(ProductAnalytics.dreamShared());
               await SharePlus.instance.share(
                 ShareParams(
                   text:

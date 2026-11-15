@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../shared/widgets/dream_spinner.dart';
 import '../constants/app_constants.dart';
+import '../services/analytics/product_analytics.dart';
 import '../services/logger_service.dart';
 import '../services/phoenix/phoenix_trader_service.dart';
 import '../../features/auth/presentation/pages/enhanced_login_page.dart';
@@ -22,6 +23,7 @@ import '../../shared/services/storage_service.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    observers: ProductAnalytics.observers,
     routes: [
       // Splash Route (decides first screen)
       GoRoute(

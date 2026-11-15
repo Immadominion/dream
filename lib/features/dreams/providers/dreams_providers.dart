@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/auth/client_auth_provider.dart';
+import '../../../core/services/analytics/product_analytics.dart';
 import '../../../core/services/solana/server_transaction_signer.dart';
 import '../../../core/services/solana/solana_transaction_service.dart';
 import '../../../core/services/solana/usdc_transfer_service.dart';
@@ -119,6 +121,7 @@ class DreamsFeedNotifier extends Notifier<DreamsFeedState> {
 
   void setSort(DreamSort sort) {
     if (sort == state.sort) return;
+    unawaited(ProductAnalytics.dreamsFeedViewed(sort.apiValue));
     state = state.copyWith(sort: sort);
     refresh();
   }
@@ -274,6 +277,12 @@ class DreamActions {
       category: category,
       goalUsdc: goalUsdc,
     );
+    unawaited(
+      ProductAnalytics.dreamCreated(
+        category: category.name,
+        goalUsd: double.tryParse(goalUsdc) ?? 0,
+      ),
+    );
     _refresh(dream);
     return dream;
   }
@@ -285,6 +294,7 @@ class DreamActions {
       id: dream.id,
       url: url,
     );
+    unawaited(ProductAnalytics.xVerified());
     _refresh(updated);
     return updated;
   }
@@ -306,8 +316,10 @@ class DreamActions {
           amountUsdc: amountUsdc,
         );
     if (!result.success || result.signature == null) {
+      unawaited(ProductAnalytics.dreamFundFailed('transfer'));
       throw DreamActionException(result.error ?? 'Transfer failed');
     }
+    unawaited(ProductAnalytics.dreamFunded(amountUsdc));
     await _savePending(dream.id, result.signature!, wallet);
     _ref.invalidate(usdcBalanceProvider);
     try {
@@ -321,6 +333,7 @@ class DreamActions {
       return updated;
     } on DreamApiException catch (e) {
       if (!e.isNotYetVisible) await _clearPending(result.signature!);
+      unawaited(ProductAnalytics.dreamFundFailed('record'));
       throw DreamActionException(
         e.isNotYetVisible
             ? 'Your USDC was sent. We’ll finish recording it when the network catches up.'
@@ -379,6 +392,7 @@ class DreamActions {
       mint: mint,
       txSignature: sig,
     );
+    unawaited(ProductAnalytics.coinLaunched());
     _ref.invalidate(solBalanceProvider);
     _refresh(updated);
     return updated;
@@ -436,6 +450,7 @@ class DreamActions {
         minimumOut: quote.minimumOut,
       ),
     );
+    unawaited(ProductAnalytics.coinTraded(buy: quote.buy));
     _ref.invalidate(solBalanceProvider);
     _ref.invalidate(coinBalanceProvider(coin.mint));
     _ref.invalidate(dreamDetailProvider(quote.dream.id));
@@ -452,6 +467,7 @@ class DreamActions {
       walletAddress: wallet,
       intent: ClaimFeesIntent(pool: coin.pool, mint: coin.mint),
     );
+    unawaited(ProductAnalytics.coinFeesClaimed());
     _ref.invalidate(solBalanceProvider);
     _ref.invalidate(dreamDetailProvider(dream.id));
     return sig;
@@ -463,8 +479,10 @@ class DreamActions {
     await _ref.read(dreamsFeedProvider.notifier).refresh();
   }
 
-  Future<void> report(Dream dream, String reason) =>
-      _api.report(wallet: _wallet, id: dream.id, reason: reason);
+  Future<void> report(Dream dream, String reason) async {
+    await _api.report(wallet: _wallet, id: dream.id, reason: reason);
+    unawaited(ProductAnalytics.dreamReported(reason));
+  }
 
   // ── Pending contribution store ────────────────────────────────────────────
 

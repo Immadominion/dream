@@ -50,8 +50,8 @@ class AppConstants {
 
   // App Information
   static const String appName = 'Dream';
-  static const String appVersion = '1.0.0';
-  static const String appDescription = 'Perpetual Futures Trading on Solana';
+  static const String appVersion = '2.0.0';
+  static const String appDescription = 'Real needs, real support — and perps on Solana';
 
   // =========================================================================
   // PHOENIX TRADING API

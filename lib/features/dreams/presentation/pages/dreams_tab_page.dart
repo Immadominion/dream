@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../../core/services/analytics/product_analytics.dart';
 import '../../../../core/theme/dream_colors.dart';
 import '../../../../shared/widgets/dream_display.dart';
 import '../../../../shared/widgets/dream_spinner.dart';
@@ -27,6 +30,7 @@ class _DreamsTabPageState extends ConsumerState<DreamsTabPage> {
   @override
   void initState() {
     super.initState();
+    unawaited(ProductAnalytics.dreamsFeedViewed(DreamSort.latest.apiValue));
     _scroll.addListener(() {
       if (_scroll.position.extentAfter < 600) {
         ref.read(dreamsFeedProvider.notifier).loadMore();

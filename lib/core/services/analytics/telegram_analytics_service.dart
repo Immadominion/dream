@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'product_analytics.dart';
 
 import '../../constants/app_constants.dart';
 import '../logger_service.dart';
@@ -81,11 +84,11 @@ class TelegramAnalyticsService {
   /// Call when a user first authenticates with Phoenix.
   /// Fires only once per wallet address per device install.
   Future<void> trackNewUser(String walletAddress) async {
-    if (!_enabled) return;
-
     final key = '$_kReportedPrefix$walletAddress';
     if (StorageService.getString(key) == 'true') return;
     await StorageService.setString(key, 'true');
+    unawaited(ProductAnalytics.signedUp());
+    if (!_enabled) return;
 
     await _sendEvent('new_user', walletAddress, {'wallet': walletAddress});
   }
@@ -102,6 +105,13 @@ class TelegramAnalyticsService {
     required String txSignature,
     String walletAddress = '',
   }) async {
+    unawaited(
+      ProductAnalytics.orderPlaced(
+        market: symbol,
+        side: side,
+        notionalUsd: notionalUsdc,
+      ),
+    );
     if (!_enabled) return;
 
     await _sendEvent('order_opened', walletAddress, {
@@ -123,6 +133,7 @@ class TelegramAnalyticsService {
     String walletAddress = '',
     double? pnlUsdc,
   }) async {
+    unawaited(ProductAnalytics.positionClosed(market: symbol));
     if (!_enabled) return;
 
     await _sendEvent('position_closed', walletAddress, {
@@ -137,6 +148,7 @@ class TelegramAnalyticsService {
     String walletAddress,
     double amountUsdc,
   ) async {
+    unawaited(ProductAnalytics.deposited(amountUsdc));
     if (!_enabled) return;
 
     await _sendEvent('collateral_deposit', walletAddress, {
