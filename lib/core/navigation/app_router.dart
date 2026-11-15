@@ -10,8 +10,9 @@ import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/account/presentation/pages/activate_page.dart';
 import '../../features/navigation/presentation/widgets/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
-import '../../features/intelligence/presentation/pages/broadcasters_page.dart';
-import '../../features/intelligence/presentation/pages/broadcaster_dashboard_page.dart';
+import '../../features/dreams/presentation/pages/create_dream_page.dart';
+import '../../features/dreams/presentation/pages/dream_detail_page.dart';
+import '../../features/dreams/presentation/pages/my_dreams_page.dart';
 import '../../features/trade/presentation/pages/market_trade_page.dart';
 import '../../features/trade/providers/trade_state.dart';
 import '../providers/auth/client_auth_provider.dart';
@@ -85,18 +86,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SettingsPage(),
       ),
 
-      // Live broadcasters directory (copy-trade discovery)
+      // Dreams (V2). Static paths are declared before '/dreams/:id' so they
+      // aren't captured as ids.
       GoRoute(
-        path: '/broadcasters',
-        name: 'broadcasters',
-        builder: (context, state) => const BroadcastersPage(),
+        path: '/dreams/new',
+        name: 'dream-create',
+        builder: (context, state) => const CreateDreamPage(),
       ),
-
-      // Broadcaster earnings dashboard (reached from Settings)
       GoRoute(
-        path: '/broadcaster-dashboard',
-        name: 'broadcaster-dashboard',
-        builder: (context, state) => const BroadcasterDashboardPage(),
+        path: '/dreams/mine',
+        name: 'dreams-mine',
+        builder: (context, state) => const MyDreamsPage(),
+      ),
+      GoRoute(
+        path: '/dreams/:id',
+        name: 'dream-detail',
+        builder: (context, state) =>
+            DreamDetailPage(dreamId: state.pathParameters['id'] ?? ''),
+      ),
+      // Public share links: https://trydream.fun/d/<id>
+      GoRoute(
+        path: '/d/:id',
+        name: 'dream-share',
+        builder: (context, state) =>
+            DreamDetailPage(dreamId: state.pathParameters['id'] ?? ''),
       ),
     ],
   );

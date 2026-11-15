@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_constants.dart';
 import '../navigation/app_router.dart';
+import '../navigation/dream_share_link.dart';
 import '../navigation/trade_share_link.dart';
 import '../providers/auth/client_auth_provider.dart';
 import '../services/logger_service.dart';
@@ -32,7 +33,9 @@ class _SessionManagerState extends ConsumerState<SessionManager>
   final _logger = LoggerService();
   final _appLinks = AppLinks();
   bool _isCheckingRegistration = false;
-  TradeShareLink? _pendingTradeLink;
+
+  /// In-app route from the most recent deep link, opened once auth is ready.
+  String? _pendingRoute;
 
   @override
   void initState() {
@@ -70,14 +73,13 @@ class _SessionManagerState extends ConsumerState<SessionManager>
   }
 
   void _queueTradeLink(Uri uri) {
-    final tradeLink = TradeShareLink.parse(uri);
-    if (tradeLink == null) return;
+    final route =
+        TradeShareLink.parse(uri)?.routeLocation ??
+        DreamShareLink.routeFor(uri);
+    if (route == null) return;
 
-    _pendingTradeLink = tradeLink;
-    _logger.info(
-      '[SessionManager] Queued trade link ${tradeLink.routeLocation}',
-      tag: 'DeepLink',
-    );
+    _pendingRoute = route;
+    _logger.info('[SessionManager] Queued deep link $route', tag: 'DeepLink');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future<void>.delayed(
@@ -88,7 +90,7 @@ class _SessionManagerState extends ConsumerState<SessionManager>
   }
 
   Future<void> _openPendingTradeLinkIfReady() async {
-    if (!mounted || _pendingTradeLink == null) return;
+    if (!mounted || _pendingRoute == null) return;
 
     final authState = ref.read(clientAuthProvider);
     if (!authState.isAuthenticated) return;
@@ -106,13 +108,19 @@ class _SessionManagerState extends ConsumerState<SessionManager>
 
     if (currentPath == '/activate') return;
 
-    final nextRoute = _pendingTradeLink!.routeLocation;
-    _pendingTradeLink = null;
+    final nextRoute = _pendingRoute!;
+    _pendingRoute = null;
     _logger.info(
-      '[SessionManager] Opening trade link $nextRoute',
+      '[SessionManager] Opening deep link $nextRoute',
       tag: 'DeepLink',
     );
-    router.go(nextRoute);
+    if (nextRoute.startsWith('/dreams/')) {
+      // Keep the shell underneath so "back" lands in the app, not outside it.
+      router.go(AppRoutes.home);
+      router.push(nextRoute);
+    } else {
+      router.go(nextRoute);
+    }
   }
 
   @override
@@ -202,7 +210,7 @@ class _SessionManagerState extends ConsumerState<SessionManager>
       }
 
       if (path == '/activate') {
-        if (_pendingTradeLink != null) {
+        if (_pendingRoute != null) {
           await _openPendingTradeLinkIfReady();
         } else {
           _logger.info('[SessionManager] Trader activated, routing to home');
@@ -258,8 +266,12 @@ class _SessionManagerState extends ConsumerState<SessionManager>
   /// flow that owns its own navigation. The auth listener must not redirect
   /// during this window or it races (and skips) onboarding on cold start.
   bool _isOnEntryRoute() {
-    final path =
-        ref.read(appRouterProvider).routeInformationProvider.value.uri.path;
+    final path = ref
+        .read(appRouterProvider)
+        .routeInformationProvider
+        .value
+        .uri
+        .path;
     return path == AppRoutes.splash || path == AppRoutes.onboarding;
   }
 

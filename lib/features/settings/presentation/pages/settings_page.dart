@@ -64,12 +64,10 @@ class SettingsPage extends ConsumerWidget {
                   const SettingsFlightBuilderTile(),
                   SizedBox(height: 20.h),
 
-                  // Earn section — broadcaster revenue share
-                  _SectionLabel(label: 'Earn'),
+                  // Dreams section
+                  _SectionLabel(label: 'Dreams'),
                   SizedBox(height: 6.h),
-                  _BroadcasterTile(
-                    onTap: () => context.push('/broadcaster-dashboard'),
-                  ),
+                  _MyDreamsTile(onTap: () => context.push('/dreams/mine')),
                   SizedBox(height: 20.h),
 
                   // Notifications section
@@ -176,9 +174,9 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _BroadcasterTile extends StatelessWidget {
+class _MyDreamsTile extends StatelessWidget {
   final VoidCallback onTap;
-  const _BroadcasterTile({required this.onTap});
+  const _MyDreamsTile({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -196,14 +194,14 @@ class _BroadcasterTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(PhosphorIcons.broadcast(), color: c.muted, size: 16.sp),
+            Icon(PhosphorIcons.moonStars(), color: c.muted, size: 16.sp),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Earn as broadcaster',
+                    'My dreams',
                     style: TextStyle(
                       color: c.onSurface,
                       fontSize: 13.sp,
@@ -212,7 +210,7 @@ class _BroadcasterTile extends StatelessWidget {
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    'USDC share of fees when others copy you',
+                    'Your posts, support received and coin fees',
                     style: TextStyle(color: c.mutedSecondary, fontSize: 11.sp),
                   ),
                 ],

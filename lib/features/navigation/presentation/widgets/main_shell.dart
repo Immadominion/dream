@@ -15,7 +15,7 @@ import '../../../../core/services/notifications/remote_notification_service.dart
 import '../../../../core/providers/notifications/notifications_provider.dart';
 import '../../../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../../../shared/widgets/dream_display.dart';
-import '../../../intelligence/presentation/pages/intelligence_tab_page.dart';
+import '../../../dreams/presentation/pages/dreams_tab_page.dart';
 import '../../../markets/presentation/pages/markets_page.dart';
 import '../../../markets/providers/market_search_provider.dart';
 import '../../../markets/providers/market_watchlist_filter_provider.dart';
@@ -31,7 +31,7 @@ import 'shell_banners.dart';
 import 'wallet_deposit_listener.dart';
 import '../../../../core/theme/dream_colors.dart';
 
-/// Main application shell — 4-tab trading terminal.
+/// Main application shell — Markets, Trade, Positions, Account and Dreams.
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
 
@@ -169,7 +169,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                           ? const AccountPage()
                           : const SizedBox.shrink(),
                       _loadedTabs.contains(4)
-                          ? const IntelligenceTabPage()
+                          ? const DreamsTabPage()
                           : const SizedBox.shrink(),
                     ],
                   ),

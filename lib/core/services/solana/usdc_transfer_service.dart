@@ -183,7 +183,9 @@ class UsdcTransferService {
     final isMwa = _mwaService.connectedPublicKey == authority;
 
     if (isMwa) {
-      final result = await _mwaService.signMessage(base64Encode(messageBytes));
+      final result = await _mwaService.signTransactionMessage(
+        Uint8List.fromList(messageBytes),
+      );
       if (!result.success || result.signature == null) {
         throw Exception('MWA signing failed: ${result.error ?? 'unknown'}');
       }

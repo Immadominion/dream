@@ -7,6 +7,7 @@ import 'package:solana/base58.dart';
 import 'package:solana_mobile_client/solana_mobile_client.dart';
 
 import '../logger_service.dart';
+import '../solana/wire_transaction.dart';
 
 /// Result of MWA wallet connection
 class MwaConnectionResult {
@@ -62,6 +63,12 @@ class MwaSignResult {
 /// Service for Mobile Wallet Adapter (MWA) operations
 /// Android-only - connects to external wallets like Phantom, Solflare
 class MwaWalletService {
+  // One app identity for authorize *and* reauthorize — wallets bind auth
+  // tokens to it, so a mismatch forces a fresh approval every time.
+  static final _identityUri = Uri.parse('https://trydream.fun');
+  static const _identityName = 'Dream';
+  static final _iconUri = Uri.parse('favicon.png');
+
   final LoggerService _logger;
 
   MwaWalletService(this._logger);
@@ -96,9 +103,9 @@ class MwaWalletService {
 
       // Authorize with the wallet
       final authResult = await client.authorize(
-        identityUri: Uri.parse('https://trydream.fun'),
-        identityName: 'Dream',
-        iconUri: Uri.parse('favicon.png'),
+        identityUri: _identityUri,
+        identityName: _identityName,
+        iconUri: _iconUri,
         cluster: 'mainnet-beta',
       );
 
@@ -151,133 +158,139 @@ class MwaWalletService {
     }
   }
 
-  /// Sign a message with the connected wallet
-  /// Used for SIWS (Sign-In With Solana)
-  Future<MwaSignResult> signMessage(String message) async {
-    if (!isAvailable) {
-      return MwaSignResult.failure('MWA only available on Android');
-    }
-
-    if (_connectedPublicKey == null) {
-      return MwaSignResult.failure('No wallet connected');
-    }
-
+  /// Open a wallet session, (re)authorize, and run [body] with the client.
+  /// Returns null if authorization failed.
+  Future<T?> _withAuthorizedClient<T>(
+    Future<T> Function(MobileWalletAdapterClient client) body,
+  ) async {
+    final session = await LocalAssociationScenario.create();
+    session.startActivityForResult(null).ignore();
     try {
-      _logger.info('Signing message via MWA', tag: 'MWA');
-
-      // Create a new session for signing
-      final session = await LocalAssociationScenario.create();
-
-      // Start the wallet app activity - use .ignore() to not block
-      session.startActivityForResult(null).ignore();
-
-      // Get the MWA client
       final client = await session.start();
 
-      // Reauthorize with stored auth token
       AuthorizationResult? authResult;
-
       if (_authToken != null) {
-        _logger.info('Attempting reauthorize with stored token', tag: 'MWA');
         try {
           authResult = await client.reauthorize(
-            identityUri: Uri.parse('https://solana.com'),
-            identityName: 'Dream',
-            iconUri: Uri.parse('favicon.ico'),
+            identityUri: _identityUri,
+            identityName: _identityName,
+            iconUri: _iconUri,
             authToken: _authToken!,
           );
-
-          if (authResult != null) {
-            // Update stored auth token
-            _authToken = authResult.authToken;
-            _logger.info('Reauthorize succeeded', tag: 'MWA');
-          }
+          if (authResult != null) _authToken = authResult.authToken;
         } catch (e) {
           _logger.warning('Reauthorize failed: $e', tag: 'MWA');
         }
       }
-
-      // If reauthorize failed or no token, do full authorization
       if (authResult == null) {
-        _logger.info('Doing full authorization for signing', tag: 'MWA');
         authResult = await client.authorize(
-          identityUri: Uri.parse('https://solana.com'),
-          identityName: 'Dream',
-          iconUri: Uri.parse('favicon.ico'),
+          identityUri: _identityUri,
+          identityName: _identityName,
+          iconUri: _iconUri,
           cluster: 'mainnet-beta',
         );
-
-        if (authResult == null) {
-          await session.close();
-          return MwaSignResult.failure(
-            'Failed to authorize wallet for signing',
-          );
-        }
-
-        // Update stored values
+        if (authResult == null) return null;
         _authToken = authResult.authToken;
         _connectedPublicKey = base58encode(authResult.publicKey);
       }
-
-      // Convert message to bytes
-      final messageBytes = Uint8List.fromList(utf8.encode(message));
-
-      // Get public key bytes from base58
-      final publicKeyBytes = Uint8List.fromList(
-        base58decode(_connectedPublicKey!),
-      );
-
-      _logger.info(
-        'Calling signMessages with ${messageBytes.length} byte message',
-        tag: 'MWA',
-      );
-
-      // Sign the message
-      final signResult = await client.signMessages(
-        messages: [messageBytes],
-        addresses: [publicKeyBytes],
-      );
-
-      // Close session
+      return await body(client);
+    } finally {
       try {
         await session.close();
       } catch (_) {}
+    }
+  }
 
-      if (signResult.signedMessages.isEmpty) {
-        return MwaSignResult.failure('No signature returned');
-      }
+  /// Sign a UTF-8 text message (SIWS / API auth). The wallet shows the text.
+  Future<MwaSignResult> signMessage(String message) =>
+      signMessageBytes(Uint8List.fromList(utf8.encode(message)));
 
-      // Get the signed message which contains the signature
-      final signedMessage = signResult.signedMessages.first;
-
-      // Get the first signature
-      if (signedMessage.signatures.isEmpty) {
-        return MwaSignResult.failure('No signature in result');
-      }
-
-      final signature = signedMessage.signatures.first;
-
-      if (signature.length != 64) {
-        return MwaSignResult.failure(
-          'Invalid signature length: ${signature.length}',
+  /// Sign raw message bytes with `signMessages`. Never use this for a
+  /// transaction — wallets can't decode or simulate it; use
+  /// [signTransactionMessage].
+  Future<MwaSignResult> signMessageBytes(Uint8List messageBytes) async {
+    if (!isAvailable) {
+      return MwaSignResult.failure('MWA only available on Android');
+    }
+    if (_connectedPublicKey == null) {
+      return MwaSignResult.failure('No wallet connected');
+    }
+    try {
+      final signature = await _withAuthorizedClient((client) async {
+        final result = await client.signMessages(
+          messages: [messageBytes],
+          addresses: [Uint8List.fromList(base58decode(_connectedPublicKey!))],
         );
+        if (result.signedMessages.isEmpty ||
+            result.signedMessages.first.signatures.isEmpty) {
+          return null;
+        }
+        return result.signedMessages.first.signatures.first;
+      });
+      if (signature == null || signature.length != 64) {
+        return MwaSignResult.failure('Wallet did not sign the message');
       }
-
-      _logger.info(
-        'Message signed successfully (${signature.length} bytes)',
-        tag: 'MWA',
-      );
-
       return MwaSignResult.success(signature);
     } catch (error, stackTrace) {
       _logger.error(
-        'MWA signing failed',
+        'MWA message signing failed',
         error: error,
         stackTrace: stackTrace,
         tag: 'MWA',
       );
       return MwaSignResult.failure(error.toString());
     }
+  }
+
+  /// Sign a transaction given its serialized [message], via MWA
+  /// `signTransactions` so the wallet decodes and simulates what it signs.
+  ///
+  /// Returns the connected wallet's 64-byte signature. Refuses the result if
+  /// the wallet altered the message (the signature would then be over
+  /// different bytes than the caller's, e.g. invalidating a server
+  /// co-signature).
+  Future<MwaSignResult> signTransactionMessage(Uint8List message) async {
+    if (!isAvailable) {
+      return MwaSignResult.failure('MWA only available on Android');
+    }
+    if (_connectedPublicKey == null) {
+      return MwaSignResult.failure('No wallet connected');
+    }
+    try {
+      final unsigned = WireTransaction.unsignedFromMessage(message);
+      final signed = await _withAuthorizedClient((client) async {
+        final result = await client.signTransactions(transactions: [unsigned]);
+        return result.signedPayloads.isEmpty
+            ? null
+            : result.signedPayloads.first;
+      });
+      if (signed == null) {
+        return MwaSignResult.failure('Wallet did not sign the transaction');
+      }
+      final tx = WireTransaction.parse(signed);
+      if (!_bytesEqual(tx.message, message)) {
+        return MwaSignResult.failure(
+          'Wallet modified the transaction — not submitted',
+        );
+      }
+      return MwaSignResult.success(tx.signatureOf(_connectedPublicKey!));
+    } catch (error, stackTrace) {
+      _logger.error(
+        'MWA transaction signing failed',
+        error: error,
+        stackTrace: stackTrace,
+        tag: 'MWA',
+      );
+      return MwaSignResult.failure(error.toString());
+    }
+  }
+
+  static bool _bytesEqual(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Disconnect wallet (clear local state)
